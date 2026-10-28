@@ -130,6 +130,26 @@ def test_a_rotated_token_at_the_edge_of_the_grace_is_accepted(service, tokens):
     tokens.mark_rotated.assert_not_called()
 
 
+def test_v1_10_a_rotated_token_in_the_grace_is_refused_after_logout_all(service, tokens, jwt_port):
+    cut = int(NOW.timestamp())
+    jwt_port.parse_token.return_value = TokenInfo(sub="u", username="", type="refresh", iat=cut - 30, exp=0)
+    tokens.find_refresh_token.return_value = revoked(revoke_reasons.ROTATED, (NOW - timedelta(seconds=10)).isoformat())
+    tokens.find_user_by_id.return_value = UserStatus(1, "u", "g", "m", "PLAYER", 2, "en", cut)
+    with pytest.raises(AuthError) as err:
+        service.refresh_session(TOKEN)
+    assert err.value.code == "SESSION_REVOKED"
+    jwt_port.generate_refresh_token.assert_not_called()
+    tokens.store_refresh_token.assert_not_called()
+
+
+def test_v1_10_a_token_issued_after_the_cut_still_refreshes(service, tokens, jwt_port):
+    cut = int(NOW.timestamp())
+    jwt_port.parse_token.return_value = TokenInfo(sub="u", username="", type="refresh", iat=cut, exp=0)
+    tokens.find_refresh_token.return_value = StoredRefreshToken(10, 1, False, (NOW + timedelta(days=5)).isoformat(), None)
+    tokens.find_user_by_id.return_value = UserStatus(1, "u", "g", "m", "PLAYER", 2, "en", cut)
+    assert service.refresh_session(TOKEN).access_token == "access-2"
+
+
 def test_a_guest_refresh_is_capped_at_180_days(service, tokens):
     tokens.find_refresh_token.return_value = StoredRefreshToken(10, 1, False, None, None)
     tokens.find_user_by_id.return_value = UserStatus(1, "u", "guest_1", "g", "PLAYER", 6)
@@ -351,8 +371,11 @@ def test_same_site_parameter_and_cookie_ages(monkeypatch):
     guest_auth_controller.set_auth_cookie(response, "pathsgames.guestcookie", "g")
     header = response.headers["set-cookie"]
     assert "Max-Age=15552000" in header and "SameSite=none" in header
-    assert Settings().cookie_same_site == "lax" and Settings().max_tokens_per_user == 12
-    assert Settings().refresh_token_days == 250
+    for name in ("COOKIE_SAME_SITE", "MAX_TOKENS_PER_USER", "REFRESH_TOKEN_DAYS"):
+        monkeypatch.delenv(name, raising=False)
+    defaults = Settings(_env_file=None)  # v1.10.0 the code defaults, whatever the local .env says
+    assert defaults.cookie_same_site == "lax" and defaults.max_tokens_per_user == 12
+    assert defaults.refresh_token_days == 250
 
 
 def test_retention_job_also_purges_the_revoked_tokens():

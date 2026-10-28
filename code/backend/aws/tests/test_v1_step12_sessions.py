@@ -116,6 +116,24 @@ def test_logout_all_refuses_older_access_tokens_with_session_revoked(mem):
     assert user is None and err[1] == 'SESSION_REVOKED'
 
 
+def test_v1_10_a_rotated_token_in_the_grace_is_refused_after_logout_all(mem):
+    session = login(mem)
+    uuid = body(session)['userUuid']
+    old = _cookie(session, 'pathsgames.refreshToken=')
+    assert refresh(old)['statusCode'] == 200  # old is now ROTATED, in the 2-minute grace
+    assert auth_tokens.in_grace(item_of(old))
+    auth_tokens.cut_sessions(uuid, auth_tokens.LOGOUT_ALL, int(time.time()) + 2)  # a cut after old was issued
+    refused = refresh(old)
+    assert refused['statusCode'] == 401 and body(refused)['error'] == 'SESSION_REVOKED'
+
+
+def test_v1_10_a_refresh_issued_after_the_cut_still_works(mem):
+    session = login(mem)
+    uuid = body(session)['userUuid']
+    mem.update_attributes(f'USER#{uuid}', 'METADATA', {'sessions_valid_after': int(time.time()) - 60})
+    assert refresh(_cookie(session, 'pathsgames.refreshToken='))['statusCode'] == 200
+
+
 def test_mock_tokens_without_iat_skip_the_check(mem, monkeypatch):
     monkeypatch.setattr(jwt_utils, 'ALLOW_MOCK_ACCESS', True)
     mem.put_item({'PK': 'USER#m', 'SK': 'METADATA', 'uuid': 'm', 'state': 2, 'sessions_valid_after': 9e12})

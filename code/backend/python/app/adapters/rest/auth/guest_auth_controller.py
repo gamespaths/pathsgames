@@ -6,7 +6,6 @@ from app.core.ports.auth.jwt_port import JwtPort
 from app.core.ports.auth.token_persistence_port import TokenPersistencePort
 
 from fastapi.responses import JSONResponse
-from app.core.services.security import rate_limit_service as _rl
 
 RATE_BUCKET = "guest"
 #: v0.41.0 — dev/test only, honoured with a valid X-Test-Marker: an N-days-old guest.
@@ -55,8 +54,8 @@ class GuestAuthController:
         # endpoints are enabled; ignored in production.
         # Step 41 — at most guest_per_ip new guests per source address and window
         if self.rate_limit_service is not None and self.guest_per_ip > 0:
-            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
-                               request.client.host if request.client else None)
+            ip = self.rate_limit_service.client_ip_of(request.headers.get("X-Forwarded-For"),
+                                                      request.client.host if request.client else None)
             verdict = self.rate_limit_service.try_acquire(RATE_BUCKET, ip, self.guest_per_ip)
             if not verdict.allowed:
                 return _rate_limited(verdict, "Too many guest sessions from this address")

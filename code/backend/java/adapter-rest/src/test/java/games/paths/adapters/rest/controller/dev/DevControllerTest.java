@@ -92,6 +92,26 @@ class DevControllerTest {
     }
 
     @Test
+    void v1_10_expireSuspension() throws Exception {
+        games.paths.core.port.auth.UserAdminPort users = mock(games.paths.core.port.auth.UserAdminPort.class);
+        when(users.expireSuspension("u-7")).thenReturn(new games.paths.core.model.auth.AdminUserActionResult(
+                "u-7", "EXPIRE_SUSPENSION", 3, "2026-10-22T09:59:59Z", false, java.util.List.of()));
+        when(users.expireSuspension("u-2")).thenThrow(new games.paths.core.model.auth.UserAdminException(
+                games.paths.core.model.auth.UserAdminException.Code.INVALID_STATE_TRANSITION, "Only a suspended user"));
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new DevController(mock(TestDataCleanupPort.class), true,
+                null, null, null, users)).build();
+        mvc.perform(post("/api/dev/users/u-7/expire-suspension")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.userUuid").value("u-7")).andExpect(jsonPath("$.state").value(3))
+                .andExpect(jsonPath("$.suspendedUntil").value("2026-10-22T09:59:59Z"));
+        mvc.perform(post("/api/dev/users/u-2/expire-suspension")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("INVALID_STATE_TRANSITION"));
+        devMvc(false, null, null, null).perform(post("/api/dev/users/u-7/expire-suspension"))
+                .andExpect(status().isForbidden());
+        devMvc(true, null, null, null).perform(post("/api/dev/users/u-7/expire-suspension"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void v120_adminTokenRefusal() throws Exception {
         games.paths.core.port.auth.AdminBootstrapPort admin = mock(games.paths.core.port.auth.AdminBootstrapPort.class);
         when(admin.createAdmin("mario")).thenThrow(new games.paths.core.model.auth.AuthException(

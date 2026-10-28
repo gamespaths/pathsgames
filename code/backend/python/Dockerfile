@@ -15,6 +15,8 @@ EXPOSE 8042 8044
 
 # Bind both uvicorn servers on all interfaces so the published ports are reachable.
 ENV HOST=0.0.0.0
+# v1.10.0 fail closed: an image started without ENV is production (PostgreSQL, secrets and dev endpoints checked).
+ENV ENV=production
 
 # Single process serving BOTH apps (public on 8042, admin on 8044) — see app/launcher.py
 CMD ["python", "-m", "app.launcher"]

@@ -1,24 +1,7 @@
-/** v1.7.0 step 12 — a non-personal flag: this device signed in with Google once (kept at logout, removed at deletion). */
+/** v1.10.0 — the flag of 1.7.0-1.9.0 (this device signed in with Google once) is retired: removed at start. */
 export const KNOWN_ACCOUNT_KEY = 'pathsgames.knownAccount'
 
-export function isKnownAccount() {
-  try {
-    return window.localStorage.getItem(KNOWN_ACCOUNT_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-/** Written at a Google login: a constant value, no identifier and no email. */
-export function markKnownAccount() {
-  try {
-    window.localStorage.setItem(KNOWN_ACCOUNT_KEY, '1')
-  } catch {
-    // storage unavailable (private mode): the hint is simply not shown
-  }
-}
-
-export function forgetKnownAccount() {
+export function purgeKnownAccount() {
   try {
     window.localStorage.removeItem(KNOWN_ACCOUNT_KEY)
   } catch {

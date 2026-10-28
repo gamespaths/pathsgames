@@ -271,7 +271,7 @@ echo_controller = EchoController(echo_service, google_login_service)
 # v0.37.7 — Step 41 security: the rate limiter and the CSRF token issuer shared by the controllers.
 from app.core.services.security.rate_limit_service import RateLimitService
 from app.core.services.security.csrf_token_service import CsrfTokenService
-rate_limit_service = RateLimitService(settings.rate_limit_window_seconds)
+rate_limit_service = RateLimitService(settings.rate_limit_window_seconds, trusted_proxies=settings.trusted_proxies)
 csrf_token_service = CsrfTokenService(settings.csrf_secret or settings.jwt_secret, settings.csrf_enforced)
 
 guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence,
@@ -421,7 +421,7 @@ for _stamped_service in (turn_cycle_service, character_command_service, time_adv
     _stamped_service.match_stamp = match_stamp_service
 
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled,
-                               admin_bootstrap_service, fake_google_tokens, account_service)
+                               admin_bootstrap_service, fake_google_tokens, account_service, user_admin_service)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -479,9 +479,10 @@ if settings.is_dev_or_test:
 def _cors_params():
     # v0.41.0 — Retry-After is exposed, so the browser can read it on a 429
     if settings.cors_allowed_origins == "*":
+        # v1.10.0 any origin, never with credentials: a foreign page cannot read a refresh answer
         return {
-            "allow_origin_regex": r".*",
-            "allow_credentials": True,
+            "allow_origins": ["*"],
+            "allow_credentials": False,
             "allow_methods": ["*"],
             "allow_headers": ["*"],
             "expose_headers": ["Retry-After"],

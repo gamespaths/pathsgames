@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # v0.42.0 — creates (or updates with a new default version) the IAM managed policy `paths-games-deployer` used by GitHub Actions for alpha.
-# Usage: aws_create_policy_github_actions.sh [--dry-run] [--account-id ID] [--attach-user USER [--detach-full]]
+# Usage: aws_create_policy_github_actions.sh [--dry-run] [--account-id ID] [--boundary prepare|enforce] [--attach-user USER [--detach-full]]
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
@@ -12,8 +12,14 @@ fi
 SAMCONFIG="$PROJECT_ROOT/code/backend/aws/samconfig.toml"
 POLICY_NAME="paths-games-deployer"
 
+BOUNDARY_NAME="paths-games-alpha-lambda-boundary"
+
 usage() { sed -n '2,3p' "$0" | sed 's/^# \{0,1\}//'; }
 
+# v1.10.0 the permissions boundary of the Lambda and scheduler roles, in two steps: "prepare" creates it and lets
+# the deploy put it on the roles; after one alpha deploy with AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN, "enforce"
+# makes every role write need it (a leaked deployer key can no longer create an admin role).
+BOUNDARY=""
 DRY_RUN=false
 ACCOUNT_ID=""
 ATTACH_USER=""
@@ -24,10 +30,15 @@ while [ $# -gt 0 ]; do
 		--account-id) ACCOUNT_ID="${2:-}"; shift 2 ;;
 		--attach-user) ATTACH_USER="${2:-}"; shift 2 ;;
 		--detach-full) DETACH_FULL=true; shift ;;
+		--boundary) BOUNDARY="${2:-}"; shift 2 ;;
 		-h|--help) usage; exit 0 ;;
 		*) echo "Error: unknown argument '$1'." >&2; usage >&2; exit 2 ;;
 	esac
 done
+case "$BOUNDARY" in
+	""|prepare|enforce) ;;
+	*) echo "Error: --boundary takes prepare or enforce." >&2; exit 2 ;;
+esac
 if [ "$DETACH_FULL" = true ] && [ -z "$ATTACH_USER" ]; then
 	echo "Error: --detach-full needs --attach-user." >&2
 	exit 2
@@ -66,12 +77,33 @@ fi
 
 # Least-privilege document: SAM deploy of the alpha stack + react-game sync and invalidation (replaces S3/CloudFront FullAccess).
 POLICY_FILE="$(mktemp)"
-trap 'rm -f "$POLICY_FILE"' EXIT
+BOUNDARY_FILE="$(mktemp)"
+trap 'rm -f "$POLICY_FILE" "$BOUNDARY_FILE"' EXIT
 python3 - "$POLICY_FILE" "$ACCOUNT_ID" "$REGION" "$STACK" "$ARTIFACT_BUCKET" "$ARTIFACT_PREFIX" \
-	"$WEBSITE_BUCKET" "$DISTRIBUTION_ID" "$HOSTED_ZONE_ID" <<'PY'
+	"$WEBSITE_BUCKET" "$DISTRIBUTION_ID" "$HOSTED_ZONE_ID" "$BOUNDARY" "$BOUNDARY_NAME" "$BOUNDARY_FILE" <<'PY'
 import json, sys
-out, acct, region, stack, art_bucket, art_prefix, web_bucket, dist_id, zone = sys.argv[1:]
+out, acct, region, stack, art_bucket, art_prefix, web_bucket, dist_id, zone, boundary, boundary_name, \
+    boundary_out = sys.argv[1:]
 arn = lambda svc, res, reg=region: f"arn:aws:{svc}:{reg}:{acct}:{res}"
+role_arn = f"arn:aws:iam::{acct}:role/{stack}-*"
+boundary_arn = f"arn:aws:iam::{acct}:policy/{boundary_name}"
+with_boundary = {"StringEquals": {"iam:PermissionsBoundary": boundary_arn}}
+# v1.10.0 role writes: with "enforce" only for roles carrying the boundary; UpdateAssumeRolePolicy never
+role_writes = ["iam:CreateRole", "iam:PutRolePolicy", "iam:AttachRolePolicy", "iam:DeleteRolePolicy",
+               "iam:DetachRolePolicy"]
+role_reads = ["iam:DeleteRole", "iam:GetRole", "iam:UpdateRole", "iam:TagRole", "iam:UntagRole", "iam:GetRolePolicy",
+              "iam:ListRolePolicies", "iam:ListAttachedRolePolicies"]
+if boundary == "enforce":
+    iam_roles = [{"Sid": "IamRoles", "Effect": "Allow", "Action": role_reads, "Resource": role_arn},
+                 {"Sid": "IamRoleWrites", "Effect": "Allow", "Action": role_writes + ["iam:PutRolePermissionsBoundary"],
+                  "Resource": role_arn, "Condition": with_boundary}]
+else:
+    iam_roles = [{"Sid": "IamRoles", "Effect": "Allow", "Action": role_reads + role_writes, "Resource": role_arn}]
+    if boundary == "prepare":
+        iam_roles.append({"Sid": "IamPutBoundary", "Effect": "Allow", "Action": "iam:PutRolePermissionsBoundary",
+                          "Resource": role_arn, "Condition": with_boundary})
+iam_roles.append({"Sid": "IamDeny", "Effect": "Deny",
+                  "Action": ["iam:UpdateAssumeRolePolicy", "iam:DeleteRolePermissionsBoundary"], "Resource": "*"})
 statements = [
     {"Sid": "CloudFormation", "Effect": "Allow", "Action": "cloudformation:*",
      "Resource": arn("cloudformation", f"stack/{stack}*/*")},
@@ -91,12 +123,7 @@ statements = [
      "Resource": f"arn:aws:apigateway:{region}::/*"},
     {"Sid": "DynamoDB", "Effect": "Allow", "Action": "dynamodb:*",
      "Resource": arn("dynamodb", "table/PathsGamesBackend-alpha*")},
-    {"Sid": "IamRoles", "Effect": "Allow",
-     "Action": ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole", "iam:TagRole", "iam:UntagRole",
-                "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
-                "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:ListAttachedRolePolicies",
-                "iam:UpdateAssumeRolePolicy"],
-     "Resource": f"arn:aws:iam::{acct}:role/{stack}-*"},
+    *iam_roles,
     {"Sid": "PassRoleToServices", "Effect": "Allow", "Action": "iam:PassRole",
      "Resource": f"arn:aws:iam::{acct}:role/{stack}-*",
      "Condition": {"StringEquals": {"iam:PassedToService": ["lambda.amazonaws.com", "scheduler.amazonaws.com"]}}},
@@ -136,36 +163,62 @@ if len(text) > 6144:
     sys.exit(f"Error: the policy is {len(text)} characters, over the 6144 IAM limit.")
 open(out, "w").write(json.dumps(doc, indent=2) + "\n")
 print(f"Policy document: {len(statements)} statements, {len(text)}/6144 characters.", file=sys.stderr)
+# v1.10.0 the most any Lambda or scheduler role of the stack may do: no IAM, STS or account actions.
+open(boundary_out, "w").write(json.dumps({"Version": "2012-10-17", "Statement": [
+    {"Sid": "LambdaRuntime", "Effect": "Allow",
+     "Action": ["dynamodb:*", "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents",
+                "s3:GetObject", "s3:PutObject", "cloudfront:CreateInvalidation", "sns:Publish",
+                "lambda:InvokeFunction", "xray:PutTraceSegments", "xray:PutTelemetryRecords",
+                "ssm:GetParameter", "ssm:GetParameters", "kms:Decrypt"],
+     "Resource": "*"}]}, indent=2) + "\n")
 PY
 
 POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${POLICY_NAME}"
-echo "Policy $POLICY_NAME — stack $STACK ($REGION), artifacts s3://$ARTIFACT_BUCKET/$ARTIFACT_PREFIX, website s3://$WEBSITE_BUCKET, distribution $DISTRIBUTION_ID, zone $HOSTED_ZONE_ID"
+BOUNDARY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${BOUNDARY_NAME}"
+echo "Policy $POLICY_NAME — stack $STACK ($REGION), artifacts s3://$ARTIFACT_BUCKET/$ARTIFACT_PREFIX, website s3://$WEBSITE_BUCKET, distribution $DISTRIBUTION_ID, zone $HOSTED_ZONE_ID, boundary ${BOUNDARY:-off}"
 if [ "$DRY_RUN" = true ]; then
 	cat "$POLICY_FILE"
+	if [ -n "$BOUNDARY" ]; then
+		echo "Boundary $BOUNDARY_NAME:"
+		cat "$BOUNDARY_FILE"
+	fi
 	echo "Dry run: nothing created."
 	exit 0
 fi
 
-if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
-	# Max 5 versions: drop the oldest non-default one before adding the new default.
-	_versions="$(aws iam list-policy-versions --policy-arn "$POLICY_ARN" \
-		--query 'Versions[?IsDefaultVersion==`false`].VersionId' --output text)"
-	_count="$(aws iam list-policy-versions --policy-arn "$POLICY_ARN" --query 'length(Versions)' --output text)"
-	if [ "$_count" -ge 5 ]; then
-		_oldest="$(printf '%s\n' $_versions | sort -V | head -1)"
-		echo "Deleting old policy version $_oldest (limit 5)."
-		aws iam delete-policy-version --policy-arn "$POLICY_ARN" --version-id "$_oldest"
+# Create the managed policy, or add a new default version (max 5: the oldest non-default one goes first).
+upsert_policy() {
+	local name="$1" arn="$2" file="$3" description="$4"
+	if aws iam get-policy --policy-arn "$arn" > /dev/null 2>&1; then
+		_versions="$(aws iam list-policy-versions --policy-arn "$arn" \
+			--query 'Versions[?IsDefaultVersion==`false`].VersionId' --output text)"
+		_count="$(aws iam list-policy-versions --policy-arn "$arn" --query 'length(Versions)' --output text)"
+		if [ "$_count" -ge 5 ]; then
+			_oldest="$(printf '%s\n' $_versions | sort -V | head -1)"
+			echo "Deleting old policy version $_oldest of $name (limit 5)."
+			aws iam delete-policy-version --policy-arn "$arn" --version-id "$_oldest"
+		fi
+		aws iam create-policy-version --policy-arn "$arn" \
+			--policy-document "file://$file" --set-as-default > /dev/null
+		echo "Updated $arn (new default version)."
+	else
+		aws iam create-policy --policy-name "$name" --description "$description" \
+			--policy-document "file://$file" \
+			--tags Key=Name,Value="$name" Key=CostCenter,Value=Paths.games Key=Environment,Value=alpha \
+			Key=ManagedBy,Value=Script Key=Owner,Value=AlNao Key=Project,Value=Paths.games.aws.alpha.serverless > /dev/null
+		echo "Created $arn."
 	fi
-	aws iam create-policy-version --policy-arn "$POLICY_ARN" \
-		--policy-document "file://$POLICY_FILE" --set-as-default > /dev/null
-	echo "Updated $POLICY_ARN (new default version)."
-else
-	aws iam create-policy --policy-name "$POLICY_NAME" \
-		--description "Paths Games - GitHub Actions deploy of the alpha stack and website (v0.42.0)" \
-		--policy-document "file://$POLICY_FILE" \
-		--tags Key=Name,Value="$POLICY_NAME" Key=CostCenter,Value=Paths.games Key=Environment,Value=alpha \
-		Key=ManagedBy,Value=Script Key=Owner,Value=AlNao Key=Project,Value=Paths.games.aws.alpha.serverless > /dev/null
-	echo "Created $POLICY_ARN."
+}
+
+if [ -n "$BOUNDARY" ]; then
+	upsert_policy "$BOUNDARY_NAME" "$BOUNDARY_ARN" "$BOUNDARY_FILE" \
+		"Paths Games - permissions boundary of the alpha Lambda and scheduler roles (v1.10.0)"
+fi
+upsert_policy "$POLICY_NAME" "$POLICY_ARN" "$POLICY_FILE" \
+	"Paths Games - GitHub Actions deploy of the alpha stack and website (v0.42.0)"
+if [ "$BOUNDARY" = prepare ]; then
+	echo "Next: set AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN=$BOUNDARY_ARN (GitHub variable too), deploy alpha once,"
+	echo "      then run this script again with --boundary enforce."
 fi
 
 if [ -n "$ATTACH_USER" ]; then

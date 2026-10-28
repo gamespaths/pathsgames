@@ -70,11 +70,12 @@ echo "Server $API_URL is up and running."
 
 # v1.8.0 — the admin allow-list gets the IPs AWS and Cloudflare see now (ROBOT_SKIP_ADMIN_IP=true keeps the stack list).
 if [ "${ROBOT_SKIP_ADMIN_IP:-false}" != "true" ]; then
+    echo "Updating the admin allow-list with the current IPs (AWS and Cloudflare) ..."  
     if ! "$PROJECT_ROOT/code/scripts/test/aws/aws_set_admin_ip.sh" "$AWS_TEST_SAM_ENVIRONMENT_NAME" \
         --stack "$AWS_TEST_SAM_STACK_NAME" --region "$AWS_TEST_REGION"; then
         echo "WARNING: the admin allow-list could not be updated, the admin tests may answer 403." >&2
     fi
-fi
+fi #code/scripts/test/aws/aws_set_admin_ip.sh test
 
 # v0.41.0 — a 403 on the admin echo means this IP is not in the stack allow-list (AdminIpEmptyMeans=nobody).
 ADMIN_ECHO_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$ADMIN_API_URL/api/echo/status" || true)
@@ -124,6 +125,8 @@ robot --variablefile variables/aws.yaml \
     --variable BASE_URL:"$API_URL" \
     --variable ADMIN_BASE_URL:"$ADMIN_API_URL" \
     --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
+    --variable MAX_SESSIONS:"${AWS_TEST_LAMBDA_MAX_SESSIONS_PER_USER:-12}" \
+    --variable EXPECTED_SAME_SITE:"${AWS_TEST_LAMBDA_COOKIE_SAME_SITE:-None}" \
     --outputdir reports-aws/ tests_v*/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),

@@ -209,6 +209,20 @@ def test_suspend_limits(deps):
     assert code_of(lambda: s.suspend("a", "u-7", "2026-11-01", "r")) == "INVALID_STATE_TRANSITION"
 
 
+def test_v1_10_expire_suspension_moves_the_end_one_second_back_without_a_log_row(deps):
+    s = service(deps)
+    deps["persistence"].find_by_uuid.return_value = item(state=3, until="2026-11-01T00:00:00Z")
+    r = s.expire_suspension("u-7")
+    assert r.state == 3 and r.suspended_until == "2026-10-22T09:59:59Z"
+    deps["persistence"].update_state_and_suspension.assert_called_with(7, 3, "2026-10-22T09:59:59Z")
+    deps["state"].evict.assert_called_with("u-7")
+    deps["log"].record.assert_not_called()
+    deps["persistence"].find_by_uuid.return_value = item(state=2)
+    assert code_of(lambda: s.expire_suspension("u-7")) == "INVALID_STATE_TRANSITION"
+    deps["persistence"].find_by_uuid.return_value = None
+    assert code_of(lambda: s.expire_suspension("nope")) == "USER_NOT_FOUND"
+
+
 def test_unblock_relink_and_deletion(deps):
     s = service(deps)
     deps["persistence"].find_by_uuid.return_value = item(state=4)
@@ -353,7 +367,7 @@ def test_login_admits_a_user_found_by_email(login_deps):
 def test_refresh_uses_the_guard():
     jwt, tokens, g = MagicMock(), MagicMock(), MagicMock()
     jwt.validate_token.return_value = True
-    jwt.parse_token.return_value = SimpleNamespace(is_refresh_token=lambda: True, user_uuid="u8")
+    jwt.parse_token.return_value = SimpleNamespace(is_refresh_token=lambda: True, user_uuid="u8", iat=0)
     jwt.get_refresh_token_expiration_ms.return_value = int(NOW.timestamp() * 1000) + 600000
     jwt.generate_refresh_token.return_value = "new-refresh"
     jwt.generate_access_token.return_value = "new-access"

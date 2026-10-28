@@ -237,6 +237,20 @@ class UserAdminServiceTest {
     }
 
     @Test
+    void v1_10_expireSuspensionMovesTheEndOneSecondBackWithoutALogRow() {
+        known(user(3, "PLAYER"));
+        AdminUserActionResult r = service.expireSuspension("u-7");
+        assertEquals("2026-10-22T09:59:59Z", r.suspendedUntil());
+        assertEquals(UserStates.BLOCKED, r.state());
+        verify(persistence).updateStateAndSuspension(7L, UserStates.BLOCKED, "2026-10-22T09:59:59Z");
+        verify(userState).evict("u-7");
+        verifyNoInteractions(log);
+        known(user(2, "PLAYER"));
+        assertCode(UserAdminException.Code.INVALID_STATE_TRANSITION, () -> service.expireSuspension("u-7"));
+        assertCode(UserAdminException.Code.USER_NOT_FOUND, () -> service.expireSuspension("nope"));
+    }
+
+    @Test
     void suspendRefusals() {
         known(user(2, "PLAYER"));
         assertCode(UserAdminException.Code.SUSPEND_UNTIL_INVALID, () -> service.suspend("a", "u-7", null, "r"));

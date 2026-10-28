@@ -45,6 +45,8 @@ public class UserAdminService implements UserAdminPort {
     public static final int MAX_LIMIT = 200;
     public static final int SUSPEND_MAX_DAYS = 90;
     private static final String SEP = "|";
+    /** v1.10.0 the action name of the dev-only expireSuspension answer (never in the intervention log). */
+    static final String EXPIRE_SUSPENSION = "EXPIRE_SUSPENSION";
 
     private final IdentityPersistencePort identities;
     private final UserAdminPersistencePort persistence;
@@ -207,6 +209,18 @@ public class UserAdminService implements UserAdminPort {
         String bound = clock.instant().atOffset(ZoneOffset.UTC).minusMonths(AdminActions.RETENTION_MONTHS)
                 .toInstant().toString();
         return interventions.deleteOlderThan(bound);
+    }
+
+    @Override
+    public AdminUserActionResult expireSuspension(String userUuid) {
+        AdminUserItem user = existing(userUuid);
+        if (user.state() != UserStates.BLOCKED) {
+            throw new UserAdminException(Code.INVALID_STATE_TRANSITION, "Only a suspended user");
+        }
+        String end = clock.instant().minusSeconds(1).toString();
+        persistence.updateStateAndSuspension(user.id(), UserStates.BLOCKED, end);
+        userState.evict(user.uuid());
+        return new AdminUserActionResult(user.uuid(), EXPIRE_SUSPENSION, UserStates.BLOCKED, end, false, List.of());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

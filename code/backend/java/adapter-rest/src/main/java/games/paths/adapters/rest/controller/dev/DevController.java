@@ -2,15 +2,19 @@ package games.paths.adapters.rest.controller.dev;
 
 import games.paths.core.model.dev.CleanupResult;
 import games.paths.core.model.auth.AdminBootstrapResult;
+import games.paths.core.model.auth.AdminUserActionResult;
 import games.paths.core.model.auth.AuthException;
+import games.paths.core.model.auth.UserAdminException;
 import games.paths.core.port.auth.AccountPort;
 import games.paths.core.port.auth.AdminBootstrapPort;
+import games.paths.core.port.auth.UserAdminPort;
 import games.paths.core.port.dev.FakeGoogleTokenPort;
 import games.paths.core.port.dev.TestDataCleanupPort;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,22 +46,30 @@ public class DevController {
     private final AdminBootstrapPort adminBootstrapPort;
     private final FakeGoogleTokenPort fakeGoogleTokenPort;
     private final AccountPort accountPort;
+    private final UserAdminPort userAdminPort;
 
     public DevController(TestDataCleanupPort testDataCleanupPort, boolean testEndpointsEnabled) {
-        this(testDataCleanupPort, testEndpointsEnabled, null, null, null);
+        this(testDataCleanupPort, testEndpointsEnabled, null, null, null, null);
     }
 
-    /** v1.2.0 Robot's admin token, the fake Google provider and the account jobs, all test-only. */
+    public DevController(TestDataCleanupPort testDataCleanupPort, boolean testEndpointsEnabled,
+                         AdminBootstrapPort adminBootstrapPort, FakeGoogleTokenPort fakeGoogleTokenPort,
+                         AccountPort accountPort) {
+        this(testDataCleanupPort, testEndpointsEnabled, adminBootstrapPort, fakeGoogleTokenPort, accountPort, null);
+    }
+
+    /** v1.2.0 Robot's admin token, the fake Google provider and the account jobs; v1.10.0 suspension end. */
     @org.springframework.beans.factory.annotation.Autowired
     public DevController(TestDataCleanupPort testDataCleanupPort,
                          @Value("${game.dev.test-endpoints-enabled:false}") boolean testEndpointsEnabled,
                          AdminBootstrapPort adminBootstrapPort, FakeGoogleTokenPort fakeGoogleTokenPort,
-                         AccountPort accountPort) {
+                         AccountPort accountPort, UserAdminPort userAdminPort) {
         this.testDataCleanupPort = testDataCleanupPort;
         this.testEndpointsEnabled = testEndpointsEnabled;
         this.adminBootstrapPort = adminBootstrapPort;
         this.fakeGoogleTokenPort = fakeGoogleTokenPort;
         this.accountPort = accountPort;
+        this.userAdminPort = userAdminPort;
     }
 
     /**
@@ -121,6 +133,24 @@ public class DevController {
             return disabled();
         }
         return ResponseEntity.ok(Map.of("deletedUsers", accountPort.runDeletionJob()));
+    }
+
+    /** POST /api/dev/users/{uuid}/expire-suspension - v1.10.0 the suspension ends now (Robot auto-unblock). */
+    @PostMapping("/users/{userUuid}/expire-suspension")
+    public ResponseEntity<Object> expireSuspension(@PathVariable String userUuid) {
+        if (!testEndpointsEnabled || userAdminPort == null) {
+            return disabled();
+        }
+        try {
+            AdminUserActionResult result = userAdminPort.expireSuspension(userUuid);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("userUuid", result.uuid());
+            body.put("state", result.state());
+            body.put("suspendedUntil", result.suspendedUntil());
+            return ResponseEntity.ok(body);
+        } catch (UserAdminException e) {
+            return error(HttpStatus.valueOf(e.getCode().httpStatus()), e.getCode().name(), e.getMessage());
+        }
     }
 
     private static ResponseEntity<Object> disabled() {

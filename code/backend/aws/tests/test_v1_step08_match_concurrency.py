@@ -140,6 +140,29 @@ def test_transact_put_items_sends_each_value_serialized_once():
     assert put['Item']['ts_update'] == {'N': '42'} and put['ExpressionAttributeValues'] == {':ts': {'N': '42'}}
 
 
+def _cancelled(*codes):
+    return ClientError({'Error': {'Code': 'TransactionCanceledException', 'Message': 'cancelled'},
+                        'CancellationReasons': [{'Code': c} for c in codes]}, 'TransactWriteItems')
+
+
+def test_v1_10_a_false_condition_is_never_retried():
+    table, sleeps = _fake_table(), []
+    table.meta.client.transact_write_items.side_effect = _cancelled('ConditionalCheckFailed', 'None')
+    with patch.object(db_utils, '_table', table):
+        with pytest.raises(db_utils.TransactConditionFailed) as err:
+            helpers.REAL_TRANSACT_PUT([{'PK': 'MATCH#m1', 'SK': 'METADATA'}], {('MATCH#m1', 'METADATA'): 1},
+                                      sleep=sleeps.append)
+    assert err.value.chunk == 0 and sleeps == [] and table.meta.client.transact_write_items.call_count == 1
+
+
+def test_v1_10_a_transaction_conflict_is_retried_and_logged(caplog):
+    table, sleeps = _fake_table(), []
+    table.meta.client.transact_write_items.side_effect = [_cancelled('None', 'TransactionConflict'), None]
+    with patch.object(db_utils, '_table', table), caplog.at_level(logging.WARNING, logger='pathsgames.db'):
+        assert helpers.REAL_TRANSACT_PUT([{'PK': 'MATCH#m1', 'SK': 'METADATA'}], sleep=sleeps.append) is True
+    assert sleeps == [db_utils.TRANSACT_BACKOFF_SECONDS] and 'TRANSACT_RETRY chunk=0 attempt=1' in caplog.text
+
+
 def test_a_chunk_that_keeps_failing_raises():
     table, sleeps = _fake_table(), []
     table.meta.client.transact_write_items.side_effect = _client_error('InternalServerError')
@@ -198,10 +221,58 @@ def test_a_stale_expected_version_or_a_lost_race_is_refused(store):
 def test_a_failed_chunk_is_a_write_failure(store):
     repo.begin()
     repo.claim('m1', 300_000)
-    store.store[('MATCH#m1', 'METADATA')]['ts_update'] = 1  # the condition of the first chunk fails
-    with pytest.raises(repo.WriteFailed) as err:
-        repo.flush()
+    with patch.object(db_utils, 'transact_put_items', side_effect=db_utils.TransactWriteFailed(1, 3, 'boom')):
+        with pytest.raises(repo.WriteFailed) as err:
+            repo.flush()
     assert err.value.match_uuid == 'm1'
+
+
+def test_v1_10_a_moved_version_at_the_flush_is_stale(store):
+    repo.begin()
+    repo.claim('m1', 300_000)
+    store.store[('MATCH#m1', 'METADATA')]['ts_update'] = V0 + 99  # an admin write after the claim
+    with pytest.raises(repo.StaleMatch) as err:
+        repo.flush()
+    assert err.value.match_uuid == 'm1' and err.value.current_version == str(V0 + 99)
+
+
+def test_v1_10_a_condition_failure_reports_the_claimed_version_when_nothing_moved(store):
+    repo.begin()
+    version = int(repo.claim('m1', 300_000))
+    with patch.object(db_utils, 'transact_put_items', side_effect=db_utils.TransactConditionFailed(0, 'x')):
+        with pytest.raises(repo.StaleMatch) as err:
+            repo.flush()
+    assert err.value.current_version == str(version)
+
+
+def test_v1_10_a_condition_failure_after_the_first_chunk_is_a_write_failure(store):
+    repo.begin()
+    repo.claim('m1', 300_000)
+    with patch.object(db_utils, 'transact_put_items', side_effect=db_utils.TransactConditionFailed(2, 'x')):
+        with pytest.raises(repo.WriteFailed):
+            repo.flush()
+
+
+def test_v1_10_an_admin_touch_of_a_dirty_metadata_beats_the_stored_stamp(store):
+    repo.begin()
+    db_utils.set_request_stamp(V0 - 5)  # this Lambda's clock is behind the last write
+    meta = repo.match('m1')
+    repo.save(meta)
+    assert repo.touch('m1') is True
+    assert db_utils.stamp_ms() == V0 + 1
+    stamps = []
+    with patch.object(db_utils, 'batch_put_items', side_effect=lambda items: stamps.append(db_utils.stamp_ms())):
+        repo.flush()
+    assert stamps == [V0 + 1]
+
+
+def test_v1_10_an_admin_touch_keeps_a_newer_request_stamp(store):
+    repo.begin()
+    db_utils.set_request_stamp(V0 + 500)
+    repo.save(repo.match('m1'))
+    assert repo.touch('m1') is True
+    assert db_utils.stamp_ms() == V0 + 500
+    repo.abandon()
 
 
 def test_abandon_writes_nothing_and_unknown_matches_claim_nothing(store):
@@ -287,6 +358,23 @@ def test_a_failed_write_answers_500_with_an_error_log(caplog):
             result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
     assert result['statusCode'] == 500 and _body(result)['error'] == 'WRITE_FAILED'
     assert 'MATCH_WRITE_FAILED match=m1' in caplog.text
+
+
+def test_v1_10_an_admin_write_between_claim_and_flush_answers_409_not_500():
+    items = [PLAYER, _match('RUNNING'), _char(1, 'c1')]
+    with _env(items) as table:
+        real_claim = db_utils.claim_version
+
+        def claim_then_admin(pk, old, new, *args, **kwargs):
+            done = real_claim(pk, old, new, *args, **kwargs)
+            table.store[('MATCH#m1', 'METADATA')]['ts_update'] = new + 5  # an admin touch lands meanwhile
+            return done
+
+        with patch.object(db_utils, 'claim_version', side_effect=claim_then_admin):
+            result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+        assert result['statusCode'] == 409
+        body = _body(result)
+        assert body['error'] == 'STALE_MATCH' and body['matchVersion'] == str(_ts(table))
 
 
 def test_a_claim_without_a_json_object_body_keeps_the_answer():

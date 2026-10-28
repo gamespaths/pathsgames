@@ -468,11 +468,14 @@ def refresh(token):
     state refusals."""
     if not token:
         return None
+    claims = None
     if token.startswith('MOCK_REFRESH_'):
         if not jwt_utils.ALLOW_MOCK_ACCESS:
             return None
-    elif not jwt_utils.decode_refresh_token(token):
-        return None
+    else:
+        claims = jwt_utils.decode_refresh_token(token)
+        if not claims:
+            return None
     item = auth_tokens.find_refresh(token)
     now = _now_ms()
     if item is None or (item.get('expires_at') and now > int(item['expires_at'])) \
@@ -489,6 +492,10 @@ def refresh(token):
     if user is None:
         return None
     user = admit(user)
+    # v1.10.0 issued before the last "log out of all devices": refused also in the grace (state refusals first)
+    valid_after, issued_at = user.get('sessions_valid_after'), (claims or {}).get('iat')
+    if valid_after and issued_at is not None and int(issued_at) < int(valid_after):
+        raise AuthError('SESSION_REVOKED', 'The session was closed')
     if not item.get('revoked'):
         auth_tokens.mark_rotated(item, now)
     touch_last_access(user, now)

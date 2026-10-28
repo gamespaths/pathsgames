@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -55,6 +59,7 @@ Parameters:
     Default: "en,it"
 
 Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
   HasWebsiteBucket: !Not [!Equals [!Ref WebsiteBucket, ""]]
   HasWebsiteCloudFront: !Not [!Equals [!Ref WebsiteCloudFrontId, ""]]
 
@@ -85,6 +90,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: StoryLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-StoryFunction"
       Runtime: python3.13
       Architectures: [arm64]

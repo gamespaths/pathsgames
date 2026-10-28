@@ -48,7 +48,7 @@ public class GoogleAuthController {
     public ResponseEntity<Object> login(@RequestBody(required = false) Map<String, Object> body,
                                         HttpServletRequest request, HttpServletResponse response) {
         if (rateLimitService != null && googlePerIp > 0) {
-            String ip = RateLimitService.clientIp(request.getHeader("X-Forwarded-For"), request.getRemoteAddr());
+            String ip = rateLimitService.clientIpOf(request.getHeader("X-Forwarded-For"), request.getRemoteAddr());
             RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, googlePerIp);
             if (!verdict.allowed()) {
                 ResponseEntity<Object> limited = AuthErrors.of(429, "RATE_LIMITED",

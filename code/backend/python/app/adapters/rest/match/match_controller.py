@@ -14,7 +14,6 @@ from app.core.models.match.match_models import (
 from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
 from app.core.services.security import csrf_token_service as _csrf
-from app.core.services.security import rate_limit_service as _rl
 
 
 _STATUS_BY_CODE = {
@@ -365,8 +364,8 @@ class MatchController:
                               f"{_csrf.HEADER} does not match the access token", 403)
         # Step 41 — at most match_per_ip new matches per source address and window
         if self.rate_limit_service is not None and self.match_per_ip > 0:
-            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
-                               request.client.host if request.client else None)
+            ip = self.rate_limit_service.client_ip_of(request.headers.get("X-Forwarded-For"),
+                                                      request.client.host if request.client else None)
             verdict = self.rate_limit_service.try_acquire("match", ip, self.match_per_ip)
             if not verdict.allowed:
                 return _rate_limited(verdict, "Too many matches created from this address")

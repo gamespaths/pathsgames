@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -38,6 +42,9 @@ Parameters:
     Type: String
     Default: "paths-games-dev.apps.googleusercontent.com"
 
+Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
+
 Resources:
   SeedLogGroup:
     Type: AWS::Logs::LogGroup
@@ -65,6 +72,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: SeedLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-SeedFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -149,6 +157,16 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "POST /api/dev/jobs/account-deletion"
+      Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v1.10.0 — Robot ends a suspension now to test the automatic unblock.
+  DevExpireSuspensionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/dev/users/{userUuid}/expire-suspension"
       Target: !Sub "integrations/${SeedIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

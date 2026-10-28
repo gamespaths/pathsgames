@@ -4936,6 +4936,9 @@ def _route(event, context):
         response = _stamp_match(event, _dispatch(event))
         _repo.flush()
         return response
+    except _repo.StaleMatch as exc:
+        # v1.10.0 the claimed version moved before the flush: 409, nothing of the request landed
+        return _stale(exc.current_version)
     except _repo.WriteFailed as exc:
         _kpi.begin()
         _LOGGER.error('MATCH_WRITE_FAILED match=%s cause=%s', exc.match_uuid, exc.cause)

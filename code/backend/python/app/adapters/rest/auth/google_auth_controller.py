@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 from app.adapters.rest.auth.auth_errors import auth_error_response
 from app.adapters.rest.auth.guest_auth_controller import _rate_limited, set_auth_cookie
 from app.core.models.auth.auth_error import AuthError
-from app.core.services.security import rate_limit_service as _rl
 
 RATE_BUCKET = "google"
 
@@ -29,8 +28,8 @@ class GoogleAuthController:
 
     def login(self, request: Request, body: Optional[Dict[str, Any]] = Body(default=None)):
         if self.rate_limit_service is not None and self.google_per_ip > 0:
-            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
-                               request.client.host if request.client else None)
+            ip = self.rate_limit_service.client_ip_of(request.headers.get("X-Forwarded-For"),
+                                                      request.client.host if request.client else None)
             verdict = self.rate_limit_service.try_acquire(RATE_BUCKET, ip, self.google_per_ip)
             if not verdict.allowed:
                 return _rate_limited(verdict, "Too many sign-in attempts from this address")

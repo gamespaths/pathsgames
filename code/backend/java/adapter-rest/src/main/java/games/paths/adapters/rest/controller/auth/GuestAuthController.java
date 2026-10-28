@@ -80,7 +80,7 @@ public class GuestAuthController {
             HttpServletResponse httpResponse) {
         // Step 41 — at most guest-per-ip new guests per source address and window
         if (rateLimitService != null && guestPerIp > 0) {
-            String ip = RateLimitService.clientIp(httpRequest.getHeader("X-Forwarded-For"),
+            String ip = rateLimitService.clientIpOf(httpRequest.getHeader("X-Forwarded-For"),
                     httpRequest.getRemoteAddr());
             RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, guestPerIp);
             if (!verdict.allowed()) {

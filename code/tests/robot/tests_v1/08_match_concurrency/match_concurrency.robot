@@ -3,6 +3,7 @@
 # logins): matchVersion at every write, If-Match, 409 STALE_MATCH with nothing written, terminal first, races.
 Resource   ../../resources/google_sso.resource
 Resource   ../../resources/matches.resource
+Resource   concurrency_common.resource
 Library    ../../resources/ParallelWriteHelper.py
 
 Suite Setup       Match Concurrency Suite Setup
@@ -113,33 +114,6 @@ Match Concurrency Suite Setup
     Set Suite Variable    ${CHARACTER_UUID}   ${character}
     Set Suite Variable    ${CLASS_UUID}       ${class}
     Set Suite Variable    ${TRAIT_UUID}       ${trait}
-
-Two Devices Of One Player
-    [Documentation]    One new fake Google account logged in twice: two access tokens of the same user.
-    ${email}    ${sub}=    New Robot Gmail
-    ${first}=    Fake Google Token    sub=${sub}    email=${email}    nonce=robot-nonce    given_name=Robot
-    ${a}=    Google Login    ${first}
-    Status Should Be    ${a}    200
-    ${second}=    Fake Google Token    sub=${sub}    email=${email}    nonce=robot-nonce    given_name=Robot
-    ${b}=    Google Login    ${second}
-    Status Should Be    ${b}    200
-    Should Be Equal    ${a.json()}[userUuid]    ${b.json()}[userUuid]
-    RETURN    ${a.json()}[accessToken]    ${b.json()}[accessToken]
-
-If Match Headers
-    [Arguments]    ${token}    ${version}
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
-    IF    '${version}' != ''    Set To Dictionary    ${headers}    If-Match=${version}
-    RETURN    ${headers}
-
-Versioned Write
-    [Documentation]    POST a gameplay write with If-Match (none when the version is empty).
-    [Arguments]    ${token}    ${path}    ${version}
-    ${headers}=    If Match Headers    ${token}    ${version}
-    ${resp}=    POST On Session    public_session    ${path}    headers=${headers}
-    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
-    RETURN    ${resp}
 
 Versioned Join
     [Documentation]    POST /join with the story loadout and If-Match.

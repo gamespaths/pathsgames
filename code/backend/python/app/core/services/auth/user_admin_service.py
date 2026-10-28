@@ -17,6 +17,8 @@ DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
 SUSPEND_MAX_DAYS = 90
 SEP = "|"
+#: v1.10.0 the action name of the dev-only expire_suspension answer (never in the intervention log)
+EXPIRE_SUSPENSION = "EXPIRE_SUSPENSION"
 
 
 def clamp(limit) -> int:
@@ -180,6 +182,16 @@ class UserAdminService:
         now = self.clock()
         bound = _minus_months(now, ua.RETENTION_MONTHS)
         return self.interventions.delete_older_than(iso(bound))
+
+    def expire_suspension(self, user_uuid) -> AdminUserActionResult:
+        """v1.10.0 dev/test only (Robot): the suspension of a suspended user ends one second ago, no log row."""
+        user = self._existing(user_uuid)
+        if user.state != UserStates.BLOCKED:
+            raise UserAdminError("INVALID_STATE_TRANSITION", "Only a suspended user")
+        end = iso(self.clock() - timedelta(seconds=1))
+        self.persistence.update_state_and_suspension(user.id, UserStates.BLOCKED, end)
+        self._evict(user.uuid)
+        return AdminUserActionResult(user.uuid, EXPIRE_SUSPENSION, UserStates.BLOCKED, end)
 
     # ── helpers ──
 

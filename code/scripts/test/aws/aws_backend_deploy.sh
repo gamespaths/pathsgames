@@ -123,6 +123,13 @@ if [ -z "${AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID:-}" ]; then
     echo "  WARNING: AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID is empty — Google sign-in keeps the dev placeholder client and fails on test." >&2
 fi
 
+# v1.10.0 MOCK_ACCESS_<uuid> bearers skip every check: off unless asked, never with Google sign-in on.
+_ALLOW_MOCK_ACCESS="${AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS:-false}"
+if [ "$_ALLOW_MOCK_ACCESS" = "true" ] && [ "${AWS_TEST_LAMBDA_GOOGLE_ENABLED:-true}" = "true" ]; then
+    echo "  ERROR: AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS=true needs AWS_TEST_LAMBDA_GOOGLE_ENABLED=false (public stack)." >&2
+    exit 1
+fi
+
 # sam rejects an empty Key=: an unset pepper is left out, so the stack keeps its previous value (code default on create).
 _PEPPER_OVERRIDE=()
 if [ -n "${AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER:-}" ]; then
@@ -148,7 +155,7 @@ sam deploy \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
         JwtSecret="${JWT_SECRET}" \
         ${_PEPPER_OVERRIDE[@]+"${_PEPPER_OVERRIDE[@]}"} \
-        AllowMockAccess=true \
+        AllowMockAccess="$_ALLOW_MOCK_ACCESS" \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
         AdminIpEmptyMeans="${_ADMIN_IP_EMPTY_MEANS}" \
         RateLimitGuestPerIp="${AWS_TEST_LAMBDA_RATE_LIMIT_GUEST_PER_IP:-0}" \

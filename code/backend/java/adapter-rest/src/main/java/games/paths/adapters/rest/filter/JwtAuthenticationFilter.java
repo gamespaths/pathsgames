@@ -58,7 +58,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                      FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
+        // v1.10.0 the routed path (decoded, no ;parameters): public and admin checks see what Spring MVC routes
+        String path = RequestPaths.routed(request);
         String method = request.getMethod();
 
         // Allow OPTIONS requests (CORS preflight) without authentication

@@ -91,6 +91,9 @@ class SessionService(SessionPort):
             user = self.account_guard.admit(user)
         else:
             UserStates.require_usable(user.state)
+        # v1.10.0 issued before the last "log out of all devices": refused also in the grace (state refusals first)
+        if not user.accepts_token_issued_at(token_info.iat):
+            raise AuthError("SESSION_REVOKED", "The session was closed")
         if not stored.revoked:
             self.token_persistence.mark_rotated(stored.id, now.isoformat())
 

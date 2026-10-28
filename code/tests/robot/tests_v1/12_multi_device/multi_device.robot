@@ -4,6 +4,7 @@
 Resource   ../../resources/google_sso.resource
 Resource   ../../resources/matches.resource
 Resource   ../../resources/stories.resource
+Resource   sessions_common.resource
 
 Suite Setup       Multi Device Suite Setup
 Force Tags        v1_step12    multi-device
@@ -12,6 +13,8 @@ Force Tags        v1_step12    multi-device
 *** Variables ***
 ${DAY_MS}             86400000
 ${REFRESH_MAX_AGE}    Max-Age=21600000
+# v1.10.0 the session cap of the backend under test (MAX_TOKENS_PER_USER / MaxSessionsPerUser), default 12
+${MAX_SESSIONS}       12
 
 
 *** Test Cases ***
@@ -82,9 +85,10 @@ Thirteen Logins Make The First Session Answer Session Limit
     [Documentation]    The cap is 12 sessions per user: the 13th login revokes the least recently refreshed one,
     ...                whose refresh answers 401 SESSION_LIMIT; the newest one still refreshes. The run scripts
     ...                set RATE_LIMIT_GOOGLE_PER_IP=0, and this suite logs in at most 20 times (default limit 30).
+    ...                v1.10.0 the cap comes from MAX_SESSIONS (a stack may run with a smaller one): cap + 1 logins.
     ${email}    ${sub}=    New Robot Gmail
     @{cookies}=    Create List
-    FOR    ${i}    IN RANGE    13
+    FOR    ${i}    IN RANGE    ${MAX_SESSIONS} + 1
         ${device}=    Google Device    ${email}    ${sub}
         Append To List    ${cookies}    ${device}[cookie]
         ${last}=    Set Variable    ${device}
@@ -93,8 +97,8 @@ Thirteen Logins Make The First Session Answer Session Limit
     Status Should Be    ${first}    401
     Should Be Equal    ${first.json()}[error]    SESSION_LIMIT
     ${me}=    Call Me Endpoint    ${last}[accessToken]
-    Should Be Equal As Integers    ${me.json()}[activeSessions]    12
-    ${newest}=    Refresh With Cookie Pair    ${cookies}[12]
+    Should Be Equal As Integers    ${me.json()}[activeSessions]    ${MAX_SESSIONS}
+    ${newest}=    Refresh With Cookie Pair    ${cookies}[-1]
     Status Should Be    ${newest}    200
 
 The Refresh Cookie Lives 250 Days And A Guest Token 180
@@ -165,20 +169,6 @@ Multi Device Suite Setup
     Set Suite Variable    ${CLASS_UUID}       ${class}
     Set Suite Variable    ${TRAIT_UUID}       ${trait}
 
-Google Device
-    [Documentation]    One more device of the fake Google account: its tokens, refresh cookie and a spare ID token.
-    [Arguments]    ${email}    ${sub}
-    ${id_token}=    Fake Google Token    sub=${sub}    email=${email}    nonce=robot-nonce    given_name=Robot
-    ${resp}=    Google Login    ${id_token}
-    Status Should Be    ${resp}    200
-    ${again}=    Fake Google Token    sub=${sub}    email=${email}    nonce=robot-nonce    given_name=Robot
-    ${pair}=    Evaluate    next((f"{k}={v}" for k, v in $resp.cookies.items() if 'refresh' in k.lower()), '')
-    Should Not Be Empty    ${pair}
-    &{device}=    Create Dictionary    accessToken=${resp.json()}[accessToken]    userUuid=${resp.json()}[userUuid]
-    ...    cookie=${pair}    refreshTokenExpiresAt=${resp.json()}[refreshTokenExpiresAt]
-    ...    setCookie=${resp.headers}[Set-Cookie]    idTokenAgain=${again}
-    RETURN    ${device}
-
 Three Devices Of One Player
     [Documentation]    One new fake Google account signed in on three devices (A, B, C).
     ${email}    ${sub}=    New Robot Gmail
@@ -187,16 +177,6 @@ Three Devices Of One Player
     ${c}=    Google Device    ${email}    ${sub}
     Should Be Equal    ${a}[userUuid]    ${c}[userUuid]
     RETURN    ${a}    ${b}    ${c}
-
-Refresh With Cookie Pair
-    [Documentation]    POST /api/auth/refresh with the "name=value" refresh cookie on a cookie-less session.
-    [Arguments]    ${cookie_pair}
-    ${alias}=    Generate Random String    8    [LOWER]
-    Create Http Session    r_${alias}    ${BASE_URL}    verify=false
-    ${headers}=    Create Dictionary    Cookie=${cookie_pair}
-    ${resp}=    POST On Session    r_${alias}    /api/auth/refresh    headers=${headers}
-    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
-    RETURN    ${resp}
 
 Access Token Should Be Revoked
     [Arguments]    ${token}

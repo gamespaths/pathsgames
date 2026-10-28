@@ -37,3 +37,20 @@ def test_cleanup_returns_403_when_disabled():
     # FastAPI wraps HTTPException.detail under the "detail" key
     assert response.json()["detail"]["error"] == "DEV_ENDPOINTS_DISABLED"
     cleanup_port.cleanup_test_data.assert_not_called()
+
+
+def test_v1_10_expire_suspension():
+    from types import SimpleNamespace
+    from app.core.models.auth.user_admin import UserAdminError
+    users = MagicMock()
+    users.expire_suspension.return_value = SimpleNamespace(uuid="u-7", state=3, suspended_until="2026-10-22T09:59:59Z")
+    app = FastAPI()
+    app.include_router(DevController(MagicMock(), True, user_admin=users).router)
+    client = TestClient(app)
+    response = client.post("/api/dev/users/u-7/expire-suspension")
+    assert response.status_code == 200
+    assert response.json() == {"userUuid": "u-7", "state": 3, "suspendedUntil": "2026-10-22T09:59:59Z"}
+    users.expire_suspension.side_effect = UserAdminError("INVALID_STATE_TRANSITION", "Only a suspended user")
+    refused = client.post("/api/dev/users/u-2/expire-suspension")
+    assert refused.status_code == 409 and refused.json()["error"] == "INVALID_STATE_TRANSITION"
+    assert _client(MagicMock(), True).post("/api/dev/users/u-7/expire-suspension").status_code == 403

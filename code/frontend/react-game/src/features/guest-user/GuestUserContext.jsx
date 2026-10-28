@@ -15,7 +15,7 @@ import usePageReturn from '@/hooks/usePageReturn'
 import { openSessionChannel, withRefreshLock } from '@/auth/sessionSync'
 import { reloadHome } from '@/auth/reloadHome'
 import { RATE_LIMITED, isRateLimited, retryAfterSeconds } from '@/utils/rateLimit'
-import { forgetKnownAccount, isKnownAccount, markKnownAccount } from '@/auth/knownAccount'
+import { purgeKnownAccount } from '@/auth/knownAccount'
 import { SESSION_ALERT_CODES } from '@/auth/sessionAlerts'
 
 /**
@@ -104,8 +104,6 @@ export function GuestUserProvider({ children }) {
   const [accountDeleted, setAccountDeleted] = useState(false)
   // v1.7.0 step 9 — the matches the last login cancelled: the match list highlights them once
   const [highlightedMatchUuids, setHighlightedMatchUuids] = useState([])
-  // v1.7.0 step 12 — this device signed in with Google before: the home invites to sign in again
-  const [knownAccount, setKnownAccount] = useState(() => isKnownAccount())
   const initRef = useRef(false)
   const userRef = useRef(null)
   const channelRef = useRef(null)
@@ -172,6 +170,7 @@ export function GuestUserProvider({ children }) {
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
+    purgeKnownAccount()
 
     setLoading(true)
     setError(null)
@@ -314,8 +313,6 @@ export function GuestUserProvider({ children }) {
       setHighlightedMatchUuids(Array.isArray(data?.cancelledMatchUuids) ? data.cancelledMatchUuids : [])
       setUser(toIdentity(data, profile))
       setSessionIdle(false)
-      markKnownAccount()
-      setKnownAccount(true)
       // v1.7.0 — the profile wins (for a new user it holds the device values just copied)
       applyProfile({ ...data, ...(profile ?? {}) })
       channelRef.current?.post('login')
@@ -392,8 +389,6 @@ export function GuestUserProvider({ children }) {
       await deleteMe(server, userRef.current?.accessToken, { idToken, nonce: takeNonce() })
       deletedRef.current = true
       setAccountDeleted(true)
-      forgetKnownAccount()
-      setKnownAccount(false)
       channelRef.current?.post('logout')
       return true
     } catch (e) {
@@ -406,7 +401,6 @@ export function GuestUserProvider({ children }) {
 
   const clearProfileError = useCallback(() => setProfileError(null), [])
   const consumeHighlightedMatches = useCallback(() => setHighlightedMatchUuids([]), [])
-  const knownAccountHint = knownAccount && google.enabled && !loading && user?.accountType !== 'GOOGLE'
 
   return (
     <GuestUserContext.Provider value={{
@@ -416,7 +410,6 @@ export function GuestUserProvider({ children }) {
       loginWithGoogle, logout, authError, clearAuthError, authBusy, sessionIdle, ensureGuest,
       supportedLanguages, refreshProfile, savePreferences, logoutAll, deleteAccount, accountDeleted,
       profileError, clearProfileError, profileBusy, highlightedMatchUuids, consumeHighlightedMatches,
-      knownAccountHint,
     }}>
       {children}
     </GuestUserContext.Provider>

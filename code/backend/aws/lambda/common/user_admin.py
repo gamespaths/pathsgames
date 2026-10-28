@@ -230,6 +230,16 @@ def suspend(admin_uuid, user_uuid, until, reason):
     return _result(user, 'SUSPEND', sso.STATE_BLOCKED, until=end)
 
 
+def expire_suspension(user_uuid):
+    """v1.10.0 dev/test only (Robot): the suspension of a suspended user ends one second ago, no log row."""
+    user = _existing(user_uuid)
+    if sso.state_of(user) != sso.STATE_BLOCKED:
+        raise UserAdminError('INVALID_STATE_TRANSITION', 'Only a suspended user')
+    end = datetime.fromtimestamp(_now_ms() // 1000 - 1, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
+    sso.save_state(user, sso.STATE_BLOCKED, extra={'suspended_until': end})
+    return _result(user, 'EXPIRE_SUSPENSION', sso.STATE_BLOCKED, until=end)
+
+
 def unblock(admin_uuid, user_uuid, reason):
     why = check_reason(reason)
     user = _existing(user_uuid)

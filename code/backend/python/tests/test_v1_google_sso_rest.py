@@ -15,6 +15,7 @@ from app.core.models.auth.identity import AdminBootstrapResult, AuthenticatedSes
 from app.core.models.auth.token_info import TokenInfo
 from app.core.services.security.csrf_token_service import CsrfTokenService
 from app.core.services.security.rate_limit_service import RateLimitService
+from proxy_peer import behind_proxy
 
 PROFILE = UserProfile("u-1", "google_u1", "mario", "Mario Rossi", "pic", "PLAYER", 2, "it", "GOOGLE")
 
@@ -26,7 +27,7 @@ def _session(merged=None):
 def _google_client(service, limiter=None, per_ip=0, csrf=None):
     app = FastAPI()
     app.include_router(GoogleAuthController(service, limiter, per_ip, csrf).router)
-    return TestClient(app)
+    return TestClient(behind_proxy(app, limiter))
 
 
 def test_google_login_sets_the_refresh_cookie_and_merges():

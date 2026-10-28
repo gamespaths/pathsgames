@@ -3,6 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: "Paths Games - daily smoke test of the stage (v1.1.0, V1 step 1): Lambda, schedule, two alarms on public stages"
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -90,6 +94,7 @@ Parameters:
     Default: "42.42.42.42"
 
 Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
   IsSmokeEnabled: !Equals [!Ref SmokeTestEnabled, "true"]
   HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
   HasSmokeAlarms: !And
@@ -145,6 +150,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: SmokeTestLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-SmokeTestFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -213,6 +219,7 @@ Resources:
         DailySmokeTest:
           Type: ScheduleV2
           Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
             Name: !Sub "pathsgames-${Environment}-smoke-test-daily"
             GroupName: !Ref SmokeTestScheduleGroup
             ScheduleExpression: !Ref SmokeTestSchedule

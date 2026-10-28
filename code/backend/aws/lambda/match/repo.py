@@ -170,7 +170,11 @@ def touch(match_uuid, cap_ms=None):
         return False
     pk = _pk(match_uuid)
     if _ACTIVE and (pk, METADATA) in _DIRTY:
-        return True  # the flush stamps it
+        # the flush stamps it; v1.10.0 with a request stamp above the stored one, so an old If-Match never matches
+        previous = _int(_LOADED_TS.get(pk))
+        if previous is not None and db_utils.stamp_ms() <= previous:
+            db_utils.set_request_stamp(previous + 1)
+        return True
     meta = _ITEMS.get((pk, METADATA)) or db_utils.get_item(pk, METADATA, consistent=True)
     previous = _int((meta or {}).get('ts_update'))
     stamp = db_utils.stamp_ms()
@@ -221,6 +225,17 @@ def abandon():
     db_utils.set_request_stamp(None)
 
 
+def _stale_after_claim(claimed):
+    """v1.10.0 — the StaleMatch of a flush whose claimed version moved (an admin write after the claim)."""
+    for pk, version in claimed.items():
+        current = db_utils.get_item(pk, METADATA, consistent=True)
+        now = None if current is None else _int(current.get('ts_update'))
+        if now != version:
+            return StaleMatch(pk[len('MATCH#'):], None if now is None else str(now))
+    pk = next(iter(claimed))
+    return StaleMatch(pk[len('MATCH#'):], str(claimed[pk]))
+
+
 def flush():
     """Write every queued row and leave the request. Safe to call twice.
     v1.7.0 — every match METADATA gets its ``summary`` rebuilt, all rows the request stamp; after a claim
@@ -243,6 +258,11 @@ def flush():
         conditions = {(pk, METADATA): version for pk, version in claimed.items()}
         try:
             return db_utils.transact_put_items(items, conditions)
+        except db_utils.TransactConditionFailed as exc:
+            # v1.10.0 the conditional METADATA is in the first chunk: nothing landed, the request is stale
+            if exc.chunk != 0:
+                raise WriteFailed(','.join(pk[len('MATCH#'):] for pk in claimed), exc) from exc
+            raise _stale_after_claim(claimed) from exc
         except db_utils.TransactWriteFailed as exc:
             raise WriteFailed(','.join(pk[len('MATCH#'):] for pk in claimed), exc) from exc
     finally:

@@ -158,6 +158,7 @@ _PARAMS_TXT="$(
 	PGSTAGE_OV_RateLimitGooglePerIp="$(stage_key LAMBDA_RATE_LIMIT_GOOGLE_PER_IP)" \
 	PGSTAGE_OV_MaxSessionsPerUser="$(stage_key LAMBDA_MAX_SESSIONS_PER_USER)" \
 	PGSTAGE_OV_CookieSameSite="$(stage_key LAMBDA_COOKIE_SAME_SITE)" \
+	PGSTAGE_OV_PermissionsBoundaryArn="$(stage_key IAM_PERMISSIONS_BOUNDARY_ARN)" \
 	PGSTAGE_FORCE_Environment="$STAGE" \
 	PGSTAGE_FORCE_Version="$_VERSION" \
 	PGSTAGE_FORCE_AllowMockAccess="false" \

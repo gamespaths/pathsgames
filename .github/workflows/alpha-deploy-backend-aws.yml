@@ -87,4 +87,6 @@ jobs:
           # v1.7.0 — sessions per user and cookie SameSite (empty = template defaults 12 and Lax)
           AWS_ALPHA_LAMBDA_MAX_SESSIONS_PER_USER: ${{ vars.AWS_ALPHA_LAMBDA_MAX_SESSIONS_PER_USER }}
           AWS_ALPHA_LAMBDA_COOKIE_SAME_SITE: ${{ vars.AWS_ALPHA_LAMBDA_COOKIE_SAME_SITE }}
+          # v1.10.0 — permissions boundary of the Lambda roles (empty = none; see aws_create_policy_github_actions.sh)
+          AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN: ${{ vars.AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN }}
         run: code/scripts/alpha/deploy_backend.sh --auto-confirm

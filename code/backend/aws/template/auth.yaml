@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -96,6 +100,7 @@ Parameters:
     Default: "365"
 
 Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
   IsGuestCleanupEnabled: !Equals [!Ref GuestCleanupEnabled, "true"]
 
 Resources:
@@ -125,6 +130,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: AuthLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-AuthFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -217,6 +223,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: GuestCleanupLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -253,6 +260,7 @@ Resources:
         DailyGuestCleanup:
           Type: ScheduleV2
           Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
             Name: !Sub "pathsgames-${Environment}-guest-cleanup-daily"
             GroupName: !Ref GuestCleanupScheduleGroup
             ScheduleExpression: !Ref GuestCleanupSchedule
@@ -290,6 +298,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: AccountJobsLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-AccountJobsFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -322,6 +331,7 @@ Resources:
         AccountDeletion:
           Type: ScheduleV2
           Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
             Name: !Sub "pathsgames-${Environment}-account-deletion"
             GroupName: !Ref GuestCleanupScheduleGroup
             ScheduleExpression: "rate(10 minutes)"
@@ -332,6 +342,7 @@ Resources:
         AccountRetention:
           Type: ScheduleV2
           Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
             Name: !Sub "pathsgames-${Environment}-account-retention"
             GroupName: !Ref GuestCleanupScheduleGroup
             ScheduleExpression: "cron(52 0 * * ? *)"
@@ -369,6 +380,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: AdminBootstrapLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-AdminBootstrapFunction"
       Runtime: python3.13
       Architectures: [arm64]

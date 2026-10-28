@@ -210,7 +210,11 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Step25 and Step28 stack several addenda under repeated headings: add a reading note in the V0 index or the shared docs (docs)
     - Flyway SQL comments and old `.claude/settings*.json` allow rules still name the old `documentation_v0/` paths: applied migrations are never edited (checksum), settings rules are cleaned by the owner (docs)
     - Final check of every shared doc against the code with `doc-finder` (tests)
-38. **Reserved**
+38. **AWS secrets out of Lambda environment** — from the 1.10.0 security review.
+    - `JWT_SECRET`, `BANNED_SUBJECT_PEPPER`, `TURNSTILE_SECRET_KEY` and the Turnstile bypass token move from plaintext Lambda env vars to SSM SecureString, read once per cold start and cached (backend)
+    - SAM template: parameter names instead of values, `ssm:GetParameter` and `kms:Decrypt` scoped to the stage parameters (infra)
+    - Deploy scripts write the parameters before `sam deploy`; no secret printed in clear (infra)
+    - Unit tests and Robot suites (tests)
 39. **Reserved**
 40. **Security and hardening check** — recurring.
     - Security review of SSO, profile, linking, admin tool and messages (all)

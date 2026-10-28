@@ -8,7 +8,8 @@ seed stories that mirror the data defined in:
 POST /api/dev/seed
 
 v1.2.0 — the same function serves the other test-only endpoints: POST /api/dev/cleanup,
-POST /api/dev/admin-token, POST /api/dev/google-token and POST /api/dev/jobs/account-deletion.
+POST /api/dev/admin-token, POST /api/dev/google-token and POST /api/dev/jobs/account-deletion;
+v1.10.0 POST /api/dev/users/{uuid}/expire-suspension.
 
 Returns 403 if ENV != 'dev' so this endpoint is harmless in production deployments.
 
@@ -33,6 +34,7 @@ Access tokens (use in Authorization: Bearer <token> header):
 
 import json
 import os
+import re
 import time
 
 from common import db_utils
@@ -42,6 +44,7 @@ from common import match_summary
 from common import jwt_utils
 from common import sso
 from common import story_cache
+from common import user_admin
 from common import story_index
 from common import test_data_ttl
 from common.response import HEADERS, finalize as _finalize
@@ -1636,6 +1639,19 @@ def _handle_admin_token(event):
     return _respond(201, admin)
 
 
+# v1.10.0 the end of a suspension now (Robot auto-unblock)
+_EXPIRE_SUSPENSION = re.compile(r"/api/dev/users/([^/]+)/expire-suspension$")
+
+
+def _handle_expire_suspension(user_uuid):
+    try:
+        result = user_admin.expire_suspension(user_uuid)
+    except user_admin.UserAdminError as e:
+        return _respond(e.status, {"error": e.code, "message": e.message})
+    return _respond(200, {"userUuid": result["uuid"], "state": result["state"],
+                          "suspendedUntil": result["suspendedUntil"]})
+
+
 def _robot_google_users():
     """The Google users of the fake provider: nickname starting with the robottest marker."""
     return [row for row in db_utils.query_gsi("GSI2", sso.GOOGLE_USER_LIST) or []
@@ -1675,6 +1691,9 @@ def _route(event, context):
         return _respond(200, {"idToken": google_verifier.mint_fake(_json_body(event))})
     if raw_path.endswith("/api/dev/jobs/account-deletion"):
         return _respond(200, {"deletedUsers": sso.run_deletion_job()})
+    expiring = _EXPIRE_SUSPENSION.search(raw_path)
+    if expiring:
+        return _handle_expire_suspension(expiring.group(1))
 
     now = int(time.time() * 1000)
     inserted = []

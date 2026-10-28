@@ -78,12 +78,15 @@ PARAMS=(Environment=dev "JwtSecret=$JWT_SECRET_LOCAL" AllowMockAccess=true
         "RateLimitMatchPerGuest=${RATE_LIMIT_MATCH_PER_GUEST:-0}"
         CsrfEnforced=true RobotTestDataTtlHours=1 "WebsiteBucket=$BUCKET"
         "LocalAwsEndpoint=http://$DDB_CONTAINER:8000" "LocalS3Endpoint=http://$S3_CONTAINER:5000")
+# v1.10.0 Turnstile always off locally: --env-vars wins over the template, the shell and any SAM default
+ENV_VARS_FILE="$BUILD_DIR/local-env-vars.json"
+printf '{"Parameters": {"TURNSTILE_SECRET_KEY": "", "TURNSTILE_BYPASS_TOKEN": ""}}\n' > "$ENV_VARS_FILE"
 start_api() {
     local name="$1" port="$2"
     # Fake credentials: the functions get them instead of this machine's real AWS profile.
     nohup env -u AWS_PROFILE -u AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local \
         AWS_DEFAULT_REGION=us-east-1 sam local start-api -t "$BUILD_DIR/local-$name.yaml" -p "$port" \
-        --docker-network "$NETWORK" --warm-containers LAZY \
+        --docker-network "$NETWORK" --warm-containers LAZY --env-vars "$ENV_VARS_FILE" \
         --parameter-overrides "${PARAMS[@]}" > "$LOG_DIR/sam-$name.log" 2>&1 &
     echo $! > "$LOG_DIR/sam-$name.pid"
 }

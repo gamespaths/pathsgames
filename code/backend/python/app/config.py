@@ -15,8 +15,9 @@ DEV_CORS_ORIGINS = ",".join([
     "http://localhost:5500", "http://localhost:5172", "http://localhost:5173",
     "http://localhost:5174", "http://localhost:8080", "https://pathsgames.com",
     "https://www.pathsgames.com", "https://pathsgames.com", "https://www.pathsgames.com",
-    "null",
 ])
+#: v1.10.0 the binds that stay on this machine: the committed JWT secret is accepted only there.
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 # Root project .env (two levels up from code/backend/python/)
 _ROOT_ENV = Path(__file__).resolve().parent.parent.parent.parent.parent / ".env"
@@ -33,7 +34,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "1.9.0"
+    version: str = "1.10.0"
 
 
     # >0.12.5 change version here
@@ -75,6 +76,8 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 3600
     rate_limit_match_per_guest: int = 10
     rate_limit_match_per_guest_window_seconds: int = 86400
+    # v1.10.0 comma-separated CIDRs of the proxies in front; empty = X-Forwarded-For ignored (spoofable)
+    trusted_proxies: str = ""
 
     # v0.41.0 — the daily job deleting the guests idle for N days that no match references.
     guest_cleanup_enabled: bool = True
@@ -163,8 +166,13 @@ settings = Settings()
 
 
 def check_secrets(current: Optional[Settings] = None) -> None:
-    """v0.41.0 — outside dev/test, refuse the committed (or blank) JWT secret; called by _serve only."""
+    """v0.41.0 — outside dev/test, refuse the committed (or blank) JWT secret; called by _serve only.
+    v1.10.0 also in dev/test when the servers listen beyond loopback (anyone could forge tokens)."""
     current = current or settings
+    if current.jwt_secret == DEV_JWT_SECRET and (current.host or "").strip() not in LOOPBACK_HOSTS:
+        raise RuntimeError(
+            f"Refusing to start: HOST '{current.host}' is reachable from other machines and JWT_SECRET is the"
+            " committed default. Set JWT_SECRET to a private random value (openssl rand -base64 48).")
     if current.is_dev_or_test:
         return
     if not (current.jwt_secret or "").strip() or current.jwt_secret == DEV_JWT_SECRET:

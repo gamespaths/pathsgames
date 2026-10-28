@@ -101,7 +101,7 @@ public class MatchController {
         }
         // Step 41 — at most match-per-ip new matches per source address and window
         if (rateLimitService != null && matchPerIp > 0) {
-            String ip = RateLimitService.clientIp(request.getHeader("X-Forwarded-For"),
+            String ip = rateLimitService.clientIpOf(request.getHeader("X-Forwarded-For"),
                     request.getRemoteAddr());
             RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, matchPerIp);
             if (!verdict.allowed()) {

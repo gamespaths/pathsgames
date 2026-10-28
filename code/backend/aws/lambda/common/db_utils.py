@@ -2,6 +2,7 @@ import base64
 import boto3
 import gzip
 import json
+import logging
 import os
 import time
 from decimal import Decimal
@@ -176,6 +177,23 @@ class TransactWriteFailed(Exception):
         self.chunk, self.attempts, self.error = chunk, attempts, error
 
 
+class TransactConditionFailed(Exception):
+    """v1.10.0 — a ts_update condition of the chunk is false: another write won, never retried (409)."""
+
+    def __init__(self, chunk, error):
+        super().__init__(f"chunk {chunk} condition failed: {error}")
+        self.chunk, self.error = chunk, error
+
+
+_LOGGER = logging.getLogger('pathsgames.db')
+
+
+def _condition_failed(error):
+    """True when a TransactWriteItems refusal comes from a ConditionExpression of one of its items."""
+    reasons = error.response.get('CancellationReasons') or []
+    return any((r or {}).get('Code') == 'ConditionalCheckFailed' for r in reasons)
+
+
 def claim_version(pk, old, new, play_ms_delta=0, sk='METADATA'):
     """v1.7.0 step 8 — the conditional claim: ts_update old -> new and playMs += delta, only when
     ts_update still is old (absent when old is None); False when another write won."""
@@ -221,7 +239,7 @@ def transact_chunks(items, max_items=None, max_bytes=None):
 
 def transact_put_items(items, conditions=None, sleep=time.sleep):
     """v1.7.0 step 8 — full-item puts in TransactWriteItems chunks, retried with backoff (TransactWriteFailed);
-    ``conditions`` maps (PK, SK) to the ts_update the stored row must have."""
+    ``conditions`` maps (PK, SK) to the ts_update the stored row must have (v1.10.0 false: TransactConditionFailed)."""
     if not items:
         return True
     now = stamp_ms()
@@ -248,8 +266,11 @@ def transact_put_items(items, conditions=None, sleep=time.sleep):
                 table.meta.client.transact_write_items(TransactItems=requests)
                 break
             except ClientError as e:
+                if _condition_failed(e):
+                    raise TransactConditionFailed(index, e) from e
                 if attempt == TRANSACT_ATTEMPTS:
                     raise TransactWriteFailed(index, attempt, e) from e
+                _LOGGER.warning('TRANSACT_RETRY chunk=%s attempt=%s cause=%s', index, attempt, e)
                 sleep(TRANSACT_BACKOFF_SECONDS * (2 ** (attempt - 1)))
     return True
 

@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -45,6 +49,9 @@ Parameters:
     Type: String
     Default: "30"
 
+Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
+
 Resources:
   EchoLogGroup:
     Type: AWS::Logs::LogGroup
@@ -72,6 +79,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: EchoLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-EchoFunction"
       Runtime: python3.13
       Architectures: [arm64]

@@ -30,4 +30,7 @@ public interface UserAdminPort {
 
     /** Removes the intervention-log rows older than 24 months; answers how many. */
     int purgeInterventionLog();
+
+    /** v1.10.0 dev/test only (Robot): the suspension of a suspended user ends one second ago, no log row. */
+    AdminUserActionResult expireSuspension(String userUuid);
 }

@@ -66,7 +66,7 @@ class FakeTable:
             row = self.store.get((pk, sk))
             if row is None or int(row.get('ts_update') or 0) != int(version):
                 from common import db_utils
-                raise db_utils.TransactWriteFailed(0, 1, 'ConditionalCheckFailed')
+                raise db_utils.TransactConditionFailed(0, 'ConditionalCheckFailed')
         from common import db_utils
         now = db_utils.stamp_ms()
         for item in items:

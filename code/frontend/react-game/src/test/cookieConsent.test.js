@@ -48,9 +48,10 @@ describe('cookieConsent config', () => {
       expect(byName['pathsgames.guestcookie']).toMatch(/^180 /)
       expect(byName['pathsgames.refreshToken']).toMatch(/^250 /)
       const names = rows.map(r => r.name).join(' ')
-      for (const key of ['pathsgames.lang', 'pg_game_server', 'pathsgames.knownAccount', 'pathsgames.googleNonce']) {
+      for (const key of ['pathsgames.lang', 'pg_game_server', 'pathsgames.googleNonce']) {
         expect(names).toContain(key)
       }
+      expect(names).not.toContain('pathsgames.knownAccount')
     }
   })
 

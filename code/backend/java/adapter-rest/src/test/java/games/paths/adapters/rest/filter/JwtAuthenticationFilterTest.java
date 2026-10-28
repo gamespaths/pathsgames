@@ -336,6 +336,26 @@ class JwtAuthenticationFilterTest {
         }
 
         @Test
+        @DisplayName("v1.10.0 an encoded or ;-padded admin path still needs the ADMIN role")
+        void encodedAdminPathStillNeedsTheAdminRole() throws Exception {
+            for (String uri : new String[] {"/api/%61dmin/users", "/api;x/admin/users", "/api//admin/users"}) {
+                reset(request, response, filterChain);
+                when(request.getMethod()).thenReturn("GET");
+                when(request.getRequestURI()).thenReturn(uri);
+                when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt");
+                when(sessionPort.validateAccessToken("valid-jwt")).thenReturn(
+                        new TokenInfo("u-1", "guest_1", "PLAYER", "access", null, 0L, 0L));
+                StringWriter sw = new StringWriter();
+                when(response.getWriter()).thenReturn(new PrintWriter(sw));
+
+                filter.doFilterInternal(request, response, filterChain);
+
+                verify(response).setStatus(403);
+                verify(filterChain, never()).doFilter(request, response);
+            }
+        }
+
+        @Test
         @DisplayName("Should allow admin to access admin path")
         void adminAccessAdminPath() throws Exception {
             when(request.getMethod()).thenReturn("GET");

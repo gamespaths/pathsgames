@@ -3,6 +3,7 @@ package games.paths.launcher.config;
 import games.paths.adapters.rest.filter.JwtAuthenticationFilter;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.launcher.filter.AdminPortFilter;
+import games.paths.launcher.filter.PathGuardFilter;
 import games.paths.launcher.filter.RequestStampFilter;
 import games.paths.launcher.filter.SecurityHeadersFilter;
 
@@ -28,6 +29,17 @@ public class SecurityFilterConfig {
 
     @Value("${game.admin.port:8044}")
     private int adminPort;
+
+    /** v1.10.0 — {@link PathGuardFilter} first (order -3): a non-canonical path never reaches a path check. */
+    @Bean
+    public FilterRegistrationBean<PathGuardFilter> pathGuardFilterRegistration() {
+        FilterRegistrationBean<PathGuardFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new PathGuardFilter());
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(-3);
+        registrationBean.setName("pathGuardFilter");
+        return registrationBean;
+    }
 
     /** v0.41.0 — {@link SecurityHeadersFilter} at order -1: even the refusals carry the headers. */
     @Bean

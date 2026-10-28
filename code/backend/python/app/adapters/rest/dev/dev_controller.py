@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.core.models.auth.auth_error import AuthError
+from app.core.models.auth.user_admin import UserAdminError
 from app.core.ports.dev.test_data_cleanup_port import TestDataCleanupPort
 
 #: v1.2.0 the admin nickname Robot uses when the request names none (not a robottest one)
@@ -22,18 +23,21 @@ class DevController:
     """
 
     def __init__(self, cleanup_port: TestDataCleanupPort, test_endpoints_enabled: bool,
-                 admin_bootstrap=None, fake_google=None, account_service=None):
+                 admin_bootstrap=None, fake_google=None, account_service=None, user_admin=None):
         self.cleanup_port = cleanup_port
         self.test_endpoints_enabled = test_endpoints_enabled
         # v1.2.0 Robot's admin token, the fake Google provider and the account jobs, all test-only
         self.admin_bootstrap = admin_bootstrap
         self.fake_google = fake_google
         self.account_service = account_service
+        # v1.10.0 the end of a suspension now (Robot auto-unblock)
+        self.user_admin = user_admin
         self.router = APIRouter(prefix="/api/dev")
         self.router.add_api_route("/cleanup", self.cleanup, methods=["POST"])
         self.router.add_api_route("/admin-token", self.admin_token, methods=["POST"], status_code=201)
         self.router.add_api_route("/google-token", self.google_token, methods=["POST"])
         self.router.add_api_route("/jobs/account-deletion", self.account_deletion, methods=["POST"])
+        self.router.add_api_route("/users/{user_uuid}/expire-suspension", self.expire_suspension, methods=["POST"])
 
     def _require(self, *collaborators):
         if not self.test_endpoints_enabled or any(c is None for c in collaborators):
@@ -75,3 +79,11 @@ class DevController:
     def account_deletion(self):
         self._require(self.account_service)
         return {"deletedUsers": self.account_service.run_deletion_job()}
+
+    def expire_suspension(self, user_uuid: str):
+        self._require(self.user_admin)
+        try:
+            result = self.user_admin.expire_suspension(user_uuid)
+        except UserAdminError as e:
+            return JSONResponse(status_code=e.http_status, content={"error": e.code, "message": e.message})
+        return {"userUuid": result.uuid, "state": result.state, "suspendedUntil": result.suspended_until}

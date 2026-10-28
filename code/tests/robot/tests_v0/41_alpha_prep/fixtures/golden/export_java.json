@@ -33,12 +33,12 @@
       "sad": 0,
       "sadMax": 5,
       "traits": [],
-      "userUuid": "49a71e0b-6ed5-4541-a6a8-1a6aae811e58",
-      "uuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "userUuid": "38da2ca2-ce00-401d-94a8-f6560d9fa714",
+      "uuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "weightMax": 10
     }
   ],
-  "checksum": "7e56edec6ebe5c550e1a2ec25211862c306982253c400a6803fc5815d1660286",
+  "checksum": "33162812e94fee232f24785558ba7a875efbf44fa532f385e523176204bee835",
   "engine": {
     "eventMarkers": [
       {
@@ -91,7 +91,7 @@
       },
       "message": "CREATED",
       "seq": 1,
-      "timestamp": "2026-10-23T13:56:09.404Z",
+      "timestamp": "2026-10-27T16:30:07.446Z",
       "type": "MATCH_LIFECYCLE"
     },
     {
@@ -110,18 +110,18 @@
       },
       "message": "STARTED",
       "seq": 2,
-      "timestamp": "2026-10-23T13:56:09.524Z",
+      "timestamp": "2026-10-27T16:30:07.532Z",
       "type": "MATCH_LIFECYCLE"
     },
     {
       "clock": 0,
       "seq": 3,
-      "timestamp": "2026-10-23T13:56:09.536Z",
+      "timestamp": "2026-10-27T16:30:07.542Z",
       "type": "WEATHER",
       "weatherId": 1
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "cost": {
         "coin": 0,
         "energy": 0,
@@ -139,11 +139,11 @@
       "itemAction": "ADD",
       "itemId": 1,
       "seq": 4,
-      "timestamp": "2026-10-23T13:56:09.580Z",
+      "timestamp": "2026-10-27T16:30:07.590Z",
       "type": "ITEM_ADD"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -160,11 +160,11 @@
       },
       "message": "EVENT_EXECUTED 20",
       "seq": 5,
-      "timestamp": "2026-10-23T13:56:09.612Z",
+      "timestamp": "2026-10-27T16:30:07.601Z",
       "type": "EVENT"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -181,7 +181,7 @@
       },
       "message": "REGISTRY_CHANGE quest null -> done",
       "seq": 6,
-      "timestamp": "2026-10-23T13:56:09.653Z",
+      "timestamp": "2026-10-27T16:30:07.645Z",
       "type": "REGISTRY_CHANGE"
     },
     {
@@ -198,13 +198,13 @@
         "food": 0,
         "magic": 0
       },
-      "message": "MISSION_CHANGE 39448ecf-4bfe-47d2-acfc-78595b8bf0f9 none -> COMPLETED",
+      "message": "MISSION_CHANGE 5dabb94b-fc56-4fe7-9f14-97385db23eb0 none -> COMPLETED",
       "seq": 7,
-      "timestamp": "2026-10-23T13:56:09.668Z",
+      "timestamp": "2026-10-27T16:30:07.665Z",
       "type": "MISSION_CHANGE"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -221,7 +221,7 @@
       },
       "message": "EVENT_EXECUTED 14",
       "seq": 8,
-      "timestamp": "2026-10-23T13:56:09.696Z",
+      "timestamp": "2026-10-27T16:30:07.683Z",
       "type": "EVENT"
     },
     {
@@ -241,7 +241,7 @@
       },
       "message": "EVENT_EXECUTED 15",
       "seq": 9,
-      "timestamp": "2026-10-23T13:56:09.714Z",
+      "timestamp": "2026-10-27T16:30:07.704Z",
       "type": "EVENT"
     },
     {
@@ -261,11 +261,11 @@
       },
       "message": "automatic event 15 (mission completed) at location 0",
       "seq": 10,
-      "timestamp": "2026-10-23T13:56:09.725Z",
+      "timestamp": "2026-10-27T16:30:07.715Z",
       "type": "AUTOMATIC_EVENT"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -282,11 +282,11 @@
       },
       "message": "EVENT_EXECUTED 13",
       "seq": 11,
-      "timestamp": "2026-10-23T13:56:09.758Z",
+      "timestamp": "2026-10-27T16:30:07.758Z",
       "type": "EVENT"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "cost": {
         "coin": 0,
         "energy": 0,
@@ -296,11 +296,11 @@
       "locationFromId": 1,
       "locationToId": 2,
       "seq": 12,
-      "timestamp": "2026-10-23T13:56:09.830Z",
+      "timestamp": "2026-10-27T16:30:07.813Z",
       "type": "MOVEMENT"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -317,11 +317,11 @@
       },
       "message": "EVENT_EXECUTED 18",
       "seq": 13,
-      "timestamp": "2026-10-23T13:56:09.874Z",
+      "timestamp": "2026-10-27T16:30:07.862Z",
       "type": "EVENT"
     },
     {
-      "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+      "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -336,16 +336,16 @@
         "magic": 0
       },
       "seq": 14,
-      "timestamp": "2026-10-23T13:56:09.930Z",
+      "timestamp": "2026-10-27T16:30:07.898Z",
       "type": "SLEEP"
     }
   ],
   "match": {
-    "activeCharacterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+    "activeCharacterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
     "clock": 0,
     "counterConsecutivePass": 0,
-    "createdAt": "2026-10-23T13:56:09.398Z",
-    "creatorUserUuid": "49a71e0b-6ed5-4541-a6a8-1a6aae811e58",
+    "createdAt": "2026-10-27T16:30:07.441Z",
+    "creatorUserUuid": "38da2ca2-ce00-401d-94a8-f6560d9fa714",
     "currentWeatherId": 1,
     "difficultyId": 1,
     "expCost": 1,
@@ -354,22 +354,22 @@
     },
     "name": "robottest_alpha_prep",
     "partyLocationId": 2,
-    "playMs": 517,
+    "playMs": 441,
     "rngSeed": 42,
     "secureLocationParam": 0,
     "singlePlayer": true,
     "status": "RUNNING",
-    "timestampStart": "2026-10-23T13:56:09.495Z",
-    "uuid": "43128d19-abca-41d4-bd75-359ae6aa4a9e"
+    "timestampStart": "2026-10-27T16:30:07.523Z",
+    "uuid": "38dce37b-9663-4461-be1b-0b5fe4dc5fc3"
   },
   "source": {
-    "appVersion": "1.8.0",
+    "appVersion": "1.10.0",
     "backend": "java",
     "dialect": "sqlite",
-    "exportedAt": "2026-10-23T13:56:10.057Z",
+    "exportedAt": "2026-10-27T16:30:08.012Z",
     "server": "development",
     "snapshotClock": 0,
-    "snapshotUuid": "4a780d3a-b883-4686-a62e-20aa01165982"
+    "snapshotUuid": "929d4559-30a3-4577-a239-8cabf8328788"
   },
   "state": {
     "choiceHistory": [],
@@ -389,7 +389,7 @@
     ],
     "registry": [
       {
-        "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+        "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
         "clock": 0,
         "eventId": 14,
         "key": "quest",
@@ -398,7 +398,7 @@
       },
       {
         "clock": 0,
-        "key": "mission:39448ecf-4bfe-47d2-acfc-78595b8bf0f9",
+        "key": "mission:5dabb94b-fc56-4fe7-9f14-97385db23eb0",
         "missionId": 1,
         "multiValue": false,
         "stringValue": "COMPLETED"
@@ -407,7 +407,7 @@
     "storyProgress": [],
     "turns": [
       {
-        "characterUuid": "79252302-c57e-4881-a638-c3feaeb36a25",
+        "characterUuid": "eb5c96d8-a324-49bb-bd92-afa0d701a047",
         "clock": 0,
         "passCounter": 0,
         "priority": 12101,
@@ -425,7 +425,7 @@
           "idTextDescription": 1,
           "idTextTitle": 1,
           "urlImage": "https://example.invalid/card-1.jpg",
-          "uuid": "fe1277f6-2f2d-40b9-a402-269be4ed0e8f"
+          "uuid": "93029d6f-fa43-495d-bdca-d868bcc9f45c"
         },
         {
           "id": 3,
@@ -433,7 +433,7 @@
           "idTextDescription": 3,
           "idTextTitle": 3,
           "urlImage": "https://example.invalid/card-3.jpg",
-          "uuid": "8f9ac431-3bd5-4d7d-bb2e-67462a1cd679"
+          "uuid": "bfaf1262-6e1f-4e75-9e5b-fcc99be373da"
         },
         {
           "id": 50,
@@ -441,7 +441,7 @@
           "idTextDescription": 50,
           "idTextTitle": 50,
           "urlImage": "https://example.invalid/card-50.jpg",
-          "uuid": "a37ea3d7-2b61-4914-9712-ea582a32ce31"
+          "uuid": "f97ef75d-950f-4396-b793-f0c2adc642a1"
         },
         {
           "id": 51,
@@ -449,7 +449,7 @@
           "idTextDescription": 51,
           "idTextTitle": 51,
           "urlImage": "https://example.invalid/card-51.jpg",
-          "uuid": "0edafd6d-eb0a-4dba-924a-82223ac63a10"
+          "uuid": "e6ee600f-ffe4-4417-b5e8-82ed26fa9ac4"
         },
         {
           "id": 60,
@@ -457,7 +457,7 @@
           "idTextDescription": 60,
           "idTextTitle": 60,
           "urlImage": "https://example.invalid/card-60.jpg",
-          "uuid": "d2728d56-b080-42fe-b3fc-5d5654fe8ddb"
+          "uuid": "72289837-764f-483d-a1ba-30701e19acea"
         },
         {
           "id": 61,
@@ -465,7 +465,7 @@
           "idTextDescription": 61,
           "idTextTitle": 61,
           "urlImage": "https://example.invalid/card-61.jpg",
-          "uuid": "6104f2fb-43f8-478b-972d-9c47c39ab055"
+          "uuid": "f2aafbcd-701b-4ece-b6c2-941f052c8754"
         },
         {
           "id": 62,
@@ -473,7 +473,7 @@
           "idTextDescription": 62,
           "idTextTitle": 62,
           "urlImage": "https://example.invalid/card-62.jpg",
-          "uuid": "24f1f229-3118-4a53-a94e-61b1713e4598"
+          "uuid": "163d38f5-d51c-4a97-894a-00800e64ab4a"
         },
         {
           "id": 10,
@@ -481,7 +481,7 @@
           "idTextDescription": 10,
           "idTextTitle": 10,
           "urlImage": "https://example.invalid/card-10.jpg",
-          "uuid": "03bb3e22-dc82-4cdb-b352-49224588c8da"
+          "uuid": "598563fb-7365-4f71-b588-aae095d6fb8e"
         },
         {
           "id": 11,
@@ -489,7 +489,7 @@
           "idTextDescription": 11,
           "idTextTitle": 11,
           "urlImage": "https://example.invalid/card-11.jpg",
-          "uuid": "01065365-e507-46ab-aafe-ff395d6bf49b"
+          "uuid": "f5fae700-df9c-4136-8951-c07448b1f8c7"
         },
         {
           "id": 12,
@@ -497,7 +497,7 @@
           "idTextDescription": 12,
           "idTextTitle": 12,
           "urlImage": "https://example.invalid/card-12.jpg",
-          "uuid": "0052d714-4348-41ff-9ea5-6f7c66d0472e"
+          "uuid": "0a9ce537-45f1-4778-9077-a3563927c485"
         },
         {
           "id": 13,
@@ -505,7 +505,7 @@
           "idTextDescription": 13,
           "idTextTitle": 13,
           "urlImage": "https://example.invalid/card-13.jpg",
-          "uuid": "259c84d6-76f9-4c7e-ae11-84921c34fd4e"
+          "uuid": "ddf7a4d1-8b8e-41db-86da-0655ce08a3a5"
         },
         {
           "id": 14,
@@ -513,7 +513,7 @@
           "idTextDescription": 14,
           "idTextTitle": 14,
           "urlImage": "https://example.invalid/card-14.jpg",
-          "uuid": "273d7ff3-b3a3-41a7-9533-6bf1bb1b377a"
+          "uuid": "62f04a63-2dda-4edd-b0ba-37e4d0efaec0"
         },
         {
           "id": 15,
@@ -521,7 +521,7 @@
           "idTextDescription": 15,
           "idTextTitle": 15,
           "urlImage": "https://example.invalid/card-15.jpg",
-          "uuid": "c9c5cd17-8cc5-4c63-aee5-852410f22b5d"
+          "uuid": "a5e5fe70-be22-4a14-92ee-7fa893011266"
         },
         {
           "id": 16,
@@ -529,7 +529,7 @@
           "idTextDescription": 16,
           "idTextTitle": 16,
           "urlImage": "https://example.invalid/card-16.jpg",
-          "uuid": "01e7530b-fb5d-4e50-82c3-e2a97de09ec1"
+          "uuid": "336a78a6-0941-4863-b6bc-4ac032cde930"
         },
         {
           "id": 17,
@@ -537,7 +537,7 @@
           "idTextDescription": 17,
           "idTextTitle": 17,
           "urlImage": "https://example.invalid/card-17.jpg",
-          "uuid": "df76629e-99c3-4e76-8c1b-dcfe52ab7b69"
+          "uuid": "d71a25b3-6b6e-4bc6-9e74-59c3322c2b1b"
         },
         {
           "id": 40,
@@ -545,7 +545,7 @@
           "idTextDescription": 40,
           "idTextTitle": 40,
           "urlImage": "https://example.invalid/card-40.jpg",
-          "uuid": "ea95d526-b948-40a5-93d7-59fcb9f51e9b"
+          "uuid": "c9e2b695-31df-47ea-ab61-492ab6f6954a"
         },
         {
           "id": 70,
@@ -553,7 +553,7 @@
           "idTextDescription": 70,
           "idTextTitle": 70,
           "urlImage": "https://example.invalid/card-70.jpg",
-          "uuid": "13a4fed4-9803-4bd4-a4d5-eda00cb53ea1"
+          "uuid": "6089badf-c0bf-47a3-ab30-a3c838f7ca0c"
         },
         {
           "id": 92,
@@ -561,7 +561,7 @@
           "idTextDescription": 92,
           "idTextTitle": 92,
           "urlImage": "https://example.invalid/card-92.jpg",
-          "uuid": "3c19adf2-5cad-4830-8e92-3b87eca1c8f7"
+          "uuid": "18d1ce42-3f42-4767-83eb-489fd748bb5b"
         },
         {
           "id": 18,
@@ -569,7 +569,7 @@
           "idTextDescription": 18,
           "idTextTitle": 18,
           "urlImage": "https://example.invalid/card-18.jpg",
-          "uuid": "b3e10709-1116-48d7-b45c-948e1f731f8f"
+          "uuid": "b5ad13d3-c884-4a8d-93e2-8ab6eb5cf256"
         },
         {
           "id": 93,
@@ -577,7 +577,7 @@
           "idTextDescription": 93,
           "idTextTitle": 93,
           "urlImage": "https://example.invalid/card-93.jpg",
-          "uuid": "3371246b-219b-4cb0-892a-5ba47aa1697a"
+          "uuid": "8958e43d-33fe-46db-9b14-d25324d6914f"
         },
         {
           "id": 94,
@@ -585,7 +585,7 @@
           "idTextDescription": 94,
           "idTextTitle": 94,
           "urlImage": "https://example.invalid/card-94.jpg",
-          "uuid": "3bcb57ce-0578-4ab2-83db-e36690851bb8"
+          "uuid": "a4933b55-760e-4612-a8e8-9756b69ab557"
         },
         {
           "id": 95,
@@ -593,7 +593,7 @@
           "idTextDescription": 95,
           "idTextTitle": 95,
           "urlImage": "https://example.invalid/card-95.jpg",
-          "uuid": "03dbe2fb-9079-4e21-90bb-5aced9a707b2"
+          "uuid": "0342f0a7-d747-43a0-996d-2a4f3189581c"
         }
       ],
       "category": "robottest",
@@ -609,7 +609,7 @@
           "intelligenceStart": 2,
           "lifeMax": 10,
           "sadMax": 5,
-          "uuid": "e38161ae-1069-40e1-817a-e918f25c8876"
+          "uuid": "e76a0553-a976-44a0-89d0-5abaeb828f6f"
         }
       ],
       "choiceConditions": [],
@@ -621,7 +621,7 @@
           "idChoices": 1,
           "idTextName": 19,
           "statistics": "food",
-          "uuid": "d65e41bb-4772-4f65-903c-d9e10160b867",
+          "uuid": "6480756d-e239-4a9b-94dc-05c938ab6458",
           "value": 1
         }
       ],
@@ -636,7 +636,7 @@
           "logicOperator": "AND",
           "otherwiseFlag": 0,
           "priority": 1,
-          "uuid": "adf77632-ec7c-412a-b3d6-a8cc3e85cd27"
+          "uuid": "98a30f16-ae71-445e-a71d-2cc5af5a172d"
         }
       ],
       "classBonuses": [],
@@ -649,7 +649,7 @@
           "idTextDescription": 61,
           "idTextName": 61,
           "intelligenceBase": 0,
-          "uuid": "f6ef3be2-61d9-4ceb-aaa6-c5dda0d6cf79",
+          "uuid": "229ad2c6-791c-475d-a2ab-b7ffe525d8a3",
           "weightMax": 10
         }
       ],
@@ -659,7 +659,7 @@
           "idText": 1,
           "link": "https://example.invalid",
           "url": "https://example.invalid",
-          "uuid": "50b8d284-e45a-48db-a8e1-3488017a5048"
+          "uuid": "b863fdbb-c15b-46c2-80d5-cbe658187e81"
         }
       ],
       "difficulties": [
@@ -682,7 +682,7 @@
           "minCharacter": 0,
           "numberMaxFreeAction": 0,
           "sad": 0,
-          "uuid": "18c73643-1f5d-4653-a3aa-5a4af431eb3a",
+          "uuid": "8fd47a81-90ec-4f55-bc30-9b5639c38f62",
           "weight": 0
         }
       ],
@@ -694,7 +694,7 @@
           "idTextName": 10,
           "target": "ONLY_ONE",
           "traitsToAdd": "1",
-          "uuid": "65222797-5ab0-4416-870f-44d241ebef50",
+          "uuid": "10d01889-e3da-4127-bd87-17f87a447ec5",
           "value": 0
         },
         {
@@ -704,7 +704,7 @@
           "idTextName": 11,
           "target": "ONLY_ONE",
           "traitsToRemove": "1",
-          "uuid": "ecc156b1-3f75-4312-914e-c9d52f77ca67",
+          "uuid": "835785a5-718f-41d5-ae0b-25ecffc5cadd",
           "value": 0
         },
         {
@@ -714,7 +714,7 @@
           "idTextName": 12,
           "statistics": "life",
           "target": "ONLY_ONE",
-          "uuid": "822ba8ac-301e-42cc-b2ae-9692a6b574e1",
+          "uuid": "1a0a19c3-0460-4c00-bceb-8d34ec44310a",
           "value": -99
         },
         {
@@ -724,7 +724,7 @@
           "idTextName": 13,
           "statistics": "exp",
           "target": "ONLY_ONE",
-          "uuid": "d8042bcf-cc16-48d6-82e2-471d1983878c",
+          "uuid": "532fea9e-a027-4e81-bdd8-7b64a0c05300",
           "value": 1
         },
         {
@@ -735,7 +735,7 @@
           "keyToAdd": "quest",
           "keyValueToAdd": "done",
           "target": "ALL",
-          "uuid": "6b2d7776-4216-46dd-a054-c8d91cb86505",
+          "uuid": "bbb1efa5-9145-4261-8d11-6439a74a56de",
           "value": 0
         },
         {
@@ -745,7 +745,7 @@
           "idTextName": 15,
           "statistics": "magic",
           "target": "ALL",
-          "uuid": "34cb7c56-1381-48f2-94c3-d03bcb71647f",
+          "uuid": "2e739621-cb20-485e-9daa-e00a24d5cb64",
           "value": 1
         },
         {
@@ -755,7 +755,7 @@
           "idTextName": 16,
           "statistics": "coin",
           "target": "ONLY_ONE",
-          "uuid": "fe47916a-ba3e-46eb-bbcb-db72beab558b",
+          "uuid": "19222ee5-d0d5-4e2f-8e11-a5adfbb8a230",
           "value": 1
         },
         {
@@ -765,7 +765,7 @@
           "idTextName": 17,
           "statistics": "sad",
           "target": "ONLY_ONE",
-          "uuid": "9ed0840c-9644-4327-ab8a-6ff1887e9602",
+          "uuid": "828afce1-7afa-4cbb-9d32-defd6a2e14ca",
           "value": 99
         },
         {
@@ -776,7 +776,7 @@
           "idTextName": 95,
           "itemAction": "ADD",
           "target": "ONLY_ONE",
-          "uuid": "0b0ef2ee-cd6e-45e4-8922-55e90f2a130f",
+          "uuid": "453f1f6c-19dc-488a-86ba-f0c4d88b96f1",
           "value": 0
         }
       ],
@@ -792,7 +792,7 @@
           "idTextDescription": 10,
           "idTextName": 10,
           "type": "NORMAL",
-          "uuid": "6ae3bf76-1adf-49d9-b0d5-a737538f11a5"
+          "uuid": "a52932fc-b26a-4319-ac23-1199e0c7480a"
         },
         {
           "costCoin": 0,
@@ -805,7 +805,7 @@
           "idTextDescription": 11,
           "idTextName": 11,
           "type": "NORMAL",
-          "uuid": "00dd877e-bf7f-4c3c-9eb2-b70e0661aa8f"
+          "uuid": "4cde1bd8-9f7a-47bc-a906-6598762c28d7"
         },
         {
           "costCoin": 0,
@@ -818,7 +818,7 @@
           "idTextDescription": 12,
           "idTextName": 12,
           "type": "NORMAL",
-          "uuid": "cdede9bb-d1df-4377-9124-44e44d009e8a"
+          "uuid": "453607bb-22b8-47a2-b057-9b7d5b4f28a3"
         },
         {
           "costCoin": 0,
@@ -831,7 +831,7 @@
           "idTextDescription": 13,
           "idTextName": 13,
           "type": "ONCE",
-          "uuid": "d122f2b9-a87c-4032-a68e-122971d92fbf"
+          "uuid": "b11ec58b-6a1d-4ef7-a30a-5237eeaf8f9d"
         },
         {
           "costCoin": 0,
@@ -844,7 +844,7 @@
           "idTextDescription": 14,
           "idTextName": 14,
           "type": "NORMAL",
-          "uuid": "2445d587-8d08-4694-9ad7-b24b61014fe8"
+          "uuid": "7463012a-3d4c-4e41-a927-7ab3f0591bab"
         },
         {
           "costCoin": 0,
@@ -857,7 +857,7 @@
           "idTextDescription": 15,
           "idTextName": 15,
           "type": "AUTOMATIC",
-          "uuid": "5670e4e6-bc49-4059-8330-c8887d14f65a"
+          "uuid": "2e2d9e37-3dea-4512-8d57-c948991f890d"
         },
         {
           "costCoin": 0,
@@ -870,7 +870,7 @@
           "idTextDescription": 16,
           "idTextName": 16,
           "type": "NORMAL",
-          "uuid": "b89c5591-3e90-4ada-85bd-c5681e2a66d8"
+          "uuid": "e3fa670e-f4a4-4c82-8f20-4bb02769e426"
         },
         {
           "costCoin": 0,
@@ -883,7 +883,7 @@
           "idTextDescription": 17,
           "idTextName": 17,
           "type": "NORMAL",
-          "uuid": "3ddb957a-ea46-4787-8918-d9cc11fbabbc"
+          "uuid": "bf5bde02-bb14-412f-b2bc-f8b776d9f18b"
         },
         {
           "costCoin": 0,
@@ -896,7 +896,7 @@
           "idTextDescription": 18,
           "idTextName": 18,
           "type": "NORMAL",
-          "uuid": "4a433349-1874-4a3b-aad8-0622eaf7d5cd"
+          "uuid": "1636a018-0ea1-4ede-b3e6-3413c6eb4476"
         },
         {
           "costCoin": 0,
@@ -909,7 +909,7 @@
           "idTextDescription": 95,
           "idTextName": 95,
           "type": "NORMAL",
-          "uuid": "64d88f1d-68f4-4ea8-a64b-bfdb5cd7b176"
+          "uuid": "ac96b31f-3aac-41bf-9296-97fd43e12b04"
         },
         {
           "costCoin": 0,
@@ -922,7 +922,7 @@
           "idTextDescription": 40,
           "idTextName": 40,
           "type": "END",
-          "uuid": "cc27d7e1-fa4d-4029-8c3f-f62347b4c0a8"
+          "uuid": "2823e49e-8c85-4112-a893-65903dd5e0b9"
         }
       ],
       "globalRandomEvents": [],
@@ -945,7 +945,7 @@
           "idTextName": 93,
           "isConsumabile": 0,
           "maxPerCharacter": 1,
-          "uuid": "cab770d0-a865-4116-b060-f6b6a4e1f7f4",
+          "uuid": "42f73a46-e05b-4127-adb9-9f507665c82d",
           "weight": 1
         },
         {
@@ -955,7 +955,7 @@
           "idTextName": 94,
           "isConsumabile": 0,
           "maxPerCharacter": 1,
-          "uuid": "9131f0c7-bd3e-4e1c-b883-d3622ac85957",
+          "uuid": "957b781c-9669-4c6e-8cd7-f42ad6e6c447",
           "weight": 1
         }
       ],
@@ -968,7 +968,7 @@
           "multiValue": 0,
           "name": "quest",
           "priority": 1,
-          "uuid": "8fc54007-941f-49c0-8c81-12d6ede9bdf1",
+          "uuid": "cf7f0019-3988-4165-a9be-5c5c01e45e84",
           "visibility": "PUBLIC"
         }
       ],
@@ -983,7 +983,7 @@
           "id": 1,
           "idLocationFrom": 1,
           "idLocationTo": 2,
-          "uuid": "2598c9a7-2c88-4402-a433-42928c2dffed"
+          "uuid": "944d260e-8024-4b25-bbcb-c0baeaf24739"
         }
       ],
       "locations": [
@@ -996,7 +996,7 @@
           "maxCharacters": 10,
           "priorityAutomaticEvent": 0,
           "secureParam": 1,
-          "uuid": "82b8721c-8d34-4634-9ec1-1712a8651bcf"
+          "uuid": "70077477-5c32-45f8-8df4-5414a47ddddd"
         },
         {
           "costEnergyEnter": 0,
@@ -1007,7 +1007,7 @@
           "maxCharacters": 10,
           "priorityAutomaticEvent": 0,
           "secureParam": 0,
-          "uuid": "dcb1968d-4bfd-4e9f-8726-cca88301c126"
+          "uuid": "53d3aa4b-23fd-4f66-98b3-c8005f3f60e1"
         }
       ],
       "missionSteps": [],
@@ -1020,7 +1020,7 @@
           "idEventCompleted": 15,
           "idTextDescription": 70,
           "idTextName": 70,
-          "uuid": "39448ecf-4bfe-47d2-acfc-78595b8bf0f9"
+          "uuid": "5dabb94b-fc56-4fe7-9f14-97385db23eb0"
         }
       ],
       "peghi": 0,
@@ -1033,7 +1033,7 @@
           "lang": "en",
           "longText": "Alpha Prep",
           "shortText": "Alpha Prep",
-          "uuid": "0c523f34-2449-4ef4-b25f-7d008e301168"
+          "uuid": "3d544ca4-e3fd-482b-b4d1-e4abff248707"
         },
         {
           "id": 2,
@@ -1042,7 +1042,7 @@
           "lang": "en",
           "longText": "A test-bed for Step 41: the new timeline rows and the match snapshots.",
           "shortText": "A test-bed for Step 41: the new timeline rows and the match snapshots.",
-          "uuid": "236a7c68-1818-49f4-be40-2203e8ad9e4d"
+          "uuid": "78d02fdb-03bd-4cba-87dd-a28a51175cc2"
         },
         {
           "id": 3,
@@ -1051,7 +1051,7 @@
           "lang": "en",
           "longText": "Clear",
           "shortText": "Clear",
-          "uuid": "f566bffb-d3cb-47c5-aa5e-94b944f54264"
+          "uuid": "2a3580e4-7a4b-4393-94e2-ce6391cfd9b1"
         },
         {
           "id": 50,
@@ -1060,7 +1060,7 @@
           "lang": "en",
           "longText": "The Camp",
           "shortText": "The Camp",
-          "uuid": "da8dfa3e-aee7-4ded-acd3-f453f0b2ef3f"
+          "uuid": "5b0ae76d-e4db-4441-905c-2d7d9028298f"
         },
         {
           "id": 51,
@@ -1069,7 +1069,7 @@
           "lang": "en",
           "longText": "The Road",
           "shortText": "The Road",
-          "uuid": "f0f3c5ee-96ca-40ae-8868-291d0e8e7071"
+          "uuid": "18d05db3-f03c-4469-ba37-818ab5157605"
         },
         {
           "id": 60,
@@ -1078,7 +1078,7 @@
           "lang": "en",
           "longText": "Wanderer",
           "shortText": "Wanderer",
-          "uuid": "f278dd60-54ec-463e-ac6d-863346dab36e"
+          "uuid": "a40033ae-2c39-4247-b0b4-61c0940f1db6"
         },
         {
           "id": 61,
@@ -1087,7 +1087,7 @@
           "lang": "en",
           "longText": "Traveller",
           "shortText": "Traveller",
-          "uuid": "5a34290c-830d-47a2-8f87-0d3d9fc7d81b"
+          "uuid": "a52ea9e9-a481-4b2a-a7ed-3c94a0a42769"
         },
         {
           "id": 62,
@@ -1096,7 +1096,7 @@
           "lang": "en",
           "longText": "Normal",
           "shortText": "Normal",
-          "uuid": "6bc77722-7eab-4bdf-8c09-020aaafcb06c"
+          "uuid": "b7e4fb6e-cf89-43d9-8a19-eb27e59d24fc"
         },
         {
           "id": 10,
@@ -1105,7 +1105,7 @@
           "lang": "en",
           "longText": "Find a charm",
           "shortText": "Find a charm",
-          "uuid": "e9ac59dc-a341-4828-99b9-2963fe5698bb"
+          "uuid": "d61e6e08-d3df-4821-9ba7-3fcf51188219"
         },
         {
           "id": 11,
@@ -1114,7 +1114,7 @@
           "lang": "en",
           "longText": "Lose the charm",
           "shortText": "Lose the charm",
-          "uuid": "0dfd484f-47a5-4372-80f3-a6c2230e03d6"
+          "uuid": "3663508a-696b-4a5e-bd17-83a116d909fa"
         },
         {
           "id": 12,
@@ -1123,7 +1123,7 @@
           "lang": "en",
           "longText": "Poisoned well",
           "shortText": "Poisoned well",
-          "uuid": "f5b0073b-8862-4958-87a9-b673bea03428"
+          "uuid": "842169b6-1254-44d4-8569-67b00c0e42c2"
         },
         {
           "id": 13,
@@ -1132,7 +1132,7 @@
           "lang": "en",
           "longText": "Old gate",
           "shortText": "Old gate",
-          "uuid": "5de70aa1-e1c4-4710-b9a8-5704606aa8a3"
+          "uuid": "7bf8c1f9-f56f-47c0-a239-370dd48be93c"
         },
         {
           "id": 14,
@@ -1141,7 +1141,7 @@
           "lang": "en",
           "longText": "Take the quest",
           "shortText": "Take the quest",
-          "uuid": "53f7d82a-2f5d-47ba-a928-4fcf0e0d48dc"
+          "uuid": "985984ef-7afd-4827-9993-5e68bea78025"
         },
         {
           "id": 15,
@@ -1150,7 +1150,7 @@
           "lang": "en",
           "longText": "Quest reward",
           "shortText": "Quest reward",
-          "uuid": "6e6d719d-5793-47a6-99ef-3e6ddebef2c0"
+          "uuid": "1eceb034-a700-40ea-85d8-86ef5bdc6c34"
         },
         {
           "id": 16,
@@ -1159,7 +1159,7 @@
           "lang": "en",
           "longText": "A long day",
           "shortText": "A long day",
-          "uuid": "4df90c4b-d71e-4807-b332-9a798c3ba634"
+          "uuid": "129ce6d9-e2c4-459e-84c5-4efb46c9ff85"
         },
         {
           "id": 17,
@@ -1168,7 +1168,7 @@
           "lang": "en",
           "longText": "Grief",
           "shortText": "Grief",
-          "uuid": "dfd82848-b8e9-496e-9f67-348881335c99"
+          "uuid": "7632ccfc-2afc-49ac-902b-9cefb2809e97"
         },
         {
           "id": 40,
@@ -1177,7 +1177,7 @@
           "lang": "en",
           "longText": "The end",
           "shortText": "The end",
-          "uuid": "95b40d10-cc37-4983-b144-ac2c377cb20b"
+          "uuid": "7e02dcac-7155-4c22-a4e5-3f6003396145"
         },
         {
           "id": 70,
@@ -1186,7 +1186,7 @@
           "lang": "en",
           "longText": "The quest",
           "shortText": "The quest",
-          "uuid": "34da171b-8d44-41ea-87f2-7401b1f7e2f5"
+          "uuid": "9c0371c5-5c22-4ef0-ac4a-95a8facc9eaf"
         },
         {
           "id": 80,
@@ -1195,7 +1195,7 @@
           "lang": "en",
           "longText": "quest",
           "shortText": "quest",
-          "uuid": "9508aa6c-ba26-41ab-8682-2a41adf450c5"
+          "uuid": "31b5732e-8572-45e2-b153-ffe2d4fcdb06"
         },
         {
           "id": 92,
@@ -1204,7 +1204,7 @@
           "lang": "en",
           "longText": "Lucky charm",
           "shortText": "Lucky charm",
-          "uuid": "0f65b71b-1ad2-43d1-944c-1f10d050356b"
+          "uuid": "56f9ab1d-fce7-41fb-905c-9de75602fcaf"
         },
         {
           "id": 18,
@@ -1213,7 +1213,7 @@
           "lang": "en",
           "longText": "A fork",
           "shortText": "A fork",
-          "uuid": "eaa01294-376c-4968-a2c1-1e564cb0f31c"
+          "uuid": "ae459198-3728-4a2b-be69-46fbf9137354"
         },
         {
           "id": 19,
@@ -1222,7 +1222,7 @@
           "lang": "en",
           "longText": "Take the left path",
           "shortText": "Take the left path",
-          "uuid": "58549bb4-d4d4-44cb-9e64-dcaa83cad576"
+          "uuid": "cf540dc0-f879-4634-9450-3e22b244129f"
         },
         {
           "id": 93,
@@ -1231,7 +1231,7 @@
           "lang": "en",
           "longText": "Lantern",
           "shortText": "Lantern",
-          "uuid": "2c925f20-413e-452d-8da1-b2ecc32f55e0"
+          "uuid": "c912a881-7ded-4e86-8faf-1bbc6adbfaf7"
         },
         {
           "id": 94,
@@ -1240,7 +1240,7 @@
           "lang": "en",
           "longText": "Rope",
           "shortText": "Rope",
-          "uuid": "71f4879c-d3de-45b5-af25-026e145e5158"
+          "uuid": "331bc92c-f9c7-42d6-9ee2-bd898674ab04"
         },
         {
           "id": 95,
@@ -1249,7 +1249,7 @@
           "lang": "en",
           "longText": "Find a lantern",
           "shortText": "Find a lantern",
-          "uuid": "2ac1aa0e-c889-4c80-bae1-f0c126d582f9"
+          "uuid": "4c3b32b2-1826-4cc7-8ef1-3879c5d5abd9"
         }
       ],
       "traits": [
@@ -1267,7 +1267,7 @@
           "intelligence": 0,
           "life": 0,
           "sad": 0,
-          "uuid": "611cbd97-c3a0-4b10-8a48-afd3f8bb179f",
+          "uuid": "b94483a1-4d20-448c-a003-edb17125f0be",
           "weight": 0
         }
       ],
@@ -1284,7 +1284,7 @@
           "idText": 3,
           "priority": 0,
           "probability": 100,
-          "uuid": "8380c621-18ab-4090-84d7-8c388dca8996"
+          "uuid": "9fb3a9a1-34c6-4f09-aa4c-a5aff0c1bbc3"
         }
       ]
     },
@@ -1296,11 +1296,11 @@
     {
       "guest": true,
       "language": "en",
-      "nickname": "robottest_49a71e0b",
+      "nickname": "robottest_38da2ca2",
       "role": "PLAYER",
       "state": 6,
-      "username": "robottest_49a71e0b",
-      "uuid": "49a71e0b-6ed5-4541-a6a8-1a6aae811e58"
+      "username": "robottest_38da2ca2",
+      "uuid": "38da2ca2-ce00-401d-94a8-f6560d9fa714"
     }
   ]
 }

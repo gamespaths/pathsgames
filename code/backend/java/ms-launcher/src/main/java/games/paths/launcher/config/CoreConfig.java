@@ -115,6 +115,10 @@ public class CoreConfig {
     @Value("${game.security.rate-limit.window-seconds:3600}")
     private int rateLimitWindowSeconds;
 
+    // v1.10.0 proxies whose X-Forwarded-For is believed (empty: the socket peer is the client)
+    @Value("${game.security.trusted-proxies:}")
+    private String trustedProxies;
+
     @Value("${game.security.csrf.secret:${game.auth.jwt.secret}}")
     private String csrfSecret;
 
@@ -214,7 +218,8 @@ public class CoreConfig {
 
     @Bean
     public games.paths.core.service.security.RateLimitService rateLimitService() {
-        return new games.paths.core.service.security.RateLimitService(rateLimitWindowSeconds);
+        return new games.paths.core.service.security.RateLimitService(rateLimitWindowSeconds,
+                java.time.Clock.systemUTC(), games.paths.core.service.security.TrustedProxies.parse(trustedProxies));
     }
 
     @Bean

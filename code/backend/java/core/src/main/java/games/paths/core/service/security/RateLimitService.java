@@ -22,6 +22,7 @@ public class RateLimitService {
 
     private final long windowMillis;
     private final Clock clock;
+    private final TrustedProxies proxies;
     private final Map<String, Window> windows = new ConcurrentHashMap<>();
     private final AtomicInteger calls = new AtomicInteger();
 
@@ -30,8 +31,14 @@ public class RateLimitService {
     }
 
     public RateLimitService(int windowSeconds, Clock clock) {
+        this(windowSeconds, clock, TrustedProxies.none());
+    }
+
+    /** v1.10.0 with the proxies whose X-Forwarded-For names the client (TRUSTED_PROXIES). */
+    public RateLimitService(int windowSeconds, Clock clock, TrustedProxies proxies) {
         this.windowMillis = Math.max(1, windowSeconds) * 1000L;
         this.clock = clock;
+        this.proxies = proxies == null ? TrustedProxies.none() : proxies;
     }
 
     /**
@@ -66,15 +73,14 @@ public class RateLimitService {
         windows.clear();
     }
 
-    /** The address a request comes from: the first X-Forwarded-For hop, else the socket peer. */
+    /** v1.10.0 the address a request comes from: X-Forwarded-For counts only behind a trusted proxy. */
+    public String clientIpOf(String forwardedFor, String remoteAddr) {
+        return proxies.clientIp(forwardedFor, remoteAddr);
+    }
+
+    /** v1.10.0 the socket peer: without trusted proxies X-Forwarded-For is ignored (it is spoofable). */
     public static String clientIp(String forwardedFor, String remoteAddr) {
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            String first = forwardedFor.split(",")[0].trim();
-            if (!first.isEmpty()) {
-                return first;
-            }
-        }
-        return remoteAddr == null ? "" : remoteAddr.trim();
+        return TrustedProxies.none().clientIp(forwardedFor, remoteAddr);
     }
 
     private void sweepOccasionally(long now) {

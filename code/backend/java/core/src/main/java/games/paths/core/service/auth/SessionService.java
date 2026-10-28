@@ -105,6 +105,10 @@ public class SessionService implements SessionPort {
         } else {
             UserStates.requireUsable(user.state());
         }
+        // v1.10.0 issued before the last "log out of all devices": refused also in the grace (state refusals first)
+        if (!user.acceptsTokenIssuedAt(number(claims.get("iat")) / 1000)) {
+            throw new AuthException(AuthException.Code.SESSION_REVOKED, "The session was closed");
+        }
         if (!stored.revoked()) {
             tokenPersistencePort.markRotated(stored.id(), now.toString());
         }

@@ -214,6 +214,23 @@ def test_suspend_refuses_login_then_unblocks_after_the_date(mem, admin):
                      {'reason': 'r', 'until': until}))['error'] == 'INVALID_STATE_TRANSITION'
 
 
+def test_v1_10_the_dev_endpoint_ends_a_suspension_and_the_next_login_unblocks(mem, admin):
+    from seed.handler import lambda_handler as dev
+    uuid = google_user(mem)['userUuid']
+    until = time.strftime('%Y-%m-%d', time.gmtime(time.time() + 10 * 86400))
+    call('POST', f'/api/admin/users/{uuid}/suspend', admin['accessToken'], {'reason': 'rude', 'until': until})
+    done = dev(make_event('POST', f'/api/dev/users/{uuid}/expire-suspension'), {})
+    assert done['statusCode'] == 200
+    answer = body(done)
+    assert answer['userUuid'] == uuid and answer['state'] == 3 and answer['suspendedUntil'] < until
+    assert len(logs(mem, 'SUSPEND')) == 1 and len(logs(mem)) == 1  # no log row of its own
+    assert body(login(mem))['userUuid'] == uuid and mem.get_item(f'USER#{uuid}')['state'] == 2
+    again = dev(make_event('POST', f'/api/dev/users/{uuid}/expire-suspension'), {})
+    assert again['statusCode'] == 409 and body(again)['error'] == 'INVALID_STATE_TRANSITION'
+    unknown = dev(make_event('POST', '/api/dev/users/nope/expire-suspension'), {})
+    assert unknown['statusCode'] == 404 and body(unknown)['error'] == 'USER_NOT_FOUND'
+
+
 def test_admit_rules():
     assert sso.admit(None) is None
     with pytest.raises(sso.AuthError) as e:

@@ -1,9 +1,9 @@
-// v1.7.0 V1 step 12 — known-account flag, SESSION_LIMIT, active sessions, "match is being updated" banner, policy.
+// v1.7.0 V1 step 12 — retired known-account flag (v1.10.0), SESSION_LIMIT, active sessions, "match is being updated" banner, policy.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { GuestUserProvider, useGuestUser, toIdentity } from '@/features/guest-user/GuestUserContext'
-import { KNOWN_ACCOUNT_KEY, forgetKnownAccount, isKnownAccount, markKnownAccount } from '@/auth/knownAccount'
+import { KNOWN_ACCOUNT_KEY, purgeKnownAccount } from '@/auth/knownAccount'
 import { SESSION_ALERT_CODES, SESSION_LIMIT } from '@/auth/sessionAlerts'
 import { changedElsewhere } from '@/pages/GamePage'
 import * as authApi from '../api/auth'
@@ -29,7 +29,6 @@ function Probe() {
     <div>
       <span data-testid="who">{ctx.user ? `${ctx.user.accountType}:${ctx.user.activeSessions}` : 'none'}</span>
       <span data-testid="auth-error">{ctx.authError ?? ''}</span>
-      <span data-testid="hint">{ctx.knownAccountHint ? 'hint' : 'no-hint'}</span>
       <button onClick={() => ctx.loginWithGoogle('id-token')}>login</button>
       <button onClick={() => ctx.logout()}>logout</button>
       <button onClick={() => ctx.deleteAccount('fresh-id')}>delete</button>
@@ -40,26 +39,18 @@ function Probe() {
 const GOOGLE = { userUuid: 'g1', username: 'google_g1', nickname: 'mario', accountType: 'GOOGLE', accessToken: 'g-tok',
   activeSessions: 3 }
 
-describe('knownAccount flag module', () => {
+describe('knownAccount flag module (retired v1.10.0)', () => {
   beforeEach(() => localStorage.clear())
 
-  it('marks a constant value, reads and forgets it', () => {
-    expect(isKnownAccount()).toBe(false)
-    markKnownAccount()
-    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBe('1')
-    expect(isKnownAccount()).toBe(true)
-    forgetKnownAccount()
-    expect(isKnownAccount()).toBe(false)
+  it('purges the old flag', () => {
+    localStorage.setItem(KNOWN_ACCOUNT_KEY, '1')
+    purgeKnownAccount()
+    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull()
   })
 
   it('a storage that throws never breaks the page', () => {
-    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('x') })
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('x') })
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('x') })
-    expect(isKnownAccount()).toBe(false)
-    expect(() => markKnownAccount()).not.toThrow()
-    expect(() => forgetKnownAccount()).not.toThrow()
-    spy.mockRestore()
+    expect(() => purgeKnownAccount()).not.toThrow()
     vi.restoreAllMocks()
   })
 })
@@ -80,38 +71,18 @@ describe('GuestUserContext v1.7.0 step 12', () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  it('the flag is written only at the Google login and kept at logout', async () => {
-    vi.spyOn(authApi, 'googleLogin').mockResolvedValue({ ...GOOGLE, newUser: false })
-    vi.spyOn(authApi, 'logoutSession').mockResolvedValue({})
-    render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('who')).toHaveTextContent('GUEST'))
-    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull()
-    expect(screen.getByTestId('hint')).toHaveTextContent('no-hint')
-    await act(async () => { fireEvent.click(screen.getByText('login')) })
-    await waitFor(() => expect(screen.getByTestId('who')).toHaveTextContent('GOOGLE:3'))
-    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBe('1')
-    expect(screen.getByTestId('hint')).toHaveTextContent('no-hint')
-    await act(async () => { fireEvent.click(screen.getByText('logout')) })
-    expect(reload).toHaveBeenCalled()
-    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBe('1')
-  })
-
-  it('a failed login writes nothing', async () => {
-    vi.spyOn(authApi, 'googleLogin').mockRejectedValue({ response: { data: { error: 'EMAIL_NOT_VERIFIED' } } })
-    render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('who')).toHaveTextContent('GUEST'))
-    await act(async () => { fireEvent.click(screen.getByText('login')) })
-    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull()
-  })
-
-  it('a known device without a Google session gets the hint; the deletion removes the flag', async () => {
+  it('v1.10.0 — the start removes an old flag and a Google login writes nothing', async () => {
     localStorage.setItem(KNOWN_ACCOUNT_KEY, '1')
+    vi.spyOn(authApi, 'googleLogin').mockResolvedValue({ ...GOOGLE, newUser: false })
     vi.spyOn(authApi, 'deleteMe').mockResolvedValue({ status: 'DELETING' })
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('hint')).toHaveTextContent('hint'))
+    await waitFor(() => expect(screen.getByTestId('who')).toHaveTextContent('GUEST'))
+    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull()
+    await act(async () => { fireEvent.click(screen.getByText('login')) })
+    await waitFor(() => expect(screen.getByTestId('who')).toHaveTextContent('GOOGLE:3'))
+    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull()
     await act(async () => { fireEvent.click(screen.getByText('delete')) })
-    await waitFor(() => expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull())
-    expect(screen.getByTestId('hint')).toHaveTextContent('no-hint')
+    expect(localStorage.getItem(KNOWN_ACCOUNT_KEY)).toBeNull()
   })
 
   it('a refresh refused with SESSION_LIMIT is kept for the navbar', async () => {
@@ -141,10 +112,11 @@ describe('policy texts', () => {
   it('list the cookie lifetimes of step 12 and the browser storage keys in EN and IT', () => {
     for (const bundle of [en, it_]) {
       const necessary = bundle.modals.cookies.necessaryBody
-      for (const key of ['pathsgames.lang', 'pg_game_server', 'pathsgames.knownAccount', 'pathsgames.googleNonce',
+      for (const key of ['pathsgames.lang', 'pg_game_server', 'pathsgames.googleNonce',
         'pathsgames.turnstilePass', 'pg_story:*', 'pathsgames.highContrast']) {
         expect(necessary).toContain(key)
       }
+      expect(necessary).not.toContain('pathsgames.knownAccount')
       expect(necessary).toContain('250')
       expect(necessary).toContain('180')
       expect(bundle.modals.privacy.retentionBody).toContain('250')

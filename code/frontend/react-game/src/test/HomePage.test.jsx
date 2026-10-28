@@ -27,11 +27,11 @@ const mockOpenGuestModal = vi.fn()
 const mockUser = { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok' }
 // v0.37.6 — the guest identity the page sees; tests swap it to simulate a session
 // still being created (no token yet) or one that failed.
-const guest = vi.hoisted(() => ({ user: null, error: null, sessionIdle: false, ensureGuest: null, knownAccountHint: false }))
+const guest = vi.hoisted(() => ({ user: null, error: null, sessionIdle: false, ensureGuest: null }))
 
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: guest.user, error: guest.error, openGuestModal: mockOpenGuestModal,
-    sessionIdle: guest.sessionIdle, ensureGuest: guest.ensureGuest, knownAccountHint: guest.knownAccountHint }),
+    sessionIdle: guest.sessionIdle, ensureGuest: guest.ensureGuest }),
 }))
 
 // The flags come from .env*, which a build (or a developer) flips: pin them here so this
@@ -97,14 +97,12 @@ describe('HomePage — story click with active match check', () => {
     guest.error = null
     guest.sessionIdle = false
     guest.ensureGuest = null
-    guest.knownAccountHint = false
     document.cookie = 'pathsgames.turnstilePass=; max-age=0; path=/' // forget prior pass
     getStories.mockResolvedValue([STORY_A, STORY_B])
   })
 
-  it('v1.8.0 — no "Sign in with Google to find your matches" button, even on a known device', async () => {
+  it('v1.8.0 — no "Sign in with Google to find your matches" button', async () => {
     listMatches.mockResolvedValue([])
-    guest.knownAccountHint = true
     wrap(<HomePage />)
     await screen.findByText('home.heroTitle')
     expect(screen.queryByTestId('known-account-hint')).toBeNull()

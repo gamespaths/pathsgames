@@ -143,6 +143,35 @@ class SessionServiceSessionsTest {
     }
 
     @Test
+    void v1_10_aRotatedTokenInTheGraceIsRefusedAfterLogoutAll() {
+        // issued 30 s before NOW, rotated 10 s before NOW, "log out of all devices" at NOW
+        when(jwtPort.validateToken(TOKEN)).thenReturn(true);
+        when(jwtPort.parseToken(TOKEN)).thenReturn(new HashMap<>(Map.of("type", "refresh", "sub", UUID,
+                "iat", NOW.minusSeconds(30).toEpochMilli())));
+        when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
+                revoked(RevokeReasons.ROTATED, NOW.minusSeconds(10).toString())));
+        when(tokens.findUserById(1L)).thenReturn(Optional.of(
+                new UserStatus(1L, UUID, "u", "n", "PLAYER", 2, "en", NOW.getEpochSecond())));
+        AuthException e = assertThrows(AuthException.class, () -> service.refreshToken(TOKEN));
+        assertEquals(AuthException.Code.SESSION_REVOKED, e.getCode());
+        verify(jwtPort, never()).generateRefreshToken(anyString());
+        verify(tokens, never()).storeRefreshToken(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void v1_10_aTokenIssuedAfterTheCutStillRefreshes() {
+        when(jwtPort.validateToken(TOKEN)).thenReturn(true);
+        when(jwtPort.parseToken(TOKEN)).thenReturn(new HashMap<>(Map.of("type", "refresh", "sub", UUID,
+                "iat", NOW.toEpochMilli())));
+        when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
+                new StoredRefreshToken(10L, 1L, false, NOW.plus(5, ChronoUnit.DAYS).toString(), null, null)));
+        when(tokens.findUserById(1L)).thenReturn(Optional.of(
+                new UserStatus(1L, UUID, "u", "n", "PLAYER", 2, "en", NOW.getEpochSecond())));
+        issuesTokens(NOW.plus(250, ChronoUnit.DAYS).toEpochMilli());
+        assertNotNull(service.refreshToken(TOKEN));
+    }
+
+    @Test
     void reuseOfAnUnknownUserStillAnswersSessionRevoked() {
         validRefreshJwt();
         when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(

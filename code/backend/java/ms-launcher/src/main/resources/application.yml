@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 1.9.0
+    version: 1.10.0
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -84,6 +84,8 @@ game:
       match-per-guest-window-seconds: ${RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS:86400}
       # v1.2.0 POST /api/auth/google attempts per source address and window
       google-per-ip: ${RATE_LIMIT_GOOGLE_PER_IP:30}
+    # v1.10.0 comma-separated CIDRs of the proxies in front; empty = X-Forwarded-For ignored (spoofable)
+    trusted-proxies: ${TRUSTED_PROXIES:}
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf:
