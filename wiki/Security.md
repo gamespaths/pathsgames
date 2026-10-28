@@ -87,7 +87,8 @@ API is never reachable from the public listener.
 
 - Java/Python: public port `8042` (dev) / `8080` (prod) 404s any `/api/admin/**` path; only
   the dedicated **admin port `8044`** (`game.admin.port` / env `ADMIN_PORT`) serves it. Lock
-  8044 to the owner's IP at the network layer (firewall/security group).
+  8044 to the owner's IP at the network layer (firewall/security group). Java also rejects non-canonical
+  paths and guards admin controllers by port and role (§10).
 - react-admin pastes a JWT admin token at login and talks only to the admin port (dev proxy
   `/api/admin/**` → `localhost:8044`).
 - AWS: admin endpoints sit behind a **separate API Gateway** (`PathsGamesAdminApi`) with its
@@ -247,8 +248,38 @@ across environments.
   admin chooses `storyMode`. Details: [Step 41 §9](./documentation_v0/Step41_AlphaPreparation.md).
 - **Owner move (v0.41.6)**: `GET`/`PUT /api/admin/matches/{uuidMatch}/owner` and `GET /api/admin/users/{identifier}` are admin-only on port 8044 and behind the AWS allow-list.
 
+## 10. Security review fixes (V1.10.0, [OpenAPI](../code/backend/java/adapter-rest/src/main/resources/openapi/v1.10.0-security-fixes-api.yaml))
+
+- **Java path guard (critical)**: the admin API was reachable on the public port with an encoded or
+  `;`-padded path (`/api/%61dmin/...`). `PathGuardFilter` (first filter, both ports) now answers 400
+  `INVALID_PATH` to any non-canonical path: `;`, `\`, dot segments, broken escapes, escapes of unreserved
+  characters or of `/`, `\`, `;`, `%`; valid escapes such as `%40`, `%2B` and UTF-8 stay. `RequestPaths.routed()`
+  makes `AdminPortFilter` and `JwtAuthenticationFilter` decide on the decoded path, and
+  `AdminHandlerInterceptor` refuses admin controllers off the admin port (404) or without the ADMIN role (403),
+  and dev controllers off the admin port. Robot: `admin_path_guard.robot`.
+- **Logout-all**: a refresh token issued before `sessions_valid_after` is refused with 401 `SESSION_REVOKED`
+  also inside the rotation grace; `ACCOUNT_DISABLED` is checked first (3 backends).
+- **Mock tokens (AWS test stack)**: `AllowMockAccess` follows `AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS` (default
+  `false`); `true` is refused by `aws_backend_deploy.sh` unless `AWS_TEST_LAMBDA_GOOGLE_ENABLED=false`.
+- **Python fail-closed**: the Docker image sets `ENV=production`; `check_secrets` refuses the committed JWT
+  secret whenever `HOST` is not loopback, even in dev/test; `null` left the default CORS list; a CORS `*`
+  means no credentials; the EC2 Python test scripts use `AWS_TEST_APIGW_CORS_ORIGINS` instead of `*`.
+- **`X-Forwarded-For` (Java, Python)**: believed only behind a trusted proxy. `TRUSTED_PROXIES` (comma-separated
+  CIDRs, default empty = the socket peer is the client); the right-most hop that is not a proxy is the client.
+  Set it when a load balancer or CDN sits in front; unset, a forged header cannot fake the address of the
+  per-IP limits of §4, but every client then shows the proxy address.
+- **CI IAM** (`code/scripts/prod/aws_create_policy_github_actions.sh`): `iam:UpdateAssumeRolePolicy` and
+  `DeleteRolePermissionsBoundary` are always denied. Optional permissions boundary
+  `paths-games-alpha-lambda-boundary` for the Lambda roles, in two phases: `--boundary prepare`, one alpha
+  deploy with `AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN` (also a GitHub Variable; SAM parameter
+  `PermissionsBoundaryArn`, empty = none, on every Lambda and schedule role), then `--boundary enforce`.
+  Scoping the CI policy to the API Gateway resources is not done yet.
+- **Planned**: `JWT_SECRET`, the ban pepper and the Turnstile secrets still travel as Lambda environment
+  variables; moving them to SSM SecureString is [V1 step 38](documentation_v1/Roadmap.md).
+- **Local AWS**: `start_local.sh` passes empty Turnstile keys to `sam local`, so Turnstile is always off there.
+
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -259,8 +290,9 @@ across environments.
   | 1.1.0 | Smoke test function noted as not public | October 13, 2026 |
   | 1.2.0 | Google login, hashed sessions, account deletion | October 20, 2026 |
   | 1.7.0 | Session limits, bans, suspensions and cookie rules | October 23, 2026 |
+  | 1.10.0 | Security review fixes and proxy settings | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

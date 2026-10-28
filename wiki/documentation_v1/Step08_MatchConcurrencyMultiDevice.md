@@ -90,16 +90,23 @@ Superseded in 1.8.0: the "Match is being updated" message on `STALE_MATCH` is no
 - react-game `STALE_MATCH` UX (`pages/GamePage.jsx`, `GameBook.jsx` prop `staleKey`, `utils/loadoutCards.js` `buildUpdateMatchCard`, image `refresh` in `data/images.json`): the floating "Match is being updated" notice is gone (supersedes the notice above). After the 409 refetch the left page shows the refreshed location and the right page (mobile: below) shows a card-page "Refreshing" (entity `updateMatch`) saying in two sentences that the page refreshed because the same account moved on another device.
 - AWS `match_export.export_match`: the checksum is recomputed after the `playMs` and status overrides, so a live export no longer fails the import with `CHECKSUM_MISMATCH`.
 
+## Fixes (1.10.0)
+
+- AWS: a `ConditionalCheckFailed` of a `TransactWriteItems` chunk is never retried. `db_utils.TransactConditionFailed` is raised, `repo._stale_after_claim` turns it into the stale-match error and `match/handler._route` answers 409 `STALE_MATCH` with the current `matchVersion` (it was 500 `WRITE_FAILED`). Every chunk retry (other errors) is logged as `TRANSACT_RETRY`.
+- AWS: an admin `touch` on a dirty `METADATA` moves the request stamp above the stored one.
+- Robot `tests_v1/08_match_concurrency/match_concurrency_writes.robot` (7 tests, own story `story_concurrency.json`): `If-Match` / `STALE_MATCH` on execute-event, select-choice, movement, use-item, drop-item, use-exp and end; shared keywords in `concurrency_common.resource`. See `.claude/docs/robot-suites.md`.
+
 # Version Control
-- **Document Version**: 1.8.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Same game on several devices analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.8.0 | Fixes after first full Robot run, new refresh card | October 23, 2026 |
+  | 1.10.0 | Stale writes answer conflict, more write tests | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.8.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 
 # &lt; Paths Games /&gt;

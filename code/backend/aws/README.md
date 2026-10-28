@@ -277,7 +277,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 - **Auth**: `POST /api/auth/google` (GIS ID token via `PyJWKClient`, nonce, replay item `GOOGLEJTI#`), `GET`/`DELETE /api/auth/me` (delete: 202, fresh ID token), `google-enabled` and client id in `GET /api/echo/status`. Refresh/guest tokens stored as SHA-256 (`REFRESH#{hash}`), 30 s grace, cap 5, `SESSION_REVOKED`; log sanitizer in `common/log_utils.py`.
 - **Items**: `IDENTITY#GOOGLE#{sub}`, `EMAIL#{email}`, `NICK#{base}` (suffix counter), `NICKNAME#{nickname}` (conditional claim), `ADMIN#{nickname}`; see `wiki/DataModel.md` §8. Guests merge into the Google user at login (`CANCELLED` match status).
-- **Functions**: `AdminBootstrapFunction` (manual, no API route; `code/scripts/prod/aws_create_admin.sh <stage> <nick>`) and `AccountJobsFunction` (account deletion, 24-month retention). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`.
+- **Functions**: `AdminBootstrapFunction` (manual, no API route; `code/scripts/prod/aws_create_admin.sh <stage> <nick>`) and `AccountJobsFunction` (account deletion, 24-month retention). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. V1.10.0: dev-only `POST /api/dev/users/{uuid}/expire-suspension` (admin API, `seed` Lambda); SAM parameter `PermissionsBoundaryArn` (empty = none); a `TransactWriteItems` condition failure answers 409 `STALE_MATCH`.
 - **SAM parameters**: `GoogleClientId`, `GoogleEnabled`, `RateLimitGooglePerIp`; per stage `AWS_<STAGE>_LAMBDA_GOOGLE_CLIENT_ID` is required by `aws_backend_deploy_stage.sh`. Docs: `wiki/documentation_v1/Step03_GoogleSsoBackendFlow.md`.
 
 ### v1.1.0 — V1 step 1: daily smoke test

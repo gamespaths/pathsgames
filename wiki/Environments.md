@@ -37,6 +37,17 @@ fails the script and the CI job. Runbook: [code/scripts/alpha/README.md](../code
 | `AWS_TEST_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_TEST_LAMBDA_SMOKE_WEBSITE_URL` | test keys in `.env` |
 | `AWS_<S>_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_<S>_LAMBDA_SMOKE_WEBSITE_URL` | stage keys (`ALPHA`/`BETA`/`PROD`); empty = samconfig/template value |
 
+### Robot runner on EC2 spot (V1.10.0)
+
+`code/scripts/dev/aws/run_robot_ec2_spot/` ([README](../code/scripts/dev/aws/run_robot_ec2_spot/README.md)) runs
+`run_robot_everywhere.sh --aws=all` on an EC2 spot instance, because behind Cloudflare WARP the local egress IP
+keeps changing and breaks the admin-API allow-list of the `test` stack. Ubuntu 24.04 arm64 `t4g`, persistent spot
+request that stops (not terminates) on interruption, access only by SSH over SSM (no ingress rule), local SSH key,
+nightly shutdown at 02:00 `Europe/Rome`, every resource tagged `Project=Paths.games.aws.robotTest`. Scripts:
+`create`, `start`, `stop`, `run_all`, `fetch_results`, `terminate`, `status`, `connect`, `bootstrap`, `remote_run`,
+`create_and_run_and_terminate`; `create.sh --update-policy` updates the IAM policy. Results come back under the
+git-ignored `results/` of that folder. Variables: `AWS_TEST_EC2_ROBOT_*` (§4).
+
 ## 2. Certificate and shared infrastructure (today)
 
 From [code/website/terraform-aws/README.md](../code/website/terraform-aws/README.md):
@@ -134,6 +145,9 @@ and comments:
 | Sessions and cookies (V1.7.0) | `MAX_TOKENS_PER_USER` (12), `REFRESH_TOKEN_DAYS` (250), `COOKIE_SAME_SITE` (`Lax`; Java/Python local). AWS: `MaxSessionsPerUser`, `CookieSameSite`; stage keys `AWS_<S>_LAMBDA_MAX_SESSIONS_PER_USER`, `AWS_<S>_LAMBDA_COOKIE_SAME_SITE` (test stack: `None`). `SameSite` must be `None` when react-game runs on localhost against api-test (cross-site: with `Lax` every F5 loses the session and creates a new guest; the dev origin port must be in `AWS_TEST_APIGW_CORS_ORIGINS`); public stages (alpha/beta/prod, site and API under paths.games) use `Lax`, set explicitly in `.env` and in the GitHub Environment variable `AWS_ALPHA_LAMBDA_COOKIE_SAME_SITE` |
 | Ban pepper (V1.7.0) | `BANNED_SUBJECT_PEPPER` (local Java/Python), SAM `BannedSubjectPepper`; stage keys `AWS_<S>_LAMBDA_BANNED_SUBJECT_PEPPER` (GitHub secret `AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER`). Own value per stage (`openssl rand -base64 48`), never rotated; required outside dev/test |
 | AWS admin allow-list (v0.41.0) | `ADMIN_IP_WHITELIST`, `AWS_TEST_APIGW_ADMIN_IP_EMPTY_MEANS`, `AWS_TEST_APIGW_ADMIN_API_URL`. `aws_set_admin_ip.sh` (V1.8.0) sets the IP AWS sees and the IP Cloudflare sees (both when different, `--ip` repeatable) plus `ADMIN_IP_WHITELIST` of `.env`; the Robot AWS runners call it first (`ROBOT_SKIP_ADMIN_IP=true` skips). The IP is checked twice (API Gateway authorizer and each admin handler with its own `ADMIN_IP_WHITELIST`), so editing one Lambda by hand gives 403; a VPN (e.g. WARP) may exit with a different IP per destination |
+| Proxy trust (V1.10.0) | `TRUSTED_PROXIES` (Java/Python): comma-separated CIDRs whose `X-Forwarded-For` is believed; empty (default) = the socket peer is the client. AWS reads the API Gateway source IP |
+| Mock tokens and boundary (V1.10.0) | `AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS` (default `false`; `true` refused unless `AWS_TEST_LAMBDA_GOOGLE_ENABLED=false`); `AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN` (empty = no boundary; GitHub Variable too; SAM `PermissionsBoundaryArn`), see [Security §10](./Security.md); Robot: `MAX_SESSIONS`, `EXPECTED_SAME_SITE` passed by `run_robot_with_aws_serverless.sh` from `AWS_TEST_LAMBDA_MAX_SESSIONS_PER_USER` and `AWS_TEST_LAMBDA_COOKIE_SAME_SITE` |
+| EC2 Robot runner (V1.10.0) | `AWS_TEST_EC2_ROBOT_NAME` (base of resource names), `_SIZE` (`large`/`xlarge`/`2xlarge`), `_MARKET` (`spot`/`ondemand`), `_FIXED_IP`, `_REGION`, `_DISK_GB`, `_SSH_KEY`, `_REMOTE_DIR`, `_RUNS_DIR`, `_TIMEZONE`, `_SHUTDOWN_TIME` (02:00), `_SHUTDOWN_LATEST` (04:00), `_POLL_SECONDS`, `_WAIT_TIMEOUT` |
 | Test-data lifecycle | `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
 | EC2 test servers (Java, Python) | `AWS_TEST_EC2_KEY_NAME`, `AWS_TEST_EC2_DB_NAME`, `AWS_TEST_EC2_DB_PASSWORD`, `AWS_TEST_EC2_PUBLIC_PORT`, `AWS_TEST_EC2_ADMIN_PORT`, `AWS_TEST_EC2_ROUTE53_RECORD_NAME`, `AWS_TEST_EC2_ENABLE_CLOUDFRONT`, …; the Python server overrides with `AWS_TEST_EC2_PY_<X>` (e.g. `AWS_TEST_EC2_PY_INSTANCE_NAME`) |
@@ -170,7 +184,7 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 1.8.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -183,8 +197,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | 1.2.0 | Google login keys and cloud projects | October 20, 2026 |
   | 1.7.0 | New keys for sessions, bans and play time | October 23, 2026 |
   | 1.8.0 | Cookie and admin address notes | October 23, 2026 |
+  | 1.10.0 | Test runner on cloud server, new keys | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.8.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

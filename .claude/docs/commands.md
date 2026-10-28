@@ -59,6 +59,18 @@ code/scripts/prod/aws_create_policy_github_actions.sh [--dry-run] [--account-id 
 Both dev and test live in `us-east-2` (Ohio); prod has its own region/bucket and is deployed
 only via `sam deploy --config-env prod` from `code/backend/aws/` (not through these scripts).
 
+### Robot on an EC2 spot instance (v1.10.0) — `code/scripts/dev/aws/run_robot_ec2_spot/`
+
+NEVER run these without explicit user confirmation (cloud commands). README in the folder; config `AWS_TEST_EC2_ROBOT_*` in `.env`.
+
+```bash
+./create.sh [--size xlarge] [--fixed-ip] [--update-policy]  # key pair, IAM role, SG, spot instance, bootstrap (SSM access only)
+./run_all.sh              # start if stopped, sync repo, run run_robot_everywhere.sh --aws=all, fetch results into results/
+./create_and_run_and_terminate.sh   # whole cycle; also start|stop|status|connect|fetch_results|terminate .sh
+```
+
+Nightly shutdown 02:00 Europe/Rome; resources tagged `Project=Paths.games.aws.robotTest`.
+
 ## Robot E2E tests — `code/tests/robot/`
 
 ```bash

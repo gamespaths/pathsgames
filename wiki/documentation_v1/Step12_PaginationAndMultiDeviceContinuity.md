@@ -89,22 +89,29 @@ Superseded in 1.8.0: the home "Sign in with Google to find your matches" message
 - Java `TokenPersistenceAdapter` overrides `revokeAllUserTokens(long)`: as a port default method it ran outside the class transaction and the modifying query failed on logout-all and account deletion. SQLite integration test added.
 - Robot `multi_device.robot`: the logout-all test skips the access-token `SESSION_REVOKED` check for `MOCK_ACCESS_` tokens (local AWS with `ALLOW_MOCK_ACCESS=true`, no `iat`); the admin matches filter test accepts a null `userCreatorUuid` (Java and Python leave it null in the admin list by design, AWS fills it).
 - `run_robot_with_local_java_postgres.sh` exports a random `BANNED_SUBJECT_PEPPER` when `.env` has none (`StartupSecretsGuard` refuses the prod profile without it).
-- Home: the button "Sign in with Google to find your matches" and the string `home.knownAccount` are removed (supersedes the `knownAccount` home message above). **TO DO in 1.9.0:** remove the `pathsgames.knownAccount` flag (still written at Google login, no longer read) and its rows in the cookie table (`consent/cookieConsent.js`) and the policy texts.
+- Home: the button "Sign in with Google to find your matches" and the string `home.knownAccount` are removed (supersedes the `knownAccount` home message above). **Done in 1.10.0** (see "Fixes (1.10.0)"): was to remove the `pathsgames.knownAccount` flag (still written at Google login, no longer read) and its rows in the cookie table (`consent/cookieConsent.js`) and the policy texts.
 - The page-return banner (WebKit) is unchanged but its z-index is 1070, so it shows above the book overlay (it was hidden at 1050). The "Match is being updated" floating notice is replaced by the "Refreshing" card, see [Step 8](./Step08_MatchConcurrencyMultiDevice.md).
 - Logout menu with "Log out of all devices" and account deletion: see [Step 7](./Step07_UserProfileReactGame.md) "Changes (1.8.0)".
 - `aws_backend_deploy.sh`: an empty `AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER` is no longer passed (sam rejects `Key=`); the stack keeps its previous value (code default on create, accepted only on dev/test).
 - Cookie `SameSite` and admin IP allow-list notes: [Environments](../Environments.md) section 3 and 4.
 
+## Fixes (1.10.0)
+
+- `pathsgames.knownAccount` retired (the "TO DO in 1.9.0" above is done): it is no longer written, `auth/knownAccount.js` only exports `purgeKnownAccount`, called at start to remove the key from old browsers; the row is gone from the cookie table (`consent/cookieConsent.js`) and from the EN/IT policy text (`necessaryBody` in `i18n`). The flag decisions in sections 2 to 4 are superseded.
+- Logout-all, all 3 backends: a refresh token issued before `sessions_valid_after` is refused with 401 `SESSION_REVOKED` also inside the 120 s rotation grace (a rotated token could otherwise survive "log out of all devices"). Account-state refusals (`ACCOUNT_DISABLED`) are checked first.
+- Robot `tests_v1/12_multi_device/session_hardening.robot` (4 tests): rotated token refused after logout-all, refresh after ban, suspension ends by itself (dev endpoint of [Step 10](./Step10_AdminUserManagementBackend.md)), cookie `SameSite` (optional variable `EXPECTED_SAME_SITE`); shared keywords in `sessions_common.resource`. `multi_device.robot` "Thirteen Logins" uses the variable `MAX_SESSIONS` (default 12). `run_robot_with_aws_serverless.sh` passes both from `AWS_TEST_LAMBDA_MAX_SESSIONS_PER_USER` and `AWS_TEST_LAMBDA_COOKIE_SAME_SITE`.
+
 # Version Control
-- **Document Version**: 1.8.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Pagination and many-device continuity analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.8.0 | Fixes after first full Robot run, home button removed | October 23, 2026 |
+  | 1.10.0 | Old browser flag retired, logout-all closed | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.8.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 
 # &lt; Paths Games /&gt;

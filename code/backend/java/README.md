@@ -47,7 +47,7 @@ code/backend/java/
 
 ## Google login (V1.2.0)
 
-`POST /api/auth/google`, `GET`/`DELETE /api/auth/me` (spec `v1.2.0-google-sso-api.yaml`); identities in `users_identities`, no passwords. Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. Admin bootstrap: `--paths.admin.create=<nick>` (script `code/scripts/dev/create_admin_java.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. Details: [Security §1.1](../../../wiki/Security.md).
+`POST /api/auth/google`, `GET`/`DELETE /api/auth/me` (spec `v1.2.0-google-sso-api.yaml`); identities in `users_identities`, no passwords. Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. Admin bootstrap: `--paths.admin.create=<nick>` (script `code/scripts/dev/create_admin_java.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. Dev-only `POST /api/dev/users/{uuid}/expire-suspension` (admin port, V1.10.0). `TRUSTED_PROXIES` (CIDRs whose `X-Forwarded-For` is believed, default empty); `PathGuardFilter` answers 400 `INVALID_PATH` to non-canonical paths ([Security §10](../../../wiki/Security.md)). Details: [Security §1.1](../../../wiki/Security.md).
 
 ## Profile, sessions and user admin (V1.7.0)
 

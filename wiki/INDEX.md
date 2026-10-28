@@ -21,8 +21,8 @@ section → read only that line range. Never read a Step file whole; never open
 | `StoryFormat.md` | Story JSON import format, entity fields, texts and languages, validation rules R01-R11 | story, import, JSON, validation, texts |
 | `Architecture.md` | Components, hexagonal modules, Python mirror, AWS lambdas, ports and profiles, CI | architecture, hexagonal, lambda, ports |
 | `ApiConventions.md` | REST naming, contexts, versioning, error format, pagination, OpenAPI files | API, naming, OpenAPI, versioning |
-| `Security.md` | Guest and Google login, JWT, sessions, bans, admin port and IP allow-list, rate limits, CSRF, CSP | security, Google login, JWT, admin, CSRF |
-| `Environments.md` | Environments, stages per version, domains, certificates, env variables | environments, stages, ACM, domains, env |
+| `Security.md` | Guest and Google login, JWT, sessions, bans, admin port and IP allow-list, rate limits, CSRF, CSP, 1.10.0 review fixes | security, JWT, admin, CSRF, path guard |
+| `Environments.md` | Environments, stages per version, domains, certificates, env variables, EC2 Robot runner | environments, stages, ACM, env, EC2 Robot |
 | `Glossary.md` | Domain terms with one-line meanings | glossary, terms |
 | `Replit.md` | Demo on Replit: Python backend plus react-game, setup, publish, caveats | replit, demo, publish, vite, secrets |
 
@@ -39,7 +39,7 @@ section → read only that line range. Never read a Step file whole; never open
 | [`documentation_v6/`](documentation_v6/INDEX.md) | V6 eta — draft | Infrastructure: Kubernetes, Azure, Cloudflare, DR, monitoring |
 
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -49,8 +49,9 @@ section → read only that line range. Never read a Step file whole; never open
   | 1.2.0 | Google login documented | October 20, 2026 |
   | 1.4.0 | Profile and many-device steps added to version one | October 21, 2026 |
   | 1.7.0 | Version one steps six to twelve documented | October 23, 2026 |
+  | 1.10.0 | Security review fixes and test runner documented | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -243,7 +243,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -254,8 +254,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 1.2.0 | Google login steps two to five done | October 20, 2026 |
   | 1.4.0 | Admin steps moved before translations; profile and multi-device steps detailed | October 21, 2026 |
   | 1.7.0 | Profile, many-device and admin user steps done | October 23, 2026 |
+  | 1.10.0 | Security review fixes; secrets step added | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

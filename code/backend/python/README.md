@@ -164,7 +164,7 @@ docker rmi pathsgames-backend-python
 
 ## Google login and admin bootstrap (V1.2.0)
 
-Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. New table `users_identities` and the column drops go through `create_all` plus the ALTER list in `database.py`. Admin: `python -m app.scripts.create_admin <nick>` (script `code/scripts/dev/create_admin_python.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`.
+Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. New table `users_identities` and the column drops go through `create_all` plus the ALTER list in `database.py`. Admin: `python -m app.scripts.create_admin <nick>` (script `code/scripts/dev/create_admin_python.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. Dev-only `POST /api/dev/users/{uuid}/expire-suspension` (V1.10.0). `TRUSTED_PROXIES` (CIDRs whose `X-Forwarded-For` is believed, default empty); the Docker image sets `ENV=production`.
 
 ## Profile, sessions and user admin (V1.7.0)
 

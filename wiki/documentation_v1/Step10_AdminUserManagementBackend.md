@@ -81,15 +81,21 @@ An admin can find a user, read the profile and match history, ban, suspend and u
 - Ban hashes are HMAC-SHA256 with the stage pepper `BANNED_SUBJECT_PEPPER` (required outside dev/test; SAM `BannedSubjectPepper`; GitHub secret `AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER`; `.env` `AWS_<STAGE>_LAMBDA_BANNED_SUBJECT_PEPPER`). See [Security §1.2](../Security.md).
 - AWS items: `USERSTATE#<n>` on GSI1 and `GOOGLE_USER_LIST` on GSI2 (no third index), `BANSUB#<hash>`, `BANEMAIL#<hash>`, `ADMINLOG#YYYY-MM` (24-month ttl). Backend only requires a non-blank reason of at most 500 characters; the 10-character minimum is a react-admin rule (step 11).
 
+## Fixes (1.10.0)
+
+- New dev/test-only endpoint on all 3 backends (admin port/API only): `POST /api/dev/users/{uuid}/expire-suspension` sets `suspended_until` one second in the past so Robot can test the automatic unblock without waiting; no `admin_intervention_log` row. Answers 200 `{userUuid, state, suspendedUntil}`, 404 `USER_NOT_FOUND`, 409 `INVALID_STATE_TRANSITION` (user not suspended), 403 `DEV_ENDPOINTS_DISABLED` outside dev/test. Java `DevController` through `UserAdminPort.expireSuspension`; Python `dev_controller`; AWS `seed` Lambda `user_admin.expire_suspension`, route `DevExpireSuspensionRoute` in `template/seed.yaml` (behind the admin authorizer). OpenAPI: `v1.10.0-security-fixes-api.yaml`.
+- Java: the admin API was reachable on the public port with an encoded path; fixed by `PathGuardFilter` and `AdminHandlerInterceptor`, see [Security §2](../Security.md). Robot `admin_path_guard.robot` (2 tests, `resources/RawPathHelper.py` sends raw paths) checks that encoded admin and dev paths are refused on the public URL.
+
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.10.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Admin user management and log writer analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.10.0 | Test endpoint for suspensions, admin path fix | October 28, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 28, 2026 (v1.10.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
