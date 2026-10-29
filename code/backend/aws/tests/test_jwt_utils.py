@@ -156,3 +156,13 @@ def test_empty_token_returns_none():
 
 def test_two_parts_token_returns_none():
     assert jwt_utils.verify_access_token('aaa.bbb') is None
+
+
+def test_v1_11_tokens_without_exp_are_refused():
+    base = {'sub': 'u-1', 'iss': jwt_utils.issuer(), 'aud': jwt_utils.audience(), 'iat': int(time.time())}
+    with patch.object(jwt_utils, 'JWT_SECRET', SECRET):
+        assert jwt_utils.verify_access_token(_make_token({**base, 'type': 'access'})) is None
+        assert jwt_utils.decode_refresh_token(_make_token({**base, 'type': 'refresh'})) is None
+        future = int(time.time()) + 600
+        assert jwt_utils.verify_access_token(_make_token({**base, 'type': 'access', 'exp': future})) is not None
+        assert jwt_utils.decode_refresh_token(_make_token({**base, 'type': 'refresh', 'exp': future})) is not None

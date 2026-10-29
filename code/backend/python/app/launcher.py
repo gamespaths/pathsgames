@@ -301,7 +301,8 @@ character_controller = CharacterController(character_command_service, character_
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
 weather_store_adapter = WeatherStoreAdapter(SessionLocal)
 weather_selection_service = WeatherSelectionService(weather_store_adapter, registry_service)
-weather_controller = WeatherController(weather_selection_service, content_query_service)
+weather_controller = WeatherController(weather_selection_service, content_query_service, match_persistence_adapter,
+                                       user_access_adapter)
 
 # Step 28 — movement system service (shared by player and admin controllers).
 # story_match_read_adapter resolves the location cards on GET /locations;

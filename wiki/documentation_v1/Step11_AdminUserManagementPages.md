@@ -1,6 +1,6 @@
 # Step 11 — Admin tool: user management pages
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/11_admin_user_pages` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/11_admin_user_pages` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *the react-admin side* ([Roadmap](./Roadmap.md) step 11). Backend: [Step 10](./Step10_AdminUserManagementBackend.md).
 
 ## 1. Goal
@@ -49,14 +49,15 @@ The admin finds users, reads a user's profile and match history and runs ban, su
 - `api/client.js` now keeps the API error code and HTTP status on the rejected error (`err.code`, `err.status`) so dialogs show the step 10 codes.
 
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Admin user pages analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green | October 29, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 
 # &lt; Paths Games /&gt;

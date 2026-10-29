@@ -24,6 +24,7 @@ from app.adapters.rest.match.match_controller import (
     _summary_to_camel,
     _detail_to_camel,
 )
+from app.adapters.rest.query_limits import parse_limit
 
 
 def _errors_to_list(errors):
@@ -215,7 +216,7 @@ class MatchAdminController:
             return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
         return JSONResponse(status_code=200, content={"key": key, "values": values})
 
-    def list_all_matches(self, limit: Optional[int] = None, cursor: Optional[str] = None,
+    def list_all_matches(self, limit: Optional[str] = None, cursor: Optional[str] = None,
                          status: Optional[str] = None, userUuid: Optional[str] = None,
                          storyUuid: Optional[str] = None, sinceDays: Optional[int] = None):
         """GET /api/admin/matches — paginated, filterable list of matches (v0.28.1).
@@ -227,7 +228,7 @@ class MatchAdminController:
         for /api/admin/ paths."""
         page = self.query_port.list_matches_page(MatchListFilter(
             status=status, user_uuid=userUuid, story_uuid=storyUuid,
-            since_days=sinceDays, cursor=cursor, limit=limit,
+            since_days=sinceDays, cursor=cursor, limit=parse_limit(limit),
         ))
         return JSONResponse(status_code=200, content={
             "items": [_summary_to_camel(s) for s in page.items],
@@ -288,7 +289,7 @@ class MatchAdminController:
         return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, locations))
 
     def get_admin_match_logs(self, uuid_match: str, lang: str = "en",
-                             limit: Optional[int] = None, cursor: Optional[str] = None,
+                             limit: Optional[str] = None, cursor: Optional[str] = None,
                              order: Optional[str] = None):
         """GET /api/admin/matches/{uuid}/logs — consolidated log timeline (Step 28.7).
         No ownership check; served on admin port 8044.
@@ -298,7 +299,7 @@ class MatchAdminController:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, limit,
+        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, parse_limit(limit),
                                                                   cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)

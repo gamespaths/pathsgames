@@ -1,6 +1,15 @@
 import * as CookieConsent from 'vanilla-cookieconsent'
 import 'vanilla-cookieconsent/dist/cookieconsent.css'
 import './cookieconsent-theme.css'
+import { TURNSTILE_PASS_TTL_MIN } from '../utils/turnstile'
+
+// v1.11.0 the turnstilePass lifetime as configured (VITE_TURNSTILE_PASS_TTL_MINUTES), never a fixed text
+export function turnstilePassExpiration(lang, minutes = TURNSTILE_PASS_TTL_MIN) {
+  const it = lang === 'it'
+  if (minutes < 120) return it ? `${minutes} minuti` : `${minutes} minutes`
+  const hours = Math.round(minutes / 60)
+  return it ? `${hours} ore` : `${hours} hours`
+}
 
 // Bump when the cookie policy materially changes — returning users are re-prompted.
 const REVISION = 2
@@ -33,11 +42,12 @@ const TRANSLATIONS = {
               { name: 'pathsgames.guestcookie', description: 'Anonymous guest-resume identifier', expiration: '180 days' },
               { name: 'pathsgames.refreshToken', description: 'Session refresh token, renewed at every visit (180 days for a guest)', expiration: '250 days' },
               { name: 'pathsgames.cookiesConsent', description: 'Stores your cookie choices', expiration: '6 months' },
-              { name: 'pathsgames.turnstilePass', description: 'Remembers a recent Cloudflare Turnstile anti-bot pass (security)', expiration: '30 minutes' },
+              { name: 'pathsgames.turnstilePass', description: 'Remembers a recent Cloudflare Turnstile anti-bot pass (security)', expiration: turnstilePassExpiration('en') },
               { name: 'pathsgames.lang, pathsgames.highContrast (browser storage)', description: 'Remembers your interface language and the high-contrast choice', expiration: 'Persistent (until cleared)' },
               { name: 'pg_game_server (browser storage)', description: 'The game server this browser plays on', expiration: 'Persistent (until cleared)' },
               { name: 'pathsgames.googleNonce, pg_story:* (tab storage)', description: 'One Google sign-in attempt and the story texts already loaded in this tab', expiration: 'Until the tab is closed' },
               { name: 'Google sign-in (accounts.google.com)', description: 'Google Identity Services script, loaded only when you click Sign in with Google; Google may set its own cookies for the sign-in popup', expiration: 'Set by Google' },
+              { name: 'g_state (Google, set on this site)', description: 'Set by Google Identity Services after a sign-in: remembers only the state of the sign-in prompt; strictly necessary for the sign-in you ask for', expiration: '6 months' },
             ],
           },
         },
@@ -83,11 +93,12 @@ const TRANSLATIONS = {
               { name: 'pathsgames.guestcookie', description: 'Identificatore di ripresa sessione anonima', expiration: '180 giorni' },
               { name: 'pathsgames.refreshToken', description: 'Token di refresh della sessione, rinnovato a ogni visita (180 giorni per un ospite)', expiration: '250 giorni' },
               { name: 'pathsgames.cookiesConsent', description: 'Memorizza le tue scelte sui cookie', expiration: '6 mesi' },
-              { name: 'pathsgames.turnstilePass', description: 'Ricorda una recente verifica anti-bot Cloudflare Turnstile (sicurezza)', expiration: '30 minuti' },
+              { name: 'pathsgames.turnstilePass', description: 'Ricorda una recente verifica anti-bot Cloudflare Turnstile (sicurezza)', expiration: turnstilePassExpiration('it') },
               { name: 'pathsgames.lang, pathsgames.highContrast (memoria del browser)', description: 'Memorizza la lingua dell’interfaccia e la scelta dell’alto contrasto', expiration: 'Persistente (fino a cancellazione)' },
               { name: 'pg_game_server (memoria del browser)', description: 'Il server di gioco usato da questo browser', expiration: 'Persistente (fino a cancellazione)' },
               { name: 'pathsgames.googleNonce, pg_story:* (memoria della scheda)', description: 'Un tentativo di accesso con Google e i testi delle storie già caricati in questa scheda', expiration: 'Fino alla chiusura della scheda' },
               { name: 'Accesso con Google (accounts.google.com)', description: 'Script Google Identity Services, caricato solo quando clicchi Accedi con Google; Google può impostare i propri cookie per la finestra di accesso', expiration: 'Definita da Google' },
+              { name: 'g_state (Google, su questo sito)', description: 'Impostato da Google Identity Services dopo un accesso: ricorda solo lo stato della richiesta di accesso; strettamente necessario per l’accesso che richiedi', expiration: '6 mesi' },
             ],
           },
         },

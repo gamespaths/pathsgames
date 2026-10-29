@@ -1,6 +1,6 @@
 # Step 10 — Admin tool: user management backend
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/10_admin_users` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/10_admin_users` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *control users* ([Roadmap](./Roadmap.md) step 10). Pages: [Step 11](./Step11_AdminUserManagementPages.md); the log list and page: roadmap step 14.
 The intervention-log WRITER lives here because ban, suspend, unblock and the `IDENTITY_MISMATCH` actions need it; roadmap step 14 extends it to the other admin actions and adds the list and the page.
 
@@ -87,15 +87,16 @@ An admin can find a user, read the profile and match history, ban, suspend and u
 - Java: the admin API was reachable on the public port with an encoded path; fixed by `PathGuardFilter` and `AdminHandlerInterceptor`, see [Security §2](../Security.md). Robot `admin_path_guard.robot` (2 tests, `resources/RawPathHelper.py` sends raw paths) checks that encoded admin and dev paths are refused on the public URL.
 
 # Version Control
-- **Document Version**: 1.10.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Admin user management and log writer analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.10.0 | Test endpoint for suspensions, admin path fix | October 28, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green | October 29, 2026 |
 
-- **Last Updated**: October 28, 2026 (v1.10.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

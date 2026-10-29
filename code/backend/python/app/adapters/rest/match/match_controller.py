@@ -14,6 +14,7 @@ from app.core.models.match.match_models import (
 from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
 from app.core.services.security import csrf_token_service as _csrf
+from app.adapters.rest.query_limits import parse_limit
 
 
 _STATUS_BY_CODE = {
@@ -397,12 +398,12 @@ class MatchController:
             return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 400))
         return JSONResponse(status_code=201, content=_summary_to_camel(summary))
 
-    def list_matches(self, request: Request, limit: Optional[int] = None, cursor: Optional[str] = None):
+    def list_matches(self, request: Request, limit: Optional[str] = None, cursor: Optional[str] = None):
         # v1.7.0 step 9 — the envelope {items, nextCursor, limit}: active first, then last played
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
-        page = self.query_port.list_user_matches_page(user_uuid, limit, cursor)
+        page = self.query_port.list_user_matches_page(user_uuid, parse_limit(limit), cursor)
         return JSONResponse(status_code=200, content={
             "items": [_summary_to_camel(s) for s in page.items],
             "nextCursor": page.next_cursor,
@@ -450,7 +451,7 @@ class MatchController:
         return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
 
     def get_match_logs(self, uuid_match: str, request: Request, lang: str = "en",
-                       limit: Optional[int] = None, cursor: Optional[str] = None,
+                       limit: Optional[str] = None, cursor: Optional[str] = None,
                        order: Optional[str] = None):
         """GET /api/matches/{uuid_match}/logs — Step 28.7 consolidated log timeline.
         v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=.
@@ -462,7 +463,7 @@ class MatchController:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit,
+        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, parse_limit(limit),
                                                         cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)

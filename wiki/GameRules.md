@@ -334,12 +334,12 @@ today:
 - **No permadeath** — coma is always recoverable; planned for V1.
 - **No NPCs** — planned for V2.
 - **No multiplayer** — a match has one human player today, even though the turn/priority/party
-  engine is already built for it; planned for V4+.
+  engine is already built for it; planned for V4+. Only the match creator can read its weather or join it (a stranger gets 404 `MATCH_NOT_FOUND`).
 
 Details: [Roadmap](documentation_v0/Roadmap.md)
 
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -347,8 +347,9 @@ Details: [Roadmap](documentation_v0/Roadmap.md)
   | 1.2.0 | Cancelled matches after guest merge | October 20, 2026 |
   | 1.4.0 | Merge rule and banned matches planned | October 21, 2026 |
   | 1.7.0 | Merge rule, banned matches and play time live | October 23, 2026 |
+  | 1.11.0 | Only the creator reads weather or joins a match | October 29, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

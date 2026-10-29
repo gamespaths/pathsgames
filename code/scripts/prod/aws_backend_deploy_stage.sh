@@ -197,7 +197,7 @@ mapfile -t _PARAMS <<< "$_PARAMS_TXT"
 echo "Deploying stage '$STAGE' (stack $_STACK_NAME, version $_VERSION) with --config-env $STAGE; parameters:"
 for _p in "${_PARAMS[@]}"; do
 	case "${_p%%=*}" in
-		JwtSecret|TurnstileSecretKey|TurnstileBypassToken|SeedBcryptHash|AlarmEmail|BudgetEmail) echo "  ${_p%%=*}=****" ;;
+		JwtSecret|BannedSubjectPepper|TurnstileSecretKey|TurnstileBypassToken|SeedBcryptHash|AlarmEmail|BudgetEmail) echo "  ${_p%%=*}=****" ;;
 		*) echo "  $_p" ;;
 	esac
 done

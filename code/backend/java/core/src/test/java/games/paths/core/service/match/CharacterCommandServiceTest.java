@@ -260,6 +260,17 @@ class CharacterCommandServiceTest {
         }
 
         @Test
+        void v1_11_aStrangerCannotJoinAnotherPlayersMatch() {
+            GamingMatchEntity someoneElses = match();
+            someoneElses.setIdUserCreator(USER_ID + 1);
+            when(matchReadPort.findMatchByUuid("match-uuid")).thenReturn(Optional.of(someoneElses));
+            when(userAccessPort.findByUuid("user-uuid")).thenReturn(Optional.of(user()));
+            assertEquals(CharacterJoinException.Code.MATCH_NOT_FOUND,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+            verify(persistencePort, never()).findCharacterByMatchIdAndUserId(anyLong(), anyLong());
+        }
+
+        @Test
         void alreadyJoined() {
             when(matchReadPort.findMatchByUuid("match-uuid")).thenReturn(Optional.of(match()));
             when(userAccessPort.findByUuid("user-uuid")).thenReturn(Optional.of(user()));

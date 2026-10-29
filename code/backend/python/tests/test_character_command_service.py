@@ -162,6 +162,16 @@ def test_already_joined(env):
     assert e.value.code == CharacterJoinError.ALREADY_JOINED
 
 
+def test_v1_11_join_of_a_match_the_caller_did_not_create_is_match_not_found(env):
+    service, story, match_p, user_a, char_p = env
+    match_p.find_match_by_uuid.return_value = {**_match(), "id_user_creator": 999}
+    user_a.find_by_uuid.return_value = _user()
+    with pytest.raises(CharacterJoinError) as e:
+        service.join(_cmd())
+    assert e.value.code == CharacterJoinError.MATCH_NOT_FOUND
+    char_p.find_character_by_match_and_user.assert_not_called()
+
+
 def test_story_missing(env):
     service, story, match_p, user_a, char_p = env
     match_p.find_match_by_uuid.return_value = _match()

@@ -369,8 +369,14 @@ def test_same_site_parameter_and_cookie_ages(monkeypatch):
     assert guest_auth_controller.same_site() == "none"
     response = Response()
     guest_auth_controller.set_auth_cookie(response, "pathsgames.guestcookie", "g")
-    header = response.headers["set-cookie"]
-    assert "Max-Age=15552000" in header and "SameSite=none" in header
+    # v1.11.0 the cookie on /api/auth like Java and AWS, the legacy "/" copy deleted in the same answer
+    legacy, header = response.headers.getlist("set-cookie")
+    assert "Max-Age=15552000" in header and "SameSite=none" in header and "Path=/api/auth" in header
+    assert "pathsgames.guestcookie=" in legacy and "Max-Age=0" in legacy and "Path=/;" in legacy + ";"
+    cleared = Response()
+    guest_auth_controller.clear_auth_cookie(cleared, "pathsgames.refreshToken")
+    paths = [h.split("Path=")[1].split(";")[0] for h in cleared.headers.getlist("set-cookie")]
+    assert paths == ["/api/auth", "/"]
     for name in ("COOKIE_SAME_SITE", "MAX_TOKENS_PER_USER", "REFRESH_TOKEN_DAYS"):
         monkeypatch.delenv(name, raising=False)
     defaults = Settings(_env_file=None)  # v1.10.0 the code defaults, whatever the local .env says

@@ -158,8 +158,18 @@ def test_admin_weather_blank_uuid_returns_400():
     assert _body(result)['error'] == 'INVALID_INPUT'
 
 
+def test_v1_11_weather_of_a_match_the_caller_did_not_create_is_404():
+    stranger = {'PK': 'USER#stranger-uuid-001', 'SK': 'METADATA', 'uuid': 'stranger-uuid-001',
+                'username': 's', 'role': 'PLAYER', 'state': 2}
+    items = [PLAYER, stranger, _story(), _match(weather=2), _char('m1', 1, 'c1')]
+    with _env(items, user_uuid='stranger-uuid-001'):
+        result = h.lambda_handler(_event('GET', '/api/matches/m1/weather', token='stranger-uuid-001'), None)
+    assert result['statusCode'] == 404
+    assert _body(result)['error'] == 'MATCH_NOT_FOUND'
+
+
 def test_weather_blank_uuid_returns_400():
-    result = h._get_weather('  ')
+    result = h._get_weather({}, '  ')
     assert result['statusCode'] == 400
     assert _body(result)['error'] == 'INVALID_INPUT'
 

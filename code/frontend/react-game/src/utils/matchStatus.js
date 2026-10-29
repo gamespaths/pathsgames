@@ -9,7 +9,6 @@ export const ACTIVE_MATCH_STATUSES = new Set(['CREATED', 'RUNNING'])
 // a new run without being resumable, so it needs its own badge, not "resume".
 export const BLOCKING_MATCH_STATUSES = new Set(['CREATED', 'RUNNING', 'PAUSED'])
 
-// v1.7.0 step 9 — matches kept out of the way: hidden behind "show cancelled", never opened.
 export const HIDDEN_MATCH_STATUSES = new Set(['CANCELLED', 'BANNED'])
 
 // v0.36.2 — a run that is over, however it ended. Both mean the player has played

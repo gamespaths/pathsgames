@@ -117,6 +117,10 @@ describe('policy texts', () => {
         expect(necessary).toContain(key)
       }
       expect(necessary).not.toContain('pathsgames.knownAccount')
+      // v1.11.0 the real turnstilePass lifetime and the GIS g_state cookie set on this site
+      expect(necessary).toContain('g_state')
+      expect(necessary).toContain('50')
+      expect(necessary).not.toMatch(/turnstilePass \(30/)
       expect(necessary).toContain('250')
       expect(necessary).toContain('180')
       expect(bundle.modals.privacy.retentionBody).toContain('250')

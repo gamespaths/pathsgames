@@ -89,8 +89,6 @@ public class CharacterCommandService implements CharacterCommandPort {
             throw new CharacterJoinException(CharacterJoinException.Code.MATCH_NOT_JOINABLE,
                     "Match is in a terminal status and cannot be joined");
         }
-        MatchStampPort.check(stamp, command.getMatchUuid());
-
         UserAccessPort.UserView user = userAccessPort.findByUuid(command.getUserUuid())
                 .orElseThrow(() -> new CharacterJoinException(
                         CharacterJoinException.Code.USER_NOT_FOUND, "User does not exist"));
@@ -98,6 +96,12 @@ public class CharacterCommandService implements CharacterCommandPort {
             throw new CharacterJoinException(CharacterJoinException.Code.USER_BANNED,
                     "User is not allowed to join matches");
         }
+        // v1.11.0 one human player per match until V4: only the creator joins, a stranger gets the same 404
+        if (!java.util.Objects.equals(match.getIdUserCreator(), user.id())) {
+            throw new CharacterJoinException(CharacterJoinException.Code.MATCH_NOT_FOUND,
+                    "Match not found: " + command.getMatchUuid());
+        }
+        MatchStampPort.check(stamp, command.getMatchUuid());
 
         if (persistencePort.findCharacterByMatchIdAndUserId(match.getId(), user.id()).isPresent()) {
             throw new CharacterJoinException(CharacterJoinException.Code.ALREADY_JOINED,

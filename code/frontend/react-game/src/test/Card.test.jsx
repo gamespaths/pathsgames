@@ -74,6 +74,17 @@ describe('Card', () => {
     fireEvent.click(link) // exercises stopPropagation handler
   })
 
+  it('v1.11.0 never renders a javascript: copyright link', () => {
+    render(
+      <Card
+        card={{ title: 'Art', linkCopyright: 'javascript:alert(1)', description: 'by author' }}
+        showLinkCopyright
+      />,
+    )
+    expect(document.querySelector('a.credits-view-btn')).toBeNull()
+    expect(document.querySelector('a[href^="javascript"]')).toBeNull()
+  })
+
   it('renders the children overlay over the image', () => {
     render(<Card card={{ title: 'Ov' }} childrenIntoImage={<span data-testid="overlay" />} />)
     expect(screen.getByTestId('overlay')).toBeInTheDocument()

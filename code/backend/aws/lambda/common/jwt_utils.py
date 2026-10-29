@@ -134,7 +134,8 @@ def decode_refresh_token(token):
         if payload.get('type') != 'refresh' or not _issued_here(payload):
             return None
         exp = payload.get('exp')
-        if exp is not None and time.time() > exp:
+        # v1.11.0 a token without exp never expired: refused like an expired one
+        if exp is None or time.time() > exp:
             return None
         return payload
     except Exception:
@@ -191,7 +192,8 @@ def verify_access_token(token):
             return None
 
         exp = payload.get('exp')
-        if exp is not None and time.time() > exp:
+        # v1.11.0 a token without exp never expired: refused like an expired one
+        if exp is None or time.time() > exp:
             return None
 
         return {

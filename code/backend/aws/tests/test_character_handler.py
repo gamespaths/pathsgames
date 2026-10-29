@@ -93,6 +93,20 @@ def test_join_no_auth():
 @patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
+def test_v1_11_join_of_a_match_the_caller_did_not_create_is_404(mock_jwt, mock_get, mock_query, mock_put):
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match={**_match(), 'userCreatorUuid': 'someone-else'})
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join', body={}), {})
+    assert result['statusCode'] == 404 and _body(result)['error'] == 'MATCH_NOT_FOUND'
+    mock_put.assert_not_called()
+
+
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_sk_prefix')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
 def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     mock_jwt.return_value = _claims()
     mock_get.side_effect = _store(match=_match())

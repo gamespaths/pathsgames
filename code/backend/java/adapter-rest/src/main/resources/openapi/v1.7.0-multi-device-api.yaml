@@ -37,8 +37,10 @@ info:
     `ts_update`): returned by `GET /api/match/{uuid}/info` (top level and in `match`), by the create
     answer (`POST /api/matches`) and by every answer of the 11 gameplay writes above. The client sends it
     back in the `If-Match` header (quotes optional); a different value answers **409 `STALE_MATCH`** with
-    the current `matchVersion`, before any write. The terminal-state error (`MATCH_NOT_RUNNING`, ...)
-    wins over `STALE_MATCH`. Without the header the server still does a compare-and-set against the
+    the current `matchVersion`, before any write. Order of the checks (all backends, v1.11.0): an unknown
+    match or caller character (404) and the terminal-state error (`MATCH_NOT_RUNNING`, ...) win over
+    `STALE_MATCH`; `STALE_MATCH` wins over the endpoint's own domain errors (`NOT_YOUR_TURN`, an unknown
+    event, choice or item, ...); invalid input (400) is refused first. Without the header the server still does a compare-and-set against the
     version read at request start: a 409 happens only when two writes race. Each write claims the next
     version (strictly greater) with one conditional update before its first write; a request refused
     after the claim only changes the version, and its answer carries the new `matchVersion`.
@@ -720,7 +722,8 @@ components:
     Conflict:
       description: |
         STALE_MATCH (step 8, the match changed on another device: refetch it, do not re-send), or the
-        endpoint's own 409 codes (MATCH_NOT_RUNNING, NOT_YOUR_TURN, ...), which win over STALE_MATCH.
+        endpoint's own 409 codes. A terminal state (MATCH_NOT_RUNNING, ...) wins over STALE_MATCH; the
+        domain codes (NOT_YOUR_TURN, ...) do not: a stale If-Match answers STALE_MATCH first.
       content:
         application/json:
           schema:

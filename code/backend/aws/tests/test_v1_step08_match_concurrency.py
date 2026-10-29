@@ -300,7 +300,13 @@ def test_if_match_header(raw, expected):
     ({'statusCode': 409, 'body': json.dumps({'error': 'MATCH_NOT_RUNNING'})}, False),
     ({'statusCode': 409, 'body': json.dumps({'error': 'MATCH_NOT_STARTABLE'})}, False),
     ({'statusCode': 404, 'body': '{}'}, False), ({'statusCode': 400, 'body': '{}'}, False),
-    ({'statusCode': 409, 'body': 'not json'}, True), ({'statusCode': 409, 'body': '[1]'}, True)])
+    ({'statusCode': 409, 'body': 'not json'}, True), ({'statusCode': 409, 'body': '[1]'}, True),
+    # v1.11.0 like Java/Python: a domain 404 loses to a stale header, the match or character 404 does not
+    ({'statusCode': 404, 'body': json.dumps({'error': 'EVENT_NOT_FOUND'})}, True),
+    ({'statusCode': 404, 'body': json.dumps({'error': 'CHOICE_NOT_FOUND'})}, True),
+    ({'statusCode': 404, 'body': json.dumps({'error': 'MATCH_NOT_FOUND'})}, False),
+    ({'statusCode': 404, 'body': json.dumps({'error': 'PLAYER_NOT_FOUND'})}, False),
+    ({'statusCode': 404, 'body': json.dumps({'error': 'NOT_FOUND'})}, False)])
 def test_what_a_stale_header_wins_over(response, wins):
     assert h._stale_wins(response) is wins
 

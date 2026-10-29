@@ -6,6 +6,7 @@ from app.core.ports.story.story_validator_port import StoryValidationException
 from app.core.models.story.story_summary import StorySummary
 from app.core.models.story.story_import_result import StoryImportResult
 from app.core.ports.story.story_catalog_export_port import CatalogNotConfiguredError
+from app.adapters.rest.query_limits import parse_limit
 
 class StoryAdminController:
     def __init__(self, query_port: StoryQueryPort, import_port: StoryImportPort, validator_port=None,
@@ -22,11 +23,11 @@ class StoryAdminController:
         self.router.add_api_route("/{uuid}/validate", self.validate_story, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.delete_story, methods=["DELETE"])
 
-    async def list_all_stories(self, req: Request, lang: str = Query("en"), limit: Optional[int] = Query(None),
+    async def list_all_stories(self, req: Request, lang: str = Query("en"), limit: Optional[str] = Query(None),
                                cursor: Optional[str] = Query(None)) -> Dict[str, Any]:
         """v1.7.0 the {items, nextCursor, limit} envelope (limit default 50, max 200)."""
         self._require_admin(req)
-        page = self.query_port.list_all_stories_page(lang, limit, cursor)
+        page = self.query_port.list_all_stories_page(lang, parse_limit(limit), cursor)
         return {"items": page["items"], "nextCursor": page["nextCursor"], "limit": page["limit"]}
 
     async def import_story(self, req: Request, data: Dict[str, Any] = Body(default=None)) -> StoryImportResult:

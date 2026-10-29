@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.auth;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.admin.controller.AdminErrors;
 import games.paths.adapters.admin.dto.auth.AdminUserActionRequest;
 import games.paths.adapters.admin.dto.auth.AdminUserItemResponse;
@@ -46,9 +47,9 @@ public class UserAdminController {
                                             @RequestParam(required = false) String nickname,
                                             @RequestParam(required = false) String state,
                                             @RequestParam(required = false) String cursor,
-                                            @RequestParam(required = false) Integer limit) {
+                                            @RequestParam(required = false) String limit) {
         return run(() -> AdminUserItemResponse.Page.of(
-                userAdminPort.list(new AdminUserListFilter(email, nickname, state, cursor, limit))));
+                userAdminPort.list(new AdminUserListFilter(email, nickname, state, cursor, QueryLimits.parse(limit)))));
     }
 
     @GetMapping("/{identifier}")

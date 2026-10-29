@@ -1,4 +1,5 @@
 import CardCreditsBar from './CardCreditsBar'
+import { safeExternalUrl } from '@/utils/safeUrl'
 import { useTranslation } from '../../i18n/context'
 import BonusBadgeList from '../ui/BonusBadgeList'
 import CardImage from './CardImage'
@@ -98,7 +99,7 @@ export default function Card({
   const urlImage      = urlImageProp ?? card?.urlImage ?? card?.alternativeImage ?? null
   const icon          = iconProp      ?? card?.awesomeIcon ?? 'fas fa-info'
   const name          = nameProp      ?? card?.title     ?? card?.name ?? card?.title ?? entity?.name ?? "-"
-  const linkCopyright = linkProp     ?? card?.linkCopyright ?? null
+  const linkCopyright = safeExternalUrl(linkProp ?? card?.linkCopyright ?? null)
   const pageDesc  = card?.description ?? entity?.description ?? null
   const isDisabled = disabled || locked
   const isBig      = variant === 'big'

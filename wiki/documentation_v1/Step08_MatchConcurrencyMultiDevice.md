@@ -1,6 +1,6 @@
 # Step 8 — Match concurrency: multi-device
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/08_match_concurrency` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/08_match_concurrency` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *the same match opened on two devices* ([Roadmap](./Roadmap.md) step 8; the guest merge is in [Step 3](./Step03_GoogleSsoBackendFlow.md)).
 Multi-device chain: [Step 6](./Step06_UserProfileBackend.md) (stamp on every write, `play_ms`) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md). This step builds on the reliable `ts_update` of step 6.
 
@@ -96,8 +96,14 @@ Superseded in 1.8.0: the "Match is being updated" message on `STALE_MATCH` is no
 - AWS: an admin `touch` on a dirty `METADATA` moves the request stamp above the stored one.
 - Robot `tests_v1/08_match_concurrency/match_concurrency_writes.robot` (7 tests, own story `story_concurrency.json`): `If-Match` / `STALE_MATCH` on execute-event, select-choice, movement, use-item, drop-item, use-exp and end; shared keywords in `concurrency_common.resource`. See `.claude/docs/robot-suites.md`.
 
+
+## Fixes (1.11.0)
+
+- AWS `If-Match` order aligned with Java and Python (`match/handler.py` `_stale_wins`, `_BEFORE_STALE_404`): a stale `If-Match` now also wins over a domain 404 that carries an error code (unknown event, choice, item, ...). `MATCH_NOT_FOUND`, `PLAYER_NOT_FOUND`, `NOT_FOUND` and the terminal-state errors still win over `STALE_MATCH`; a 400 on the input comes first. The text of `v1.7.0-multi-device-api.yaml` was corrected (it said `NOT_YOUR_TURN` wins over `STALE_MATCH`).
+- `POST /api/matches/{uuid}/join`: the `If-Match` check now comes after the owner check ([Security §10](../Security.md)).
+
 # Version Control
-- **Document Version**: 1.10.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -105,8 +111,9 @@ Superseded in 1.8.0: the "Match is being updated" message on `STALE_MATCH` is no
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.8.0 | Fixes after first full Robot run, new refresh card | October 23, 2026 |
   | 1.10.0 | Stale writes answer conflict, more write tests | October 28, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green; stale-match order | October 29, 2026 |
 
-- **Last Updated**: October 28, 2026 (v1.10.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 
 # &lt; Paths Games /&gt;

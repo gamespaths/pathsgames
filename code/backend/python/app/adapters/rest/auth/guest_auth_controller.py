@@ -106,11 +106,24 @@ def same_site(value: Optional[str] = None) -> str:
     return chosen if chosen in _SAME_SITE_VALUES else "lax"
 
 
+#: v1.11.0 like Java and AWS: the auth cookies are sent only to /api/auth/**; "/" was the Python path until 1.10.0
+COOKIE_PATH = "/api/auth"
+LEGACY_COOKIE_PATH = "/"
+
+
 def set_auth_cookie(response, key: str, value: str) -> None:
-    """HttpOnly, Secure, SameSite from the settings; refresh cookie 250 days, guest cookie 180 days."""
+    """HttpOnly, Secure, SameSite from the settings; refresh cookie 250 days, guest cookie 180 days.
+    v1.11.0 the copy a browser still keeps on the old "/" path is deleted, so only one cookie of the name is sent."""
     max_age = REFRESH_COOKIE_MAX_AGE if key == REFRESH_COOKIE else GUEST_COOKIE_MAX_AGE
-    response.set_cookie(key=key, value=value, httponly=True, samesite=same_site(), secure=True, path="/",
+    response.delete_cookie(key=key, path=LEGACY_COOKIE_PATH)
+    response.set_cookie(key=key, value=value, httponly=True, samesite=same_site(), secure=True, path=COOKIE_PATH,
                         max_age=max_age)
+
+
+def clear_auth_cookie(response, key: str) -> None:
+    """v1.11.0 the cookie removed on the current path and on the legacy "/" one."""
+    response.delete_cookie(key=key, path=COOKIE_PATH)
+    response.delete_cookie(key=key, path=LEGACY_COOKIE_PATH)
 
 
 def _parse_age(raw: Optional[str]) -> Optional[int]:

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { safeExternalUrl } from '@/utils/safeUrl'
 import { useTranslation } from '@/i18n/context'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import { openCookiePreferences } from '@/consent/cookieConsent'
@@ -74,8 +75,8 @@ function CreditsCards({ entries, t }) {
                 {card.copyrightText && badge('credit-copy', card.copyrightText, card.copyrightText)}
               </div>
             }
-            onAction={card.linkCopyright
-              ? () => window.open(card.linkCopyright, '_blank', 'noopener,noreferrer') : undefined}
+            onAction={safeExternalUrl(card.linkCopyright)
+              ? () => window.open(safeExternalUrl(card.linkCopyright), '_blank', 'noopener,noreferrer') : undefined}
             actionLabel={t('modals.credits.openCredit')} actionIcon="fa-external-link-alt" />
         ))}
       </div>

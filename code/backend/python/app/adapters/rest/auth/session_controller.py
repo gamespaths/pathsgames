@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, Request, Response, HTTPException, status
 from fastapi.responses import JSONResponse
 from app.adapters.rest.auth.auth_errors import auth_error_response
-from app.adapters.rest.auth.guest_auth_controller import set_auth_cookie
+from app.adapters.rest.auth.guest_auth_controller import clear_auth_cookie, set_auth_cookie
 from app.core.models.auth.auth_error import AuthError
 from app.core.models.auth.profile import THEME_DEFAULT, THEME_HIGH_CONTRAST
 from app.core.ports.auth.session_port import SessionPort
@@ -115,7 +115,7 @@ class SessionController:
         except AuthError as e:
             # v1.2.0 SESSION_REVOKED (closed from another device) or a disabled / deleting account
             response = auth_error_response(e)
-            response.delete_cookie(key="pathsgames.refreshToken", path="/")
+            clear_auth_cookie(response, "pathsgames.refreshToken")
             return response
         except ValueError as e:
             raise HTTPException(
@@ -143,8 +143,8 @@ class SessionController:
         response = JSONResponse(content={"status": "OK", "message": "Logged out successfully", "timestamp": int(time.time() * 1000)})
 
         # Clear cookies
-        response.delete_cookie(key="pathsgames.refreshToken", path="/")
-        response.delete_cookie(key="pathsgames.guestcookie", path="/")
+        clear_auth_cookie(response, "pathsgames.refreshToken")
+        clear_auth_cookie(response, "pathsgames.guestcookie")
 
         return response
 
@@ -157,8 +157,8 @@ class SessionController:
         response = JSONResponse(content={"status": "OK", "message": "All sessions revoked successfully", "timestamp": int(time.time() * 1000)})
 
         # Clear cookies
-        response.delete_cookie(key="pathsgames.refreshToken", path="/")
-        response.delete_cookie(key="pathsgames.guestcookie", path="/")
+        clear_auth_cookie(response, "pathsgames.refreshToken")
+        clear_auth_cookie(response, "pathsgames.guestcookie")
 
         return response
 
@@ -178,6 +178,6 @@ class SessionController:
         response = JSONResponse(status_code=202, content={
             "status": "DELETING", "message": "The account and its data are being deleted",
             "timestamp": int(time.time() * 1000)})
-        response.delete_cookie(key="pathsgames.refreshToken", path="/")
-        response.delete_cookie(key="pathsgames.guestcookie", path="/")
+        clear_auth_cookie(response, "pathsgames.refreshToken")
+        clear_auth_cookie(response, "pathsgames.guestcookie")
         return response

@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.story;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.story.StoryImportResponse;
 import games.paths.adapters.admin.dto.story.StorySummaryResponse;
@@ -131,10 +132,10 @@ public class StoryAdminController {
     @GetMapping
     public ResponseEntity<Object> listAllStories(
             @RequestParam(value = "lang", defaultValue = "en") String lang,
-            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "limit", required = false) String limit,
             @RequestParam(value = "cursor", required = false) String cursor) {
 
-        StorySummaryPage page = storyQueryPort.listAllStoriesPage(lang, limit, cursor);
+        StorySummaryPage page = storyQueryPort.listAllStoriesPage(lang, QueryLimits.parse(limit), cursor);
         List<StorySummaryResponse> items = page.items().stream()
                 .map(s -> new StorySummaryResponse(
                         s.uuid(), s.title(), s.description(), s.author(),

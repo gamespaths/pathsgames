@@ -1,6 +1,6 @@
 # Step 12 — Pagination residuals and multi-device continuity
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/12_multi_device` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/12_multi_device` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *lists that scale for matches and stories, and the same account on many devices* ([Roadmap](./Roadmap.md) step 12). This step takes over the old step 10 (admin pagination) and closes the multi-device chain: [Step 6](./Step06_UserProfileBackend.md) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) (merge rule) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md).
 
 ## 1. Goal
@@ -101,8 +101,15 @@ Superseded in 1.8.0: the home "Sign in with Google to find your matches" message
 - Logout-all, all 3 backends: a refresh token issued before `sessions_valid_after` is refused with 401 `SESSION_REVOKED` also inside the 120 s rotation grace (a rotated token could otherwise survive "log out of all devices"). Account-state refusals (`ACCOUNT_DISABLED`) are checked first.
 - Robot `tests_v1/12_multi_device/session_hardening.robot` (4 tests): rotated token refused after logout-all, refresh after ban, suspension ends by itself (dev endpoint of [Step 10](./Step10_AdminUserManagementBackend.md)), cookie `SameSite` (optional variable `EXPECTED_SAME_SITE`); shared keywords in `sessions_common.resource`. `multi_device.robot` "Thirteen Logins" uses the variable `MAX_SESSIONS` (default 12). `run_robot_with_aws_serverless.sh` passes both from `AWS_TEST_LAMBDA_MAX_SESSIONS_PER_USER` and `AWS_TEST_LAMBDA_COOKIE_SAME_SITE`.
 
+
+## Fixes (1.11.0)
+
+- Python auth cookies now use `Path=/api/auth`, as Java and AWS (`guest_auth_controller.py` `COOKIE_PATH`). `set_auth_cookie` also deletes the legacy `Path=/` copy and the new `clear_auth_cookie` deletes both, so old browsers keep a single cookie.
+- Robot `session_hardening.robot` SameSite check ignores `Set-Cookie` lines with `Max-Age=0` (the deletion of the legacy copy).
+- react-game cookie policy: `pathsgames.turnstilePass` lifetime now follows `VITE_TURNSTILE_PASS_TTL_MINUTES` (default 3000 min, about 50 hours) in the EN/IT `necessaryBody` text and the `cookieConsent.js` table (`turnstilePassExpiration`); the Google Identity Services `g_state` cookie (6 months, sign-in prompt state) is now listed in the table and text.
+
 # Version Control
-- **Document Version**: 1.10.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -110,8 +117,9 @@ Superseded in 1.8.0: the home "Sign in with Google to find your matches" message
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.8.0 | Fixes after first full Robot run, home button removed | October 23, 2026 |
   | 1.10.0 | Old browser flag retired, logout-all closed | October 28, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green; cookie path, policy | October 29, 2026 |
 
-- **Last Updated**: October 28, 2026 (v1.10.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 
 # &lt; Paths Games /&gt;

@@ -1,6 +1,6 @@
 # Step 9 — Match list: cancelled matches, last played and merge rule
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/09_match_list` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/09_match_list` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *match list after the merge* ([Roadmap](./Roadmap.md) step 9).
 Multi-device chain: [Step 6](./Step06_UserProfileBackend.md) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md). "Last played" is reliable thanks to the stamp on every write of step 6.
 
@@ -65,16 +65,22 @@ Superseded in 1.8.0: points 1 and 3 (last-played line, "show cancelled" toggle),
 - react-game (`MatchCard.jsx`, `UserMatchesList.jsx`): the "Last played ..." line is removed (the order is unchanged: active first, then last played); the "show cancelled" toggle is removed (supersedes the 1.7.0 notes above): `CANCELLED` and `BANNED` matches are always listed, in full colour, still never opened, with the cancelled note.
 - The list now starts with the user statistics card ([Step 7](./Step07_UserProfileReactGame.md)).
 
+
+## Fixes (1.11.0)
+
+- `?limit=` that is not an integer reads as absent (default page 50) on Java (`QueryLimits`, `adapter-rest`) and Python (`app/adapters/rest/query_limits.py` `parse_limit`), as AWS already did; before, Java answered 400 and Python 422. It covers the seven list endpoints: `GET /api/matches`, the match logs, and the admin stories, matches, match logs, guests and users.
+
 # Version Control
-- **Document Version**: 1.8.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Match list and merge rule analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.8.0 | Match list toggle and date line removed | October 23, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green; limit rule | October 29, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.8.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 
 # &lt; Paths Games /&gt;

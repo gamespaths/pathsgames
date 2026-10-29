@@ -50,14 +50,17 @@ class CharacterCommandService(CharacterCommandPort):
         if match_statuses.is_terminal(match.get("status")):
             raise CharacterJoinError(CharacterJoinError.MATCH_NOT_JOINABLE,
                                      "Match is in a terminal status and cannot be joined")
-        stamp_check(self, command.match_uuid)
-
         user = self.user_access_port.find_by_uuid(command.user_uuid)
         if user is None:
             raise CharacterJoinError(CharacterJoinError.USER_NOT_FOUND, "User does not exist")
         if user.get("state") in _BANNED_STATES:
             raise CharacterJoinError(CharacterJoinError.USER_BANNED,
                                      "User is not allowed to join matches")
+        # v1.11.0 one human player per match until V4: only the creator joins, a stranger gets the same 404
+        if match.get("id_user_creator") != user.get("id"):
+            raise CharacterJoinError(CharacterJoinError.MATCH_NOT_FOUND,
+                                     f"Match not found: {command.match_uuid}")
+        stamp_check(self, command.match_uuid)
 
         if self.character_persistence_port.find_character_by_match_and_user(match["id"], user["id"]):
             raise CharacterJoinError(CharacterJoinError.ALREADY_JOINED,

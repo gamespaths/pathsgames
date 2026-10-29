@@ -1,6 +1,6 @@
 # Step 6 — User profile: backend
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/06_user_profile` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/06_user_profile` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *who am I, statistics and preferences* ([Roadmap](./Roadmap.md) step 6).
 **Owner goal of steps 6-12:** the same person uses the site from several devices (web and mobile) with the same Google account and finds the same game state: starts on device A, continues on B, then C, back on B finds C's progress, back on A finds B's. The steps are developed together, so placement between them is free.
 Steps 6-12 are developed together and released as 1.7.0, docs included. Chain: [Step 6](./Step06_UserProfileBackend.md) foundation · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md).
@@ -105,14 +105,15 @@ Facts (AWS ones as stated by the owner; `samconfig.toml` and `template.yaml` ver
 - AWS: GSI1 and GSI2 redefined with the `summary` map, so **every AWS table must be recreated** (no migration). Shared docs: [Data Model](../DataModel.md), [Environments](../Environments.md), [Security](../Security.md).
 
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Profile statistics and preferences analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green | October 29, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 
 # &lt; Paths Games /&gt;

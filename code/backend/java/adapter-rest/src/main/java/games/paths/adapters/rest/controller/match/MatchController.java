@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.controller.match;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.rest.dto.MatchCreateRequest;
 import games.paths.adapters.rest.dto.MatchInfoResponse;
 import games.paths.adapters.rest.dto.MatchSummaryResponse;
@@ -146,14 +147,14 @@ public class MatchController {
     /** v1.7.0 step 9 - the envelope {items, nextCursor, limit}: active first, then last played. */
     @GetMapping("/api/matches")
     public ResponseEntity<Object> listMatches(HttpServletRequest request,
-                                              @RequestParam(required = false) Integer limit,
+                                              @RequestParam(required = false) String limit,
                                               @RequestParam(required = false) String cursor) {
         String userUuid = (String) request.getAttribute("userUuid");
         if (userUuid == null || userUuid.isBlank()) {
             return error(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED",
                     "User identity is missing from the request");
         }
-        MatchSummaryPage page = matchQueryPort.listUserMatchesPage(userUuid, limit, cursor);
+        MatchSummaryPage page = matchQueryPort.listUserMatchesPage(userUuid, QueryLimits.parse(limit), cursor);
         List<MatchSummaryResponse> items = page.items().stream()
                 .map(MatchSummaryResponse::fromModel)
                 .collect(Collectors.toList());

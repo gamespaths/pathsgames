@@ -65,6 +65,7 @@ Passwords no longer exist: a player is a guest or a Google user (`users_identiti
 - **`sessions_valid_after`** (`users` column, AWS attribute on `USER#`): set by "log out of all devices", ban and
   suspend; an access token issued before it answers 401 `SESSION_REVOKED` (within the 60 s state cache).
   `GET /api/auth/me` returns `activeSessions` (refresh tokens used in the last 30 days).
+- **Cookie path**: auth cookies are set with `Path=/api/auth` on all three backends.
 - **Cookie `SameSite`**: `COOKIE_SAME_SITE` (AWS `CookieSameSite`), default `Lax`. `None` only when the page
   and the API are on different sites (AWS `test`, whose pages call `execute-api` URLs).
 - **Ban and suspend** (admin, Google users only, [Step 10](documentation_v1/Step10_AdminUserManagementBackend.md)):
@@ -160,14 +161,15 @@ Full detail: [Step20](documentation_v0/Step20_GameWebSiteFirstRun.md).
   `pathsgames.turnstilePass` cookie so a confirmed human isn't re-challenged on every load —
   UX only, **not** the security boundary. The authoritative check is always the server-side
   `turnstileToken` verification on `POST /api/matches`, using a fresh, never-cached token.
-  When no site key is configured the widget is skipped (dev bypass); Robot uses a deployed
+  The policy texts and the cookie table show this real lifetime. When no site key is configured the widget is skipped (dev bypass); Robot uses a deployed
   `TURNSTILE_BYPASS_TOKEN`, honored only when the AWS stack's environment isn't `prod`.
 - **Cookie consent**: self-hosted `vanilla-cookieconsent` v3.1.0 + Google Consent Mode v2,
   shared between the website and react-game, replacing the former third-party CookieYes.
   Consent starts fully denied; Google tags (via GTM) write no cookies until the user opts
   into the `analytics` category. Strictly-necessary, consent-exempt cookies:
   `pathsgames.guestcookie`, `pathsgames.refreshToken`, `pathsgames.cookiesConsent`,
-  `pathsgames.turnstilePass`, plus the `pathsgames.lang` localStorage key.
+  `pathsgames.turnstilePass`, `g_state` (set by Google Identity Services on the site after a
+  sign-in; remembers the sign-in prompt state, 6 months), plus the `pathsgames.lang` localStorage key.
 
 - **Smoke test Lambda (V1 step 1, AWS)**: no new code path in the public Lambdas and no route; the
   smoke function is not reachable from the internet (Scheduler and IAM invoke only). It creates its
@@ -278,8 +280,17 @@ across environments.
   variables; moving them to SSM SecureString is [V1 step 38](documentation_v1/Roadmap.md).
 - **Local AWS**: `start_local.sh` passes empty Turnstile keys to `sam local`, so Turnstile is always off there.
 
+### 10.1 Low items of the review (V1.11.0)
+
+- **Owner only**: `GET /api/matches/{uuid}/weather` and `POST /api/matches/{uuid}/join` answer 404 `MATCH_NOT_FOUND` to anyone but the match creator, on Java (`WeatherController`, `CharacterCommandService`), Python and AWS (`_require_owned_match`, `_join_match`). The `If-Match` check of `join` comes after the owner check. One human player per match until V4 ([GameRules](GameRules.md)).
+- **Cookie path**: Python auth cookies use `Path=/api/auth` like Java and AWS; the legacy `Path=/` copy is deleted at the next set or clear.
+- **react-game links**: copyright and credit links (`linkCopyright`) open only when `http` or `https` (`src/utils/safeUrl.js` `safeExternalUrl`, used by `Card.jsx` and `PolicyBook.jsx`).
+- **AWS tokens**: access and refresh tokens without `exp` are refused (`common/jwt_utils.py`).
+- **Deploy log**: `aws_backend_deploy_stage.sh` masks `BannedSubjectPepper` in the printed parameters.
+- **npm**: react-game `dompurify` 3.4.17 and `axios` 1.21.0, react-admin `axios` 1.21.0. Open audit items: `follow-redirects` (Node only) and `react-router` (v7 migration planned later).
+
 # Version Control
-- **Document Version**: 1.10.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -291,8 +302,9 @@ across environments.
   | 1.2.0 | Google login, hashed sessions, account deletion | October 20, 2026 |
   | 1.7.0 | Session limits, bans, suspensions and cookie rules | October 23, 2026 |
   | 1.10.0 | Security review fixes and proxy settings | October 28, 2026 |
+  | 1.11.0 | Owner-only match reads, safer links and tokens; cookie list | October 29, 2026 |
 
-- **Last Updated**: October 28, 2026 (v1.10.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

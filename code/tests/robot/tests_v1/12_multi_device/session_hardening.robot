@@ -132,7 +132,8 @@ Cookie Should Carry SameSite
     [Documentation]    The Set-Cookie line of ${name}: HttpOnly, a valid SameSite (the expected one if given),
     ...                Secure with SameSite=None.
     [Arguments]    ${resp}    ${name}
-    ${lines}=    Evaluate    [l for l in $resp.raw.headers.getlist('Set-Cookie') if l.startswith($name + '=')]
+    # v1.11.0 Python also deletes the legacy Path=/ copy (Max-Age=0) in the same answer: only the live cookie counts
+    ${lines}=    Evaluate    [l for l in $resp.raw.headers.getlist('Set-Cookie') if l.startswith($name + '=') and 'max-age=0' not in l.lower()]
     Should Not Be Empty    ${lines}    msg=no ${name} cookie in ${resp.headers}
     ${attributes}=    Evaluate    {a.split('=', 1)[0].strip().lower(): (a.split('=', 1) + [''])[1].strip() for a in $lines[0].split(';')[1:]}
     Dictionary Should Contain Key    ${attributes}    httponly

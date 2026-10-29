@@ -1,6 +1,6 @@
 # Step 7 — User profile: react-game page
 
-**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/07_user_profile_page` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/07_user_profile_page` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *profile page in the user's book* ([Roadmap](./Roadmap.md) step 7).
 Multi-device chain (same Google account, same game state on every device): [Step 6](./Step06_UserProfileBackend.md) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md).
 
@@ -73,15 +73,16 @@ Superseded in 1.8.0: the profile page and its buttons (see "Changes (1.8.0)" bel
 - **Logout menu** (`UserAccountPanel.jsx`, `LogoutMenu`): for a Google user the "Log out" button hides and 3 centred buttons appear: log out of this device, log out of all devices (confirmation), delete my account (confirmation with a fresh Google popup). The active-sessions count and profile errors show there; after a deletion the left card shows the closing message.
 
 # Version Control
-- **Document Version**: 1.8.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Profile page analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
   | 1.8.0 | Profile page replaced by a small card | October 23, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green | October 29, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.8.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 
 # &lt; Paths Games /&gt;

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
 
 from app.adapters.rest.auth.auth_errors import auth_error_response
-from app.adapters.rest.auth.guest_auth_controller import _rate_limited, set_auth_cookie
+from app.adapters.rest.auth.guest_auth_controller import _rate_limited, clear_auth_cookie, set_auth_cookie
 from app.core.models.auth.auth_error import AuthError
 
 RATE_BUCKET = "google"
@@ -56,5 +56,5 @@ class GoogleAuthController:
         response = JSONResponse(content=data)
         set_auth_cookie(response, "pathsgames.refreshToken", session.refresh_token)
         if session.merged_guest_uuid is not None:
-            response.delete_cookie(key="pathsgames.guestcookie", path="/")
+            clear_auth_cookie(response, "pathsgames.guestcookie")
         return response

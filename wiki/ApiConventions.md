@@ -82,7 +82,7 @@ guests, match logs):
 `nextCursor` is `null` on the last page. Callers pass `?limit=` and `?cursor=` (plus
 resource-specific filters, e.g. `?status=`, `?userUuid=`, `?storyUuid=`, `?sinceDays=` on
 admin matches). AWS backs this with a DynamoDB GSI keyset; Java/Python with a keyset query on
-the relational tables — the wire shape is identical across all three.
+the relational tables — the wire shape is identical across all three. A `?limit=` that is not an integer reads as absent (default page 50) on every backend.
 
 Since V1.7.0 the envelope is also the answer of `GET /api/matches` (active matches first, then last
 played; page size 50; breaking change from the plain array), `GET /api/admin/stories` and
@@ -94,7 +94,7 @@ Every match read (`/info`) and gameplay write answer carries `matchVersion`, an 
 timestamp on Java/Python, epoch ms on AWS; clients never parse it). A gameplay write may send it back
 as the `If-Match` header (listed in the CORS allowed headers); a different value answers 409
 `STALE_MATCH` and the client refetches. Without the header the backend still compares against the
-value read at request start (409 only in a real race).
+value read at request start (409 only in a real race). Order of checks, identical on the three backends: 400 on the input, then 404 `MATCH_NOT_FOUND` / `PLAYER_NOT_FOUND` / `NOT_FOUND` and terminal-state errors, then `STALE_MATCH`, then the other domain errors (a stale `If-Match` also wins over an unknown event, choice or item).
 
 ## 7. OpenAPI specs
 
@@ -119,15 +119,16 @@ places at once, together with the OpenAPI spec (§7) and the Robot Framework sui
 exercises the endpoint on every backend — see [Architecture §9](./Architecture.md).
 
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared guide to how the API is named | September 25, 2026 |
   | 1.2.0 | Google login error codes added | October 20, 2026 |
   | 1.7.0 | Match version header, new list format, user codes | October 23, 2026 |
+  | 1.11.0 | Check order and bad limit value made equal | October 29, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -1153,6 +1153,9 @@ def _join_match(user, match_uuid, body):
         return _err(409, 'MATCH_NOT_JOINABLE', 'Match is in a terminal status and cannot be joined')
     if user.get('state') in _BANNED_STATES:
         return _err(403, 'USER_BANNED', 'User is not allowed to join matches')
+    # v1.11.0 one human player per match until V4: only the creator joins, a stranger gets the same 404
+    if match.get('userCreatorUuid') != user.get('uuid'):
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     existing = _match_characters(match_uuid)
     if any(c.get('userUuid') == user['uuid'] for c in existing):
         return _err(409, 'ALREADY_JOINED', 'User already has a character in this match')
@@ -2229,13 +2232,13 @@ def _current_weather_payload(match, story, lang='en'):
     }
 
 
-def _get_weather(match_uuid, lang='en'):
-    """GET /api/matches/{uuid}/weather — current weather + card + movement modifiers."""
+def _get_weather(user, match_uuid, lang='en'):
+    """GET /api/matches/{uuid}/weather — current weather + card + movement modifiers; v1.11.0 the creator only."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = _repo.match(match_uuid, consistent=False)
-    if match is None:
-        return _err(404, 'WEATHER_NOT_FOUND', 'No weather is currently set for this match')
+    match, err = _require_owned_match(user, match_uuid, consistent=False)
+    if err:
+        return err
     story = _load_story(match.get("storyUuid")) or {}
     payload = _current_weather_payload(match, story, lang)
     if payload is None:
@@ -5028,12 +5031,20 @@ def _stale(current_version):
         "matchVersion": current_version, "timestamp": int(time.time() * 1000)})}
 
 
+# v1.11.0 the 404s that Java and Python check before the version (the match, the caller's character)
+_BEFORE_STALE_404 = {'MATCH_NOT_FOUND', 'PLAYER_NOT_FOUND', 'NOT_FOUND'}
+
+
 def _stale_wins(response):
-    """A stale If-Match wins over a success and over a domain conflict, never over 4xx input/404/terminal."""
+    """A stale If-Match wins over a success, a domain conflict and (v1.11.0) a domain 404 such as an unknown
+    event or item; never over 4xx input, the match or character 404, or a terminal state."""
     if _is_2xx(response):
         return True
     status = int((response or {}).get('statusCode') or 0)
-    return status in (409, 422) and (_body_of(response) or {}).get('error') not in _TERMINAL_CODES
+    error = (_body_of(response) or {}).get('error')
+    if status == 404:
+        return bool(error) and error not in _BEFORE_STALE_404
+    return status in (409, 422) and error not in _TERMINAL_CODES
 
 
 def _claim_match(event, match_uuid, response):
@@ -5218,7 +5229,7 @@ def _dispatch(event):
             segments = path.split('/')
             match_uuid = segments[3] if len(segments) > 4 else ''
         lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
-        return _get_weather(match_uuid, lang)
+        return _get_weather(user, match_uuid, lang)
 
     # Step 28.7 — GET /api/matches/{uuidMatch}/logs
     if (path.startswith(_API_MATCHES_PATH) and path.endswith('/logs') and method == 'GET'):

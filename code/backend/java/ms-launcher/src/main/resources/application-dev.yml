@@ -4,7 +4,8 @@ server:
 
 spring:
   datasource:
-    url: jdbc:sqlite:${game.database.path}
+    # v1.11.0 busy_timeout: a write that meets another one waits for the lock instead of failing (SQLITE_BUSY)
+    url: jdbc:sqlite:${game.database.path}?busy_timeout=5000
     driver-class-name: org.sqlite.JDBC
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect

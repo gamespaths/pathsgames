@@ -33,12 +33,17 @@ public final class SubjectHasher {
     }
 
     String hmac(String value) {
+        return hmac(value, "HmacSHA256");
+    }
+
+    /** v1.11.0 the algorithm as a parameter only so a test can reach the "unavailable" branch. */
+    String hmac(String value, String algorithm) {
         try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(pepper, "HmacSHA256"));
+            Mac mac = Mac.getInstance(algorithm);
+            mac.init(new SecretKeySpec(pepper, algorithm));
             return HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
         } catch (GeneralSecurityException e) {
-            throw new IllegalStateException("HmacSHA256 unavailable", e);
+            throw new IllegalStateException(algorithm + " unavailable", e);
         }
     }
 }

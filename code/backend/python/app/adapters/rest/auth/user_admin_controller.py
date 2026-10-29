@@ -9,6 +9,7 @@ from app.adapters.rest.match.match_controller import _error
 from app.adapters.rest.match.match_owner_admin_controller import owner_error
 from app.core.models.auth.user_admin import UserAdminError
 from app.core.ports.match.match_owner_ports import MatchOwnerError, MatchOwnerPort
+from app.adapters.rest.query_limits import parse_limit
 
 
 def _field(body: Any, name: str) -> Optional[str]:
@@ -27,9 +28,9 @@ class UserAdminController:
             self.router.add_api_route("/api/admin/users/{uuid}/" + action, self._action(action), methods=["POST"])
 
     def list_users(self, email: Optional[str] = None, nickname: Optional[str] = None, state: Optional[str] = None,
-                   cursor: Optional[str] = None, limit: Optional[int] = None):
+                   cursor: Optional[str] = None, limit: Optional[str] = None):
         try:
-            return self.user_admin.list(email, nickname, state, cursor, limit).to_body()
+            return self.user_admin.list(email, nickname, state, cursor, parse_limit(limit)).to_body()
         except UserAdminError as exc:
             return _error(exc.code, exc.message, exc.http_status)
 

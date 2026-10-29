@@ -55,6 +55,22 @@ describe('cookieConsent config', () => {
     }
   })
 
+  it('v1.11.0 turnstilePass shows the configured lifetime and g_state is listed', async () => {
+    const { initCookieConsent, turnstilePassExpiration } = await import('../consent/cookieConsent')
+    expect(turnstilePassExpiration('en', 3000)).toBe('50 hours')
+    expect(turnstilePassExpiration('it', 3000)).toBe('50 ore')
+    expect(turnstilePassExpiration('en', 30)).toBe('30 minutes')
+    expect(turnstilePassExpiration('it', 30)).toBe('30 minuti')
+    initCookieConsent('en')
+    const cfg = run.mock.calls[0][0]
+    for (const lang of ['en', 'it']) {
+      const rows = cfg.language.translations[lang].preferencesModal.sections[0].cookieTable.body
+      const pass = rows.find(r => r.name === 'pathsgames.turnstilePass')
+      expect(pass.expiration).toBe(turnstilePassExpiration(lang))
+      expect(rows.some(r => r.name.startsWith('g_state'))).toBe(true)
+    }
+  })
+
   it('runs only once (idempotent)', async () => {
     const { initCookieConsent } = await import('../consent/cookieConsent')
     initCookieConsent('en')
