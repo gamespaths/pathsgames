@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "1.10.0"
+    version: str = "1.12.0"
 
 
     # >0.12.5 change version here

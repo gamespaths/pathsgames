@@ -6,7 +6,7 @@
     <parent>
         <groupId>games.paths</groupId>
         <artifactId>paths-game-backend</artifactId>
-        <version>1.10.0</version>
+        <version>1.12.0</version>
     </parent>
 
     <artifactId>core</artifactId>

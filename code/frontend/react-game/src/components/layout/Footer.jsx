@@ -20,7 +20,7 @@ export default function Footer() {
           <i className="fas fa-flask" style={{ marginRight: '0.4rem', color: 'var(--color-gold, #c8960a)' }} />
           {/* Step 40 — the build's env badge names the version; no badge (prod) → no sentence. */}
           {envBadgeLabel(ENV_BADGE, t) && <>{t('footer.alphaPrefix')}<EnvBadge /><br /></>}
-          v1.10.0 &nbsp;
+          v1.12.0 &nbsp;
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
           <br />
           {t('footer.serversWarning')}
