@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.model.match.EffectStatCodec;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.port.match.UserAccessPort;
@@ -17,6 +18,14 @@ import java.util.Locale;
  * v0.38.3: leaves its mark on the registry so a Step 37 mission can wait for it.
  */
 public class ExperienceService implements ExperiencePort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     /** Prefix of the {@code log_events} row the timeline classifies as {@code EXP_USE}. */
     public static final String MSG_EXP_USE = "EXP_USE";
@@ -56,6 +65,7 @@ public class ExperienceService implements ExperiencePort {
         if (!MatchStatuses.RUNNING.equals(match.status())) {
             throw fail(ExperienceException.Code.MATCH_NOT_RUNNING, "The match is not running");
         }
+        MatchStampPort.check(stamp, matchUuid);
         if (match.idCharacterCurrentTurn() != null && match.idCharacterCurrentTurn() != actor.id()) {
             throw fail(ExperienceException.Code.NOT_YOUR_TURN, "It is not your character's turn");
         }
@@ -91,6 +101,7 @@ public class ExperienceService implements ExperiencePort {
         int dex = "dex".equals(token) ? after : actor.dexterity();
         int intel = "int".equals(token) ? after : actor.intelligence();
         int cos = "cos".equals(token) ? after : actor.constitution();
+        MatchStampPort.claim(stamp, matchUuid);
         store.updateCharacter(match.id(), actor.id(), dex, intel, cos, expAfter);
         store.logExpUse(match.id(), actor.id(), match.currentClock(),
                 MSG_EXP_USE + " " + token + " " + before + "->" + after + " cost " + cost);

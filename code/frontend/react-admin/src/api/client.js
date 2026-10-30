@@ -86,8 +86,13 @@ export function apiClient() {
     },
     (err) => {
       releaseFor(err.config)
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message
-      return Promise.reject(new Error(msg))
+      const data = err.response?.data
+      const msg = data?.message || data?.error || err.message
+      // v1.7.0 the API error code and the HTTP status stay readable (admin user actions).
+      return Promise.reject(Object.assign(new Error(msg), {
+        status: err.response?.status,
+        code: typeof data?.error === 'string' ? data.error : undefined,
+      }))
     }
   )
 

@@ -77,7 +77,7 @@ Card Info Returns 200 With All Required Fields
     ...    styleMain=test-style-main
     ...    styleDetail=test-style-detail
     ${create_resp}=    POST On Session    admin_session
-    ...    /api/admin/stories/${DEMO_1_UUID}/cards    json=${card_data}
+    ...    /api/admin/stories/${DEMO_1_UUID}/cards    json=${card_data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${card_uuid}=    Set Variable    ${create_resp.json()}[uuid]
     # Query via public content API
@@ -90,5 +90,5 @@ Card Info Returns 200 With All Required Fields
     Should Be Equal As Strings    ${body}[alternativeImage]  alt-test.png
     # Cleanup
     ${del_resp}=    DELETE On Session    admin_session
-    ...    /api/admin/stories/${DEMO_1_UUID}/cards/${card_uuid}
+    ...    /api/admin/stories/${DEMO_1_UUID}/cards/${card_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200

@@ -230,4 +230,60 @@ class JwtTokenProviderTest {
             assertFalse(provider.validateToken(token));
         }
     }
+
+    @org.junit.jupiter.api.Nested
+    @DisplayName("v1.2.0 iss and aud")
+    class IssuerAudienceTests {
+
+        @Test
+        @DisplayName("Both tokens carry iss and aud; a token of another stage or backend is refused")
+        void issuerAndAudienceAreRequired() {
+            JwtTokenProvider java = new JwtTokenProvider(SECRET, 30, 7, "pathsgames-dev-java", "paths-games");
+            JwtTokenProvider python = new JwtTokenProvider(SECRET, 30, 7, "pathsgames-dev-python", "paths-games");
+            JwtTokenProvider otherAudience = new JwtTokenProvider(SECRET, 30, 7, "pathsgames-dev-java", "other");
+            String access = java.generateAccessToken("u", "name", "PLAYER");
+            String refresh = java.generateRefreshToken("u");
+            assertTrue(java.validateToken(access));
+            assertTrue(java.validateToken(refresh));
+            assertNotNull(java.parseToken(refresh));
+            assertFalse(python.validateToken(access));
+            assertFalse(python.validateToken(refresh));
+            assertNull(python.parseToken(access));
+            assertFalse(otherAudience.validateToken(access));
+            assertEquals("pathsgames-dev-java", java.getIssuer());
+            assertEquals("paths-games", java.getAudience());
+        }
+
+        @Test
+        @DisplayName("A token without iss/aud (before 1.2.0) is refused")
+        void legacyTokenWithoutIssuerIsRefused() {
+            javax.crypto.SecretKey key = io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+                    SECRET.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String legacy = io.jsonwebtoken.Jwts.builder().subject("u").claim("type", "access")
+                    .expiration(new java.util.Date(System.currentTimeMillis() + 60_000)).signWith(key).compact();
+            assertFalse(provider.validateToken(legacy));
+        }
+
+        @Test
+        @DisplayName("Empty iss/aud keys (blank .env values) keep the defaults")
+        void blankIssuerAndAudienceKeepTheDefaults() {
+            JwtTokenProvider blank = new JwtTokenProvider(SECRET, ACCESS_MINUTES, REFRESH_DAYS, "  ", "");
+            JwtTokenProvider nulls = new JwtTokenProvider(SECRET, ACCESS_MINUTES, REFRESH_DAYS, null, null);
+            JwtTokenProvider given = new JwtTokenProvider(SECRET, ACCESS_MINUTES, REFRESH_DAYS, " iss-x ", " aud-x ");
+            assertEquals(JwtTokenProvider.DEFAULT_ISSUER, blank.getIssuer());
+            assertEquals(JwtTokenProvider.DEFAULT_AUDIENCE, blank.getAudience());
+            assertEquals(JwtTokenProvider.DEFAULT_AUDIENCE, nulls.getAudience());
+            assertEquals("iss-x", given.getIssuer());
+            assertEquals("aud-x", given.getAudience());
+            assertTrue(blank.validateToken(blank.generateAccessToken("u", "n", "PLAYER")));
+        }
+
+        @Test
+        @DisplayName("The admin token takes its own lifetime")
+        void customLifetime() {
+            String token = provider.generateAccessToken("u", "admin_x", "ADMIN", java.time.Duration.ofDays(365));
+            long exp = ((Number) provider.parseToken(token).get("exp")).longValue();
+            assertTrue(exp > System.currentTimeMillis() + 364L * 24 * 3600 * 1000);
+        }
+    }
 }

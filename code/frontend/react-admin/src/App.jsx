@@ -15,6 +15,8 @@ import MatchDetailPage from './pages/MatchDetailPage'
 import MatchImportPage from './pages/MatchImportPage'
 import EchoPage        from './pages/EchoPage'
 import ReportsPage     from './pages/ReportsPage'
+import UsersPage       from './pages/UsersPage'
+import UserDetailPage  from './pages/UserDetailPage'
 
 function ProtectedRoutes() {
   const { isLoggedIn } = useAuth()
@@ -23,6 +25,8 @@ function ProtectedRoutes() {
     <Layout>
       <Routes>
         <Route path="/"               element={<DashboardPage />}   />
+        <Route path="/users"          element={<UsersPage />}       />
+        <Route path="/users/:uuid"    element={<UserDetailPage />}  />
         <Route path="/guests"         element={<GuestsPage />}      />
         <Route path="/stories"        element={<StoriesPage />}     />
         <Route path="/stories/import" element={<StoryImportPage />} />

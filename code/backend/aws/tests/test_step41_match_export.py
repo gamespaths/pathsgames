@@ -556,3 +556,26 @@ def test_a_bundled_story_with_a_malformed_uuid_is_refused():
     a = SimpleNamespace(bundled={'uuid': 'story-001'}, errors=[])
     mx._validate_bundled(a)
     assert a.errors[0]['code'] == 'STORY_INVALID' and 'R0_STORY_UUID' in a.errors[0]['message']
+
+
+def test_v170_play_time_and_a_stopped_status_travel_through_export_and_import():
+    seed = [_match(status='CANCELLED', logSeq=8, playMs=4200) if i == 1 else x for i, x in enumerate(_seed())]
+    with _env(seed) as table:
+        res = _export(table)
+        snaps = table.rows(PK, 'SNAPSHOT#')
+    assert res['statusCode'] == 200, res['body']
+    doc = json.loads(res['body'])
+    assert doc['match']['status'] == 'CANCELLED' and doc['match']['playMs'] == 4200
+    # v1.8.0 the file as exported matches its own checksum (both overrides included)
+    assert doc['checksum'] == neutral.sha256({k: v for k, v in doc.items() if k != 'checksum'})
+    assert neutral.SchemaValidator.match_export_v1().validate(doc) == []
+    assert all('playMs' not in json.dumps(s.get('payload', '')) for s in snaps if isinstance(s.get('payload'), str))
+    new = '0a0a0a0a-0000-4000-8000-0000000000d1'
+    copy_ = _copy(doc, new, 'c5c5c5c5-0000-4000-8000-0000000000c1', 'c5c5c5c5-0000-4000-8000-0000000000c2')
+    with _env(_seed()) as table:
+        res = _import({'export': copy_, 'startPaused': True})
+        meta = table.get_item(f'MATCH#{new}')
+    assert res['statusCode'] == 201, res['body']
+    assert json.loads(res['body'])['matchStatus'] == 'CANCELLED'
+    assert meta['status'] == 'CANCELLED' and meta['playMs'] == 4200
+    assert meta['summary']['status'] == 'CANCELLED' and meta['summary']['uuid'] == new

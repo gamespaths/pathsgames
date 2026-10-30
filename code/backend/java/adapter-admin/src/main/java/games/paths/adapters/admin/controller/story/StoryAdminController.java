@@ -1,11 +1,12 @@
 package games.paths.adapters.admin.controller.story;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.story.StoryImportResponse;
 import games.paths.adapters.admin.dto.story.StorySummaryResponse;
 import games.paths.adapters.admin.dto.story.StoryValidationReportResponse;
 import games.paths.core.model.story.StoryImportResult;
-import games.paths.core.model.story.StorySummary;
+import games.paths.core.model.story.StorySummaryPage;
 import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryQueryPort;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
  * POST /api/admin/stories/import → import a complete story from JSON
  * </p>
  * <p>
- * GET /api/admin/stories → list all stories (any visibility)
+ * GET /api/admin/stories → one page of every story (any visibility), v1.7.0 cursor envelope
  * </p>
  * <p>
  * GET /api/admin/stories/{uuid} → get a single story detail (admin view)
@@ -125,20 +126,27 @@ public class StoryAdminController {
 
     /**
      * GET /api/admin/stories
-     * Lists all stories (any visibility), ordered by ID.
+     * v1.7.0 one page of every story (any visibility, ordered by ID): the {items, nextCursor, limit} envelope,
+     * limit default 50 and max 200, cursor the nextCursor of the previous page.
      */
     @GetMapping
-    public ResponseEntity<List<StorySummaryResponse>> listAllStories(
-            @RequestParam(value = "lang", defaultValue = "en") String lang) {
+    public ResponseEntity<Object> listAllStories(
+            @RequestParam(value = "lang", defaultValue = "en") String lang,
+            @RequestParam(value = "limit", required = false) String limit,
+            @RequestParam(value = "cursor", required = false) String cursor) {
 
-        List<StorySummary> stories = storyQueryPort.listAllStories(lang);
-        List<StorySummaryResponse> response = stories.stream()
+        StorySummaryPage page = storyQueryPort.listAllStoriesPage(lang, QueryLimits.parse(limit), cursor);
+        List<StorySummaryResponse> items = page.items().stream()
                 .map(s -> new StorySummaryResponse(
                         s.uuid(), s.title(), s.description(), s.author(),
                         s.category(), s.group(), s.visibility(),
                         s.priority(), s.peghi(), s.difficultyCount()))
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("items", items);
+        body.put("nextCursor", page.nextCursor());
+        body.put("limit", page.limit());
+        return ResponseEntity.ok(body);
     }
 
     /**

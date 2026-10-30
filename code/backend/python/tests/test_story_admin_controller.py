@@ -36,11 +36,14 @@ def client(app_with_auth):
     return TestClient(app_with_auth)
 
 def test_list_all_stories(client, mock_query_port):
-    mock_query_port.list_all_stories.return_value = [StorySummary(uuid="u1", title="t1")]
-    
+    mock_query_port.list_all_stories_page.return_value = {"items": [StorySummary(uuid="u1", title="t1")],
+                                                           "nextCursor": None, "limit": 50}
+
     response = client.get("/api/admin/stories?lang=en", headers={"X-Test-Admin": "true"})
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    assert len(response.json()["items"]) == 1
+    assert response.json()["items"][0]["uuid"] == "u1"
+    assert response.json()["nextCursor"] is None and response.json()["limit"] == 50
     
     res_unauth = client.get("/api/admin/stories?lang=en", headers={"X-Test-Player": "true"})
     assert res_unauth.status_code == 403

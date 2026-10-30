@@ -9,7 +9,7 @@ Features not yet placed in a step are in the [Backlog](./Backlog.md).
 | Version | Stage | Theme | Main content | Status | Roadmap |
 |---------|-------|-------|--------------|--------|---------|
 | V0 | alpha | Single-player alpha | Guest login, stories, full single-player engine (steps 1-39), alpha preparation (40-41), alpha launch on AWS (42) | Launched | [V0](documentation_v0/Roadmap.md) |
-| V1 | beta | Accounts and depth | Google SSO, profile, guest linking, EN/IT and accessibility, optional audio, env refactor, story frontend data, permadeath and game over, admin tool and admin messages, crowdfunding and licenses, AWS logs table | Current (step 1 done) | [V1](documentation_v1/Roadmap.md) |
+| V1 | beta | Accounts and depth | Google SSO, profile, guest linking, EN/IT and accessibility, audio, story frontend data, permadeath and game over, admin tool and admin messages, crowdfunding and licenses, AWS logs table | Current (step 1 done) | [V1](documentation_v1/Roadmap.md) |
 | V2 | gamma | An open world | Campaigns and global registry, advanced analytics, timed missions, silent events and warehouse, NPCs, entities, open world, noise and stealth, user progression | Draft | [V2](documentation_v2/Roadmap.md) |
 | V3 | delta | Everywhere | Steam SSO, Android app (online only), Steam app, Debian package, offline backend, sync, performance, free actions | Draft | [V3](documentation_v3/Roadmap.md) |
 | V4 | epsilon | Multiplayer | Realtime channel, lobby, multiplayer turns, timeouts, anti-stall, group movement, multiplayer UI | Draft | [V4](documentation_v4/Roadmap.md) |
@@ -23,7 +23,7 @@ Features not yet placed in a step are in the [Backlog](./Backlog.md).
 - Three backends (Java, Python, AWS) stay aligned; the alpha runs on AWS.
 - Android is online only; offline play (Steam, Debian) comes with the V3 sync system, where the
   last played match always wins.
-- Accounts use SSO only (Google in V1, Steam in V3): no email/password, no stored emails.
+- Accounts use SSO only (Google in V1, Steam in V3): no passwords; the Google email and profile data are stored.
 
 
 # Version Control

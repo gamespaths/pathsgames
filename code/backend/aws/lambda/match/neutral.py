@@ -238,6 +238,7 @@ def match_section(meta, story):
         'activeCharacterUuid': meta.get('activeCharacterUuid'),
         'partyLocationId': positive(meta.get('currentLocationId')),
         'timestampStart': ts(meta.get('timestampStartMs')), 'createdAt': ts(meta.get('tsInsert')),
+        'playMs': nz(meta.get('playMs')),
     }
 
 
@@ -281,11 +282,22 @@ def turn_section(t):
             'timestampEnd': ts(t.get('timestampEnd'))}
 
 
-def user_section(u):
+def user_section(u, identities=None):
     state = lng(u.get('state'))
-    return {'uuid': u.get('uuid'), 'username': u.get('username'), 'nickname': u.get('nickname'),
-            'language': u.get('language'), 'state': state, 'guest': bool(u.get('is_guest')) or state == 6,
-            'role': u.get('role'), 'emailAddress': u.get('emailAddress') or u.get('email')}
+    out = {'uuid': u.get('uuid'), 'username': u.get('username'), 'nickname': u.get('nickname'),
+           'language': u.get('language'), 'state': state, 'guest': bool(u.get('is_guest')) or state == 6,
+           'role': u.get('role'), 'emailAddress': u.get('emailAddress') or u.get('email')}
+    rows = [identity_section(i) for i in (identities or [])]
+    if rows:
+        out['identities'] = rows
+    return out
+
+
+def identity_section(i):
+    """v1.2.0 one IDENTITY#GOOGLE# item in the neutral form (the stage migration of Google users)."""
+    return {'provider': i.get('provider'), 'subject': i.get('provider_subject'), 'email': i.get('email'),
+            'profileName': i.get('profile_name'), 'givenName': i.get('given_name'),
+            'familyName': i.get('family_name'), 'pictureUrl': i.get('picture_url'), 'locale': i.get('locale')}
 
 
 def log_section(row):

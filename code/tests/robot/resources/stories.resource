@@ -8,7 +8,7 @@
 #
 # Admin:
 #   POST   /api/admin/stories/import     → 201, StoryImportResponse
-#   GET    /api/admin/stories?lang={lang}→ 200, list (all visibility)
+#   GET    /api/admin/stories?lang={lang}→ 200, v1.7.0 envelope {items, nextCursor, limit}
 #   DELETE /api/admin/stories/{uuid}     → 200 {status:"DELETED", uuid} | 404
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
@@ -110,7 +110,7 @@ Import Story From File
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${body}    headers=${headers}    expected_status=any
+    ...    data=${body}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Delete Admin Story
@@ -118,7 +118,7 @@ Delete Admin Story
     [Arguments]    ${uuid}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
     ${response}=    DELETE On Session    admin_session    /api/admin/stories/${uuid}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Admin Stories
@@ -129,6 +129,24 @@ Get Admin Stories
     ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    params=${params}    headers=${headers}
     RETURN    ${response}
+
+Get All Admin Story Uuids
+    [Documentation]    v1.7.0 — every story uuid of GET /api/admin/stories, following nextCursor (limit 200).
+    [Arguments]    ${lang}=${DEFAULT_LANG}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${params}=    Create Dictionary    lang=${lang}    limit=200
+    @{uuids}=    Create List
+    FOR    ${page}    IN RANGE    50
+        ${response}=    GET On Session    admin_session    /api/admin/stories
+        ...    params=${params}    headers=${headers}    expected_status=200
+        FOR    ${story}    IN    @{response.json()}[items]
+            Append To List    ${uuids}    ${story}[uuid]
+        END
+        ${cursor}=    Evaluate    $response.json().get('nextCursor')
+        IF    $cursor is None    BREAK
+        Set To Dictionary    ${params}    cursor=${cursor}
+    END
+    RETURN    ${uuids}
 
 Get Admin Story By UUID
     [Documentation]    Calls GET /api/admin/stories/{uuid}. Returns the response.
@@ -149,7 +167,7 @@ Post Admin Story Import
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload}    headers=${headers}    expected_status=any
+    ...    data=${payload}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Import Payload Should Fail Validation
@@ -180,7 +198,7 @@ Create Admin Entity
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session
     ...    /api/admin/stories/${uuid}/${entity_type}    json=${json_body}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 List Admin Entities
@@ -201,7 +219,7 @@ Update Admin Entity
     ...    Content-Type=application/json
     ${response}=    PUT On Session    admin_session
     ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}    json=${json_body}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Delete Admin Entity
@@ -210,7 +228,7 @@ Delete Admin Entity
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
     ${response}=    DELETE On Session    admin_session
     ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 # ── v0.40 — admin rows read once per suite, to cut the calls of a run ──

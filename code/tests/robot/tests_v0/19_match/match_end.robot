@@ -33,7 +33,7 @@ End Match Without Token Returns 401
     Create Public Session
     ${response}=    PATCH On Session    public_session
     ...    /api/match/${MATCH_UUID}/end/${RANDOM_EVENT_UUID}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 End Match With Unknown Match Returns 404
@@ -55,7 +55,7 @@ End Match From Other User Returns 404
     [Documentation]    PATCH on a match the caller does not own → 404 MATCH_NOT_FOUND
     ...                (ownership failures must NOT leak that the match exists).
     [Tags]    matches    step20
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     ${other_token}=    Set Variable    ${response.json()}[accessToken]
     ${response}=    End Match    ${other_token}    ${MATCH_UUID}    ${RANDOM_EVENT_UUID}
@@ -78,7 +78,7 @@ Suite Setup Match End
     ...                match uuid + a random "not the end game" event uuid as suite
     ...                variables for the test cases.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Set Suite Variable    ${TOKEN}    ${body}[accessToken]

@@ -9,6 +9,8 @@ export const ACTIVE_MATCH_STATUSES = new Set(['CREATED', 'RUNNING'])
 // a new run without being resumable, so it needs its own badge, not "resume".
 export const BLOCKING_MATCH_STATUSES = new Set(['CREATED', 'RUNNING', 'PAUSED'])
 
+export const HIDDEN_MATCH_STATUSES = new Set(['CANCELLED', 'BANNED'])
+
 // v0.36.2 — a run that is over, however it ended. Both mean the player has played
 // this story, so the card offers Replay instead of Play.
 export const FINISHED_MATCH_STATUSES = new Set(['ENDED', 'GAMEOVER'])
@@ -61,20 +63,25 @@ export const MATCH_STATUS_BADGE = Object.freeze({
   PAUSED:   { tone: 'paused',    icon: 'fas fa-pause' },
   ENDED:    { tone: 'completed', icon: 'fas fa-check-circle story-card-status__check' },
   GAMEOVER: { tone: 'completed', icon: 'fas fa-skull-crossbones story-card-status__defeat' },
+  // v1.2.0 a STARTED match that lost the guest merge; v1.7.0 BANNED by an admin (both muted, step 9)
+  CANCELLED: { tone: 'cancelled', icon: 'fas fa-ban' },
+  BANNED: { tone: 'cancelled', icon: 'fas fa-gavel' },
 })
 
-/** Step 40 — list group of a status: active, then paused, then finished, then anything else. */
+/** v1.7.0 step 9 — list group of a status: active (CREATED, RUNNING, PAUSED) first, then everything else. */
 export function matchStatusGroup(status) {
-  if (ACTIVE_MATCH_STATUSES.has(status)) return 0
-  if (status === 'PAUSED') return 1
-  if (FINISHED_MATCH_STATUSES.has(status)) return 2
-  return 3
+  return BLOCKING_MATCH_STATUSES.has(status) ? 0 : 1
 }
 
-/** Step 40 — a copy of the list ordered by group, newest first inside each group. */
+/** v1.7.0 step 9 — the last played time of a match: tsUpdate, else tsInsert. */
+export function lastPlayedOf(match) {
+  return match?.tsUpdate ?? match?.tsInsert ?? null
+}
+
+/** v1.7.0 step 9 — a copy of the list: active first, then the last played (the backend order). */
 export function sortMatchesForList(matches, toMs) {
   if (!Array.isArray(matches)) return []
-  const time = m => (toMs ? toMs(m?.tsInsert) : null) ?? 0
+  const time = m => (toMs ? toMs(lastPlayedOf(m)) : null) ?? 0
   return [...matches].sort((a, b) =>
     matchStatusGroup(a?.status) - matchStatusGroup(b?.status) || time(b) - time(a))
 }

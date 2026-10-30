@@ -29,13 +29,13 @@ Suite Setup Admin Match Control
     [Documentation]    Creates public + admin sessions, guest-logs in, resolves a story
     ...                loadout, and creates a fresh match for the lifecycle tests.
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
     # Guest login — inline POST instead of Create Guest Session And Get Token,
     # because that keyword uses Set Test Variable, which is illegal in Suite Setup
     # ("Cannot set test variable when no test is started").
-    ${guest_response}=    POST On Session    public_session    /api/auth/guest
+    ${guest_response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest_response}    201
     ${guest_token}=    Set Variable    ${guest_response.json()}[accessToken]
     Set Suite Variable    ${GUEST_TOKEN}    ${guest_token}
@@ -114,7 +114,7 @@ Admin Pause Match Without Token Returns 401
     [Tags]    admin    matches    step20
     ${response}=    POST On Session    admin_session
     ...    /api/admin/matches/${MATCH_UUID}/pause
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${response.status_code}    401
 
 Admin Pause Unknown Match Returns 404
@@ -183,7 +183,7 @@ Admin Stop Match Without Token Returns 401
     [Tags]    admin    matches    step20
     ${response}=    POST On Session    admin_session
     ...    /api/admin/matches/${MATCH_UUID}/stop
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${response.status_code}    401
 
 Admin Stop Unknown Match Returns 404
@@ -215,7 +215,7 @@ Admin Delete Match Without Token Returns 401
     [Tags]    admin    matches    step20
     ${response}=    DELETE On Session    admin_session
     ...    /api/admin/matches/${MATCH_UUID}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${response.status_code}    401
 
 Admin Delete Unknown Match Returns 404

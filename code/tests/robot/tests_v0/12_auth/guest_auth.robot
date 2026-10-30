@@ -25,19 +25,19 @@ Suite Setup    Create Public Session
 Guest Login Returns 201
     [Documentation]    POST /api/auth/guest (no body) returns HTTP 201.
     [Tags]    auth    step12
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
 
 Guest Login Response Has Required Fields
     [Documentation]    The GuestLoginResponse body contains all documented fields.
     [Tags]    auth    step12
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Guest Login Response Should Be Valid    ${response}
 
 Guest Login Response accessToken Is Not Empty
     [Documentation]    The accessToken field in the response body must be a non-empty string.
     [Tags]    auth    step12
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     ${body}=    Set Variable    ${response.json()}
     Should Not Be Empty    ${body}[accessToken]
 
@@ -69,7 +69,7 @@ Guest Cannot Access Admin Endpoint
     ${token}=    Create Guest Session And Get Token
     ${headers}=    Get Auth Headers    ${token}
     ${params}=    Create Dictionary    lang=en
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    headers=${headers}    params=${params}    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    403
@@ -85,9 +85,9 @@ Guest Resume Without Cookie Returns 400
     [Documentation]    POST /api/auth/guest/resume without the guestToken cookie returns 400 (missing required cookie).
     ...                Uses a fresh cookieless session to avoid inheriting cookies set by earlier login tests.
     [Tags]    auth    step12
-    Create Session    cookieless_session    ${BASE_URL}    verify=False
+    Create Http Session    cookieless_session    ${BASE_URL}    verify=False
     ${response}=    POST On Session    cookieless_session    /api/auth/guest/resume
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    400
 
 Guest Logout All Returns 200
@@ -98,7 +98,7 @@ Guest Logout All Returns 200
     ${token}=    Create Guest Session And Get Token
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    public_session    /api/auth/logout/all
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    200
 
 Revoked Token Is Rejected By Me Endpoint
@@ -109,7 +109,7 @@ Revoked Token Is Rejected By Me Endpoint
     ${token}=    Create Guest Session And Get Token
     ${headers}=    Get Auth Headers    ${token}
     ${logout_response}=    POST On Session    public_session    /api/auth/logout/all
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${logout_response}    200
 
 Guest Resume With Cookie Returns Session
@@ -119,13 +119,13 @@ Guest Resume With Cookie Returns Session
     ...                than relying on the session jar over http.
     [Tags]    auth    step12
     Create Public Session
-    ${login}=    POST On Session    public_session    /api/auth/guest
+    ${login}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${login}    201
     ${cookie}=    Evaluate    next((f"{k}={v}" for k, v in $login.cookies.items() if 'guest' in k.lower()), '')
     Should Not Be Empty    ${cookie}
     ${headers}=    Create Dictionary    Cookie=${cookie}
     ${resume}=    POST On Session    public_session    /api/auth/guest/resume
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be True    ${resume.status_code} == 200 or ${resume.status_code} == 201
     Dictionary Should Contain Key    ${resume.json()}    accessToken
     Should Not Be Empty    ${resume.json()}[accessToken]

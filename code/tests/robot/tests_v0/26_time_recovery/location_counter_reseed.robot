@@ -134,7 +134,7 @@ Suite Setup Counter Reseed
     ...                integer id and current counterTime, saved for teardown restore).
     Create Public Session
     Create Admin Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
@@ -193,7 +193,7 @@ Admin Update Location Counter Time
     &{body}=    Create Dictionary    counterTime=${counter_time}
     ${resp}=    PUT On Session    admin_session
     ...    /api/admin/stories/${STORY_UUID}/locations/${loc_uuid}
-    ...    json=${body}
+    ...    json=${body}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    200
 
 Restore Start Location Counter

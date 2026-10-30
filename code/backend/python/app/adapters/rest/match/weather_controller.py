@@ -10,14 +10,20 @@ card instead of a placeholder.
 import time
 from dataclasses import asdict
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
+
+#: v1.11.0 the answer for a match the caller did not create (the 404 of the other match reads)
+_NOT_ACCESSIBLE = {"error": "MATCH_NOT_FOUND", "message": "Match not found or not accessible"}
 
 
 class WeatherController:
-    def __init__(self, weather_service, content_query_service=None):
+    def __init__(self, weather_service, content_query_service=None, match_persistence=None, user_access=None):
         self.weather_service = weather_service
         self.content_query_service = content_query_service
+        # v1.11.0 the creator of the match: the weather is read by the owner only
+        self.match_persistence = match_persistence
+        self.user_access = user_access
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/matches/{uuid}/weather", self.weather, methods=["GET"]
@@ -42,7 +48,16 @@ class WeatherController:
             "currentClock": w.get("current_clock"),
         }
 
-    def weather(self, uuid: str, lang: str = Query("en")):
+    def _owned_by(self, match_uuid: str, user_uuid) -> bool:
+        if not user_uuid or self.match_persistence is None or self.user_access is None:
+            return False
+        user = self.user_access.find_by_uuid(user_uuid)
+        match = self.match_persistence.find_match_by_uuid(match_uuid)
+        return bool(user and match and match.get("id_user_creator") == user.get("id"))
+
+    def weather(self, uuid: str, request: Request, lang: str = Query("en")):
+        if not self._owned_by(uuid, getattr(request.state, "user_uuid", None)):
+            return JSONResponse(status_code=404, content={**_NOT_ACCESSIBLE, "timestamp": int(time.time() * 1000)})
         current = self.weather_service.current_weather(uuid)
         if current is None:
             return JSONResponse(

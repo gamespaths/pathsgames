@@ -248,4 +248,78 @@ class SessionControllerTest {
                     .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
         }
     }
+
+    @Nested
+    @DisplayName("v1.2.0 revoked refresh, profile and account deletion")
+    class V120Tests {
+
+        private games.paths.core.port.auth.AccountPort account;
+        private MockMvc mvc;
+
+        @BeforeEach
+        void setup() {
+            account = mock(games.paths.core.port.auth.AccountPort.class);
+            mvc = MockMvcBuilders.standaloneSetup(new SessionController(sessionPort, null, account)).build();
+        }
+
+        @Test
+        void refreshOfARevokedSessionIsSessionRevoked() throws Exception {
+            when(sessionPort.refreshToken("old")).thenThrow(new games.paths.core.model.auth.AuthException(
+                    games.paths.core.model.auth.AuthException.Code.SESSION_REVOKED, "closed"));
+            MvcResult r = mvc.perform(post("/api/auth/refresh").cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "old")))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("SESSION_REVOKED"))
+                    .andReturn();
+            assertTrue(r.getResponse().getHeaders("Set-Cookie").stream()
+                    .anyMatch(c -> c.startsWith(CookieHelper.REFRESH_TOKEN_COOKIE + "=;")));
+        }
+
+        @Test
+        void v170RefreshOfATokenEvictedByTheCapIsSessionLimit() throws Exception {
+            when(sessionPort.refreshToken("old")).thenThrow(new games.paths.core.model.auth.AuthException(
+                    games.paths.core.model.auth.AuthException.Code.SESSION_LIMIT, "too many devices"));
+            mvc.perform(post("/api/auth/refresh").cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "old")))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("SESSION_LIMIT"));
+        }
+
+        @Test
+        void meReturnsTheProfileFromTheDatabase() throws Exception {
+            when(account.profile("u-1")).thenReturn(java.util.Optional.of(new games.paths.core.model.auth.UserProfile(
+                    "u-1", "google_u1", "mario", "Mario Rossi", "pic", "PLAYER", 2, "it", "GOOGLE")));
+            mvc.perform(get("/api/auth/me").requestAttr("userUuid", "u-1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.nickname").value("mario"))
+                    .andExpect(jsonPath("$.displayName").value("Mario Rossi"))
+                    .andExpect(jsonPath("$.pictureUrl").value("pic"))
+                    .andExpect(jsonPath("$.accountType").value("GOOGLE"));
+            when(account.profile("u-2")).thenReturn(java.util.Optional.empty());
+            mvc.perform(get("/api/auth/me").requestAttr("userUuid", "u-2").requestAttr("username", "g"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.username").value("g"));
+        }
+
+        @Test
+        void deleteMeAnswers202() throws Exception {
+            mvc.perform(delete("/api/auth/me").requestAttr("userUuid", "u-1")
+                            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                            .content("{\"idToken\":\"fresh\",\"nonce\":\"n\"}"))
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.status").value("DELETING"));
+            verify(account).requestDeletion("u-1", "fresh", "n");
+        }
+
+        @Test
+        void deleteMeRefusals() throws Exception {
+            mvc.perform(delete("/api/auth/me")).andExpect(status().isUnauthorized());
+            doThrow(new games.paths.core.model.auth.AuthException(
+                    games.paths.core.model.auth.AuthException.Code.FRESH_TOKEN_REQUIRED, "again"))
+                    .when(account).requestDeletion("u-1", null, null);
+            mvc.perform(delete("/api/auth/me").requestAttr("userUuid", "u-1"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("FRESH_TOKEN_REQUIRED"));
+            MockMvc noAccount = MockMvcBuilders.standaloneSetup(new SessionController(sessionPort)).build();
+            noAccount.perform(delete("/api/auth/me").requestAttr("userUuid", "u-1")).andExpect(status().isUnauthorized());
+        }
+    }
 }

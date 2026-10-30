@@ -160,7 +160,7 @@ Replace Re-Imports The Copy And Its Imported Snapshot Restores
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     ${restore}=    POST On Session    admin_session
     ...    /api/admin/matches/${copy}[match][uuid]/snapshots/${resp.json()}[uuidSnapshot]/restore
-    ...    headers=${headers}    expected_status=200
+    ...    headers=${headers}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal    ${restore.json()}[matchStatus]    PAUSED
 
 A New User Keeps Its E-Mail And A Later File Is Mapped Onto It By E-Mail
@@ -398,7 +398,7 @@ Export Match Response
     [Arguments]    ${match}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     ${resp}=    POST On Session    admin_session    /api/admin/matches/${match}/export
-    ...    headers=${headers}    expected_status=${expected_status}
+    ...    headers=${headers}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${resp}
 
 Exported Document
@@ -412,7 +412,7 @@ Import Match Response
     [Arguments]    ${body}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     ${resp}=    POST On Session    admin_session    /api/admin/matches/import
-    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${resp}
 
 Guest Uuid

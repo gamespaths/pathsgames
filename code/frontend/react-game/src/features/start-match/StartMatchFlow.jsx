@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import GoogleSignInButton from '@/features/guest-user/GoogleSignInButton'
+import { authErrorText } from '@/features/guest-user/UserAccountPanel'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
@@ -9,13 +11,14 @@ import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
 import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rateLimit'
-import { buildCharacterAttributesCard, buildGameTypeCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
+import { buildCharacterAttributesCard, buildGameTypeCard, buildGoogleLoginCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
 // import ConfirmStep from './ConfirmStep' — "Start" moved onto the second bonuses card (v0.38.3).
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
 import { traitBudgetItems } from '@/utils/traitBudget'
+import { isMobileViewport } from '@/features/gameplay/js/mobileView'
 
 /**
  * StartMatchFlow — the single match-setup surface, reached from the start book's
@@ -64,7 +67,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { openPolicyBook } = usePolicyBook()
-  const { user } = useGuestUser()
+  const { user, isGoogleUser, googleEnabled, openGuestModal, authError } = useGuestUser()
   // Always challenge (cookie:false): the backend consumes a fresh single-use
   // token on match creation.
   const gate = useAntibot({ cookie: false })
@@ -84,16 +87,25 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const tokenRef = useRef(gate.token)
   useEffect(() => { tokenRef.current = gate.token }, [gate.token])
 
-  function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent) {
-    setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent } : null)
+  function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent, loginPage = false) {
     // Mobile has no left page → the (i) lens opens the big card in a modal.
-    if (card && typeof window !== 'undefined'
-        && window.matchMedia?.('(max-width: 767px)').matches) {
+    const inModal = Boolean(card && isMobileViewport())
+    setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent, loginPage, inModal } : null)
+    if (inModal) {
       const el = document.getElementById('cardPreviewModal')
       const Modal = window.bootstrap?.Modal
       if (el && Modal) Modal.getOrCreateInstance(el).show()
     }
   }
+
+  // v1.8.0 — the Google login page is done once the guest became a Google user: back to the story page
+  const loginPageOpen = Boolean(preview?.loginPage)
+  useEffect(() => {
+    if (!isGoogleUser || !loginPageOpen) return
+    setPreview(null)
+    const el = typeof document !== 'undefined' ? document.getElementById('cardPreviewModal') : null
+    if (el) window.bootstrap?.Modal?.getInstance?.(el)?.hide()
+  }, [isGoogleUser, loginPageOpen])
 
   const goHome = useCallback(() => navigate('/'), [navigate])
   // Back to the start book, with this loadout still selected (HomePage reopens the modal).
@@ -230,6 +242,37 @@ export default function StartMatchFlow({ story, config, storyId }) {
     : !termsAccepted ? t('startMatch.acceptTermsFirst')
     : t('startMatch.starting')
 
+  // v1.2.0 — login card: a Google user is "Logged" (its (i) opens the user book); a guest gets a
+  // Login button while Google sign-in is on (v1.8.0: it opens the guest page with the Google button).
+  const authErrorMessage = authErrorText(t, authError)
+  const googleLoginPanel = (autoStart) => <>
+    {/* keyed: the Login click turns the unasked page into the started one, a fresh mount */}
+    <GoogleSignInButton key={autoStart ? 'auto' : 'click'} autoStart={autoStart} />
+    {authErrorMessage && (
+      <p className="user-account-panel__error" role="alert">
+        <i className="fas fa-exclamation-triangle me-1" />{authErrorMessage}</p>
+    )}
+  </>
+  // v1.8.0 — the guest page wears the story artwork; a guest sees it on the left page until a preview
+  const guestPageCard = { ...buildLoginCard(t), urlImage: story.card?.urlImage ?? null,
+    styleImageLarge: story.card?.styleImageLarge, copyrightText: story.card?.copyrightText,
+    linkCopyright: story.card?.linkCopyright }
+  const guestLoginPage = !isGoogleUser && googleEnabled
+  const loginCard = isGoogleUser
+    // v1.8.0 — the Google user: name, picture and an (i) that opens the user book of the navbar
+    ? <Card card={buildGoogleLoginCard(t, user)} entityType="login" label={t('book.login')} story={story}
+        onPreview={() => openGuestModal()} flagInformationCard additionalCardClasses="pg-card--logged" />
+    : googleEnabled
+      // v1.8.0 — the small card is only the hint (no artwork, no (i)); Login opens its page with Google
+      ? <Card card={{ ...buildLoginCard(t), urlImage: null }} entityType="login" label={t('book.login')} story={story}
+          onSelect={() => handleSelectionPreview(guestPageCard, 'login', null, null, true)}
+          selectLabel={t('book.login')} selectIcon="fa-sign-in-alt" additionalCardClasses="pg-card--login-guest"
+          extraContent={<p className="start-match-account-hint" data-testid="account-hint">
+            <i className="fas fa-user-check me-1" />{t('startMatch.accountHint')}</p>} />
+      : <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')}
+          onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
+          lockInfo={{ kind: 'login', label: t('book.guestLock') }} />
+
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
   // (the only interactive one — its toggle gates the Start action).
   const cardsBlock = (
@@ -245,22 +288,20 @@ export default function StartMatchFlow({ story, config, storyId }) {
         flagInformationCard={true}
         statistics={statisticCard1} flagShowFullStatistics={true} 
          />
-      <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} 
-        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
-        lockInfo={{ kind: 'login', label: t('book.guestLock') }} />
+      {loginCard}
       <Card card={buildTermsCard(t)} entityType="terms" label={t('book.terms')} 
         onPreview={openTermsModal}
         onSelect={() => setTermsAccepted(v => !v)}
         selectLabel={termsAccepted ? t('book.accepted') : t('book.accept')}
         story={story}
-        selected={termsAccepted}
+        selected={termsAccepted} testId="terms"
       />
       <Card card={statisticsCard} entityType="bonuses" 
         onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  
         flagInformationCard={false}  hidePreview={true}
         statistics={statisticCard2} flagShowFullStatistics={true}
         onAction={startReady ? () => setPhase('starting') : undefined}
-        actionLabel={t('book.start')} actionIcon="fa-play"
+        actionLabel={t('book.start')} actionIcon="fa-play" testId="match-start"
         locked={!startReady} lockInfo={{ kind: 'start', label: t('book.start') }}
         lockedReason={startLockReason}
         lockedIcon={gate.phase === 'checking' ? 'fas fa-spinner fa-spin' : 'fas fa-lock'} />
@@ -356,8 +397,13 @@ export default function StartMatchFlow({ story, config, storyId }) {
                 entityType={preview.entityType}
                 story={story}
                 statItemsToPageContent={preview.statItemsToPageContent}
+                extraContent={preview.loginPage && !preview.inModal ? googleLoginPanel(true) : null}
               />
-        : <Card variant="page" card={story.card} story={story} loading={false} />}
+        : guestLoginPage
+          // a guest page shown unasked loads Google only on click (privacy rule): no autoStart here
+          ? <Card variant="page" card={guestPageCard} entityType="login" story={story} loading={false}
+              extraContent={googleLoginPanel(false)} />
+          : <Card variant="page" card={story.card} story={story} loading={false} />}
       right={
         <div className="start-match-right">
           <div className="start-match-cards">{boardBlock}</div>
@@ -366,7 +412,9 @@ export default function StartMatchFlow({ story, config, storyId }) {
       }
     />
     {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
-    <CardPreviewModal preview={preview ? { card: preview.card, type: preview.entityType } : null} story={story} />
+    <CardPreviewModal preview={preview ? { card: preview.card, type: preview.entityType,
+      additionalProps: { extraContent: preview.loginPage && preview.inModal ? googleLoginPanel(true) : null } } : null}
+      story={story} />
     </>
   )
 }

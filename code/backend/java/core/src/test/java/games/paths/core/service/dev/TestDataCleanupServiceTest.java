@@ -114,4 +114,24 @@ class TestDataCleanupServiceTest {
         values.removeIf(v -> v.startsWith(prefix));
         return before - values.size();
     }
+
+    @Test
+    void cleanupTestData_v120_removesRobotGoogleUsersWithTheirMatches() {
+        games.paths.core.port.auth.IdentityPersistencePort identities =
+                mock(games.paths.core.port.auth.IdentityPersistencePort.class);
+        service.setIdentityPort(identities);
+        when(matchPersistencePort.deleteMatchesByNameLike(EXPECTED_PATTERN)).thenReturn(1);
+        when(identities.findNonGuestUserIdsByNicknameLike(EXPECTED_PATTERN)).thenReturn(List.of(4L, 5L));
+        when(matchPersistencePort.deleteMatchesByUserCreatorIds(List.of(4L, 5L))).thenReturn(2);
+
+        CleanupResult result = service.cleanupTestData();
+
+        assertEquals(3, result.deletedMatches());
+        assertEquals(2, result.deletedUsers());
+        verify(identities).deleteUserFully(4L);
+        verify(identities).deleteUserFully(5L);
+        when(identities.findNonGuestUserIdsByNicknameLike(EXPECTED_PATTERN)).thenReturn(List.of());
+        assertEquals(0, service.cleanupTestData().deletedUsers());
+        assertEquals(0, new CleanupResult(1, 2).deletedUsers());
+    }
 }

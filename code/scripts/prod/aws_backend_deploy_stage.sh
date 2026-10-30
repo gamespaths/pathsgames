@@ -55,6 +55,24 @@ if [ "$_JWT" = "${JWT_SECRET:-}" ]; then
 	echo "  WARNING: AWS_${SUFFIX}_LAMBDA_JWT_SECRET equals the test JWT_SECRET — give every stage its own secret." >&2
 fi
 
+# v1.2.0 — one Google OAuth client per public stage (prod Google project): never the dev placeholder.
+_GOOGLE_CLIENT_ID="$(stage_key LAMBDA_GOOGLE_CLIENT_ID)"
+case "$_GOOGLE_CLIENT_ID" in
+	""|"paths-games-dev.apps.googleusercontent.com")
+		echo "Error: AWS_${SUFFIX}_LAMBDA_GOOGLE_CLIENT_ID is missing or the dev placeholder; set the client id of this stage (prod Google project) in .env." >&2
+		exit 1
+		;;
+esac
+
+# v1.7.0 — one banned-subject pepper per stage (HMAC of banned Google subjects and emails), never rotated.
+_PEPPER="$(stage_key LAMBDA_BANNED_SUBJECT_PEPPER)"
+case "$_PEPPER" in
+	""|"PathsGamesDevBannedSubjectPepper2026")
+		echo "Error: AWS_${SUFFIX}_LAMBDA_BANNED_SUBJECT_PEPPER is missing or the committed default; set its own value in .env (openssl rand -base64 48)." >&2
+		exit 1
+		;;
+esac
+
 if [ ! -f "$SAMCONFIG" ]; then
 	echo "Error: $SAMCONFIG not found (it is versioned in the repository: restore it with its [$STAGE.deploy.parameters] section)." >&2
 	exit 1
@@ -119,6 +137,7 @@ fi
 # samconfig parameter_overrides first, then the non-empty stage keys, then the forced values; one Key=Value per line.
 _PARAMS_TXT="$(
 	PGSTAGE_OV_JwtSecret="$_JWT" \
+	PGSTAGE_OV_BannedSubjectPepper="$_PEPPER" \
 	PGSTAGE_OV_TurnstileSecretKey="$(stage_key LAMBDA_TURNSTILE_SECRET_KEY)" \
 	PGSTAGE_OV_CustomDomainName="$(stage_key APIGW_CUSTOM_DOMAIN)" \
 	PGSTAGE_OV_CustomDomainCertificateArn="$(stage_key ACM_DOMAIN_CERTIFICATE_ARN)" \
@@ -135,6 +154,11 @@ _PARAMS_TXT="$(
 	PGSTAGE_OV_BudgetEmail="$(stage_key SNS_ALARM_EMAIL)" \
 	PGSTAGE_OV_SmokeTestEnabled="$(stage_key LAMBDA_SMOKE_TEST_ENABLED)" \
 	PGSTAGE_OV_SmokeTestWebsiteUrl="$(stage_key LAMBDA_SMOKE_WEBSITE_URL)" \
+	PGSTAGE_OV_GoogleClientId="$_GOOGLE_CLIENT_ID" \
+	PGSTAGE_OV_RateLimitGooglePerIp="$(stage_key LAMBDA_RATE_LIMIT_GOOGLE_PER_IP)" \
+	PGSTAGE_OV_MaxSessionsPerUser="$(stage_key LAMBDA_MAX_SESSIONS_PER_USER)" \
+	PGSTAGE_OV_CookieSameSite="$(stage_key LAMBDA_COOKIE_SAME_SITE)" \
+	PGSTAGE_OV_PermissionsBoundaryArn="$(stage_key IAM_PERMISSIONS_BOUNDARY_ARN)" \
 	PGSTAGE_FORCE_Environment="$STAGE" \
 	PGSTAGE_FORCE_Version="$_VERSION" \
 	PGSTAGE_FORCE_AllowMockAccess="false" \
@@ -173,7 +197,7 @@ mapfile -t _PARAMS <<< "$_PARAMS_TXT"
 echo "Deploying stage '$STAGE' (stack $_STACK_NAME, version $_VERSION) with --config-env $STAGE; parameters:"
 for _p in "${_PARAMS[@]}"; do
 	case "${_p%%=*}" in
-		JwtSecret|TurnstileSecretKey|TurnstileBypassToken|SeedBcryptHash|AlarmEmail|BudgetEmail) echo "  ${_p%%=*}=****" ;;
+		JwtSecret|BannedSubjectPepper|TurnstileSecretKey|TurnstileBypassToken|SeedBcryptHash|AlarmEmail|BudgetEmail) echo "  ${_p%%=*}=****" ;;
 		*) echo "  $_p" ;;
 	esac
 done

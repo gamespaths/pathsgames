@@ -6,7 +6,6 @@ from app.core.ports.auth.jwt_port import JwtPort
 from app.core.ports.auth.token_persistence_port import TokenPersistencePort
 
 from fastapi.responses import JSONResponse
-from app.core.services.security import rate_limit_service as _rl
 
 RATE_BUCKET = "guest"
 #: v0.41.0 — dev/test only, honoured with a valid X-Test-Marker: an N-days-old guest.
@@ -32,53 +31,20 @@ class GuestAuthController:
         self.router.add_api_route("/resume", self.resume_guest, methods=["POST"])
 
     def _process_session_response(self, session):
-        uuid = session.user_uuid
-        username = session.username
-        role = "PLAYER" # Guest default
-
-        # 1. Generate JWT tokens
-        access_token = self.jwt_port.generate_access_token(uuid, username, role)
-        refresh_token = self.jwt_port.generate_refresh_token(uuid)
-
-        # 2. Persist refresh token (Step 13)
-        token_info = self.jwt_port.parse_token(refresh_token)
-        self.token_persistence.save_refresh_token(uuid, refresh_token, token_info)
-
-        # 3. Create JSON Response
+        # v1.2.0 the tokens issued (and stored as hash) by the service, never a second pair
         data = {
-            "userUuid": uuid,
-            "username": username,
-            "role": role,
-            "accessToken": access_token,
-            "accessTokenExpiresAt": self.jwt_port.get_access_token_expiration_ms(),
-            "refreshTokenExpiresAt": self.jwt_port.get_refresh_token_expiration_ms()
+            "userUuid": session.user_uuid,
+            "username": session.username,
+            "role": "PLAYER",
+            "accessToken": session.access_token,
+            "accessTokenExpiresAt": session.access_token_expires_at,
+            "refreshTokenExpiresAt": session.refresh_token_expires_at
         }
         if self.csrf_token_service is not None:
-            data["csrfToken"] = self.csrf_token_service.token_for(access_token)
-        
+            data["csrfToken"] = self.csrf_token_service.token_for(session.access_token)
         response = JSONResponse(content=data)
-
-        # 4. Set HttpOnly cookies with SameSite=None and Secure=True
-        response.set_cookie(
-            key="pathsgames.refreshToken",
-            value=refresh_token,
-            httponly=True,
-            samesite="none",
-            secure=True,
-            path="/",
-            max_age=180 * 24 * 60 * 60  # 6 months
-        )
-
-        response.set_cookie(
-            key="pathsgames.guestcookie",
-            value=session.guest_cookie_token,
-            httponly=True,
-            samesite="none",
-            secure=True,
-            path="/",
-            max_age=180 * 24 * 60 * 60  # 6 months
-        )
-
+        set_auth_cookie(response, "pathsgames.refreshToken", session.refresh_token)
+        set_auth_cookie(response, "pathsgames.guestcookie", session.guest_cookie_token)
         return response
 
     def create_guest(self, request: Request,
@@ -88,8 +54,8 @@ class GuestAuthController:
         # endpoints are enabled; ignored in production.
         # Step 41 — at most guest_per_ip new guests per source address and window
         if self.rate_limit_service is not None and self.guest_per_ip > 0:
-            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
-                               request.client.host if request.client else None)
+            ip = self.rate_limit_service.client_ip_of(request.headers.get("X-Forwarded-For"),
+                                                      request.client.host if request.client else None)
             verdict = self.rate_limit_service.try_acquire(RATE_BUCKET, ip, self.guest_per_ip)
             if not verdict.allowed:
                 return _rate_limited(verdict, "Too many guest sessions from this address")
@@ -124,6 +90,40 @@ class GuestAuthController:
                 }
             )
         return self._process_session_response(session)
+
+
+REFRESH_COOKIE = "pathsgames.refreshToken"
+#: v1.7.0 the refresh cookie lives 250 days (renewed at each refresh), the guest cookie 180 days
+REFRESH_COOKIE_MAX_AGE = 250 * 24 * 60 * 60
+GUEST_COOKIE_MAX_AGE = 180 * 24 * 60 * 60
+_SAME_SITE_VALUES = ("lax", "strict", "none")
+
+
+def same_site(value: Optional[str] = None) -> str:
+    """v1.7.0 COOKIE_SAME_SITE (default lax; none only when the API is not on the same site as the page)."""
+    from app.config import settings
+    chosen = (value if value is not None else settings.cookie_same_site or "").strip().lower()
+    return chosen if chosen in _SAME_SITE_VALUES else "lax"
+
+
+#: v1.11.0 like Java and AWS: the auth cookies are sent only to /api/auth/**; "/" was the Python path until 1.10.0
+COOKIE_PATH = "/api/auth"
+LEGACY_COOKIE_PATH = "/"
+
+
+def set_auth_cookie(response, key: str, value: str) -> None:
+    """HttpOnly, Secure, SameSite from the settings; refresh cookie 250 days, guest cookie 180 days.
+    v1.11.0 the copy a browser still keeps on the old "/" path is deleted, so only one cookie of the name is sent."""
+    max_age = REFRESH_COOKIE_MAX_AGE if key == REFRESH_COOKIE else GUEST_COOKIE_MAX_AGE
+    response.delete_cookie(key=key, path=LEGACY_COOKIE_PATH)
+    response.set_cookie(key=key, value=value, httponly=True, samesite=same_site(), secure=True, path=COOKIE_PATH,
+                        max_age=max_age)
+
+
+def clear_auth_cookie(response, key: str) -> None:
+    """v1.11.0 the cookie removed on the current path and on the legacy "/" one."""
+    response.delete_cookie(key=key, path=COOKIE_PATH)
+    response.delete_cookie(key=key, path=LEGACY_COOKIE_PATH)
 
 
 def _parse_age(raw: Optional[str]) -> Optional[int]:

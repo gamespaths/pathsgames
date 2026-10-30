@@ -21,6 +21,8 @@ public class MatchSummaryResponse extends AbstractCreatorLoadoutDto {
     private Integer expCost;
     private String userCreatorUuid;
     private String tsInsert;
+    private String matchVersion;
+    private String tsUpdate;
 
     public MatchSummaryResponse() {
     }
@@ -37,6 +39,8 @@ public class MatchSummaryResponse extends AbstractCreatorLoadoutDto {
         r.expCost = m.getExpCost();
         r.userCreatorUuid = m.getUserCreatorUuid();
         r.tsInsert = m.getTsInsert();
+        r.matchVersion = m.getMatchVersion();
+        r.tsUpdate = m.getTsUpdate();
         r.setSinglePlayer(m.getSinglePlayer());
         r.setCharacterTemplateUuid(m.getCharacterTemplateUuid());
         r.setClassUuid(m.getClassUuid());
@@ -64,4 +68,10 @@ public class MatchSummaryResponse extends AbstractCreatorLoadoutDto {
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }
+
+    public String getMatchVersion() { return matchVersion; }
+    public void setMatchVersion(String matchVersion) { this.matchVersion = matchVersion; }
+
+    public String getTsUpdate() { return tsUpdate; }
+    public void setTsUpdate(String tsUpdate) { this.tsUpdate = tsUpdate; }
 }

@@ -99,7 +99,7 @@ A Legacy Payload Still Imports And Loses The Dropped Keys
     ...    "locations":[{"id":1,"isSafe":1,"secureParam":1}]}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}    Content-Type=application/json
     ${import}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload}    headers=${headers}    expected_status=any
+    ...    data=${payload}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${import.status_code}    201
     ${diffs}=    List Admin Entities    ${LEGACY_UUID}    difficulties
     Status Should Be    ${diffs}    200

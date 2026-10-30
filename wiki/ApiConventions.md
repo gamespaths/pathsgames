@@ -25,7 +25,7 @@ Java controllers where the two diverge — code is truth.
 
 | Prefix | Purpose |
 |---|---|
-| `/api/auth/...` | Guest login, session/token management |
+| `/api/auth/...` | Guest and Google login (`POST /api/auth/google`), `GET`/`PATCH`/`DELETE /api/auth/me` (V1.7.0: preferences, statistics, `activeSessions`), session/token management |
 | `/api/stories/...` | Story catalog (read-only reference data), categories, groups |
 | `/api/content/...` | Story content detail (cards, texts, creators) |
 | `/api/matches` | Match creation, join, start, list, logs (collection) |
@@ -34,7 +34,7 @@ Java controllers where the two diverge — code is truth.
 | `/api/gameplay/{uuidMatch}/...` | Write-heavy, turn-locked player actions and inventory |
 | `/api/admin/...` | Admin tools — served only on the dedicated admin port/API, see
   [Security §2](./Security.md) |
-| `/api/dev/...` | Dev/test-only endpoints (e.g. test-data cleanup), never enabled in prod |
+| `/api/dev/...` | Dev/test-only endpoints (test-data cleanup, `admin-token`, `google-token`, `jobs/account-deletion`), never enabled in prod |
 | `/api/echo/...` | Health check / internal diagnostics (unversioned) |
 
 Query parameters use **camelCase** (`?limit=100&status=ACTIVE`); `?lang=` selects the
@@ -67,7 +67,7 @@ Every backend returns the same shape on error, regardless of status code:
 ```
 `ERROR_CODE` is SCREAMING_SNAKE_CASE and stable across Java/Python/AWS (e.g.
 `WEATHER_NOT_FOUND`, `ACTIVE_MATCH_ALREADY_EXISTS`, `TRAIT_NOT_SELECTABLE`,
-`MISSING_TOKEN`, `INVALID_TOKEN`, `FORBIDDEN`). Confirmed against the Java
+`MISSING_TOKEN`, `INVALID_TOKEN`, `FORBIDDEN`). Google login codes (V1.2.0): `EMAIL_NOT_VERIFIED`, `EMAIL_DOMAIN_NOT_ALLOWED`, `IDENTITY_MISMATCH`, `ACCOUNT_DELETION_IN_PROGRESS`, `SESSION_REVOKED`, `NICKNAME_TAKEN` (admin bootstrap), `GOOGLE_DISABLED`, `FRESH_TOKEN_REQUIRED`. V1.7.0: `GOOGLE_ACCOUNT_REQUIRED` (403, preferences for a guest), `SESSION_LIMIT` (401, session over the cap of 12), `STALE_MATCH` (409, §6.1), `WRITE_FAILED` (AWS 500, a multi-chunk match write stopped), admin users `USER_NOT_FOUND`, `USER_AMBIGUOUS`, `GUEST_NOT_BANNABLE`, `ADMIN_NOT_BANNABLE`, `SUSPEND_UNTIL_INVALID`, `INVALID_STATE_TRANSITION`. Confirmed against the Java
 `JwtAuthenticationFilter` and the per-controller `error(status, code, message)` helpers — all
 build this exact envelope. Success responses put data directly at root level, or wrap it in a
 paged envelope only when pagination metadata is needed (§6).
@@ -82,14 +82,26 @@ guests, match logs):
 `nextCursor` is `null` on the last page. Callers pass `?limit=` and `?cursor=` (plus
 resource-specific filters, e.g. `?status=`, `?userUuid=`, `?storyUuid=`, `?sinceDays=` on
 admin matches). AWS backs this with a DynamoDB GSI keyset; Java/Python with a keyset query on
-the relational tables — the wire shape is identical across all three.
+the relational tables — the wire shape is identical across all three. A `?limit=` that is not an integer reads as absent (default page 50) on every backend.
+
+Since V1.7.0 the envelope is also the answer of `GET /api/matches` (active matches first, then last
+played; page size 50; breaking change from the plain array), `GET /api/admin/stories` and
+`GET /api/admin/users` (`?email=`, `?nickname=` prefix, `?state=`).
+
+### 6.1 Match version (V1.7.0)
+
+Every match read (`/info`) and gameplay write answer carries `matchVersion`, an opaque value (ISO
+timestamp on Java/Python, epoch ms on AWS; clients never parse it). A gameplay write may send it back
+as the `If-Match` header (listed in the CORS allowed headers); a different value answers 409
+`STALE_MATCH` and the client refetches. Without the header the backend still compares against the
+value read at request start (409 only in a real race). Order of checks, identical on the three backends: 400 on the input, then 404 `MATCH_NOT_FOUND` / `PLAYER_NOT_FOUND` / `NOT_FOUND` and terminal-state errors, then `STALE_MATCH`, then the other domain errors (a stale `If-Match` also wins over an unknown event, choice or item).
 
 ## 7. OpenAPI specs
 
 Location: `code/backend/java/adapter-rest/src/main/resources/openapi/`. One file per feature
 step, named `vX.Y.Z-name-api.yaml` where `X.Y.Z` is the version that introduced or changed the
 endpoint (e.g. `v0.12.0-guest-auth-api.yaml`, `v0.28.0-movement-api.yaml`,
-`v0.37.7-security-api.yaml`, `v0.39.0-random-events-api.yaml`). All three backends implement
+`v0.37.7-security-api.yaml`, `v0.39.0-random-events-api.yaml`, `v1.2.0-google-sso-api.yaml`, `v1.7.0-multi-device-api.yaml`). All three backends implement
 the same OpenAPI-described contract; Java's spec files are the canonical copy.
 
 ## 8. Admin API isolation
@@ -107,13 +119,16 @@ places at once, together with the OpenAPI spec (§7) and the Robot Framework sui
 exercises the endpoint on every backend — see [Architecture §9](./Architecture.md).
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared guide to how the API is named | September 25, 2026 |
+  | 1.2.0 | Google login error codes added | October 20, 2026 |
+  | 1.7.0 | Match version header, new list format, user codes | October 23, 2026 |
+  | 1.11.0 | Check order and bad limit value made equal | October 29, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

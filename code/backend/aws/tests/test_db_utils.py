@@ -524,24 +524,21 @@ class TestUpdateTsLastAccessSummary:
 
 @patch.object(db, '_table')
 class TestFindUserByEmail:
-    """v0.41.4 — paginated Scan on USER# metadata, case-insensitive match."""
+    """v1.2.0 — the EMAIL#<email> pointer, then the USER# item: point reads, never a Scan."""
 
-    def test_blank_email_never_scans(self, mock_table):
+    def test_blank_email_never_reads(self, mock_table):
         assert db.find_user_by_email(None) is None
         assert db.find_user_by_email('  ') is None
+        mock_table.get_item.assert_not_called()
+
+    def test_the_pointer_leads_to_the_user(self, mock_table):
+        mock_table.get_item.side_effect = [{'Item': {'PK': 'EMAIL#boss@x.org', 'user_uuid': 'a'}},
+                                           {'Item': {'PK': 'USER#a'}}]
+        assert db.find_user_by_email(' BOSS@x.org')['PK'] == 'USER#a'
+        assert mock_table.get_item.call_args_list[0].kwargs['Key'] == {'PK': 'EMAIL#boss@x.org', 'SK': 'METADATA'}
         mock_table.scan.assert_not_called()
 
-    def test_match_ignores_case_and_follows_pages(self, mock_table):
-        mock_table.scan.side_effect = [
-            {'Items': [{'PK': 'USER#b', 'email': 'other@x.org'}], 'LastEvaluatedKey': {'PK': 'USER#b'}},
-            {'Items': [{'PK': 'USER#z', 'email': 'Boss@X.org'}, {'PK': 'USER#a', 'email': 'boss@x.org '}]},
-        ]
-        assert db.find_user_by_email(' BOSS@x.org')['PK'] == 'USER#a'
-        assert mock_table.scan.call_count == 2
-        assert 'FilterExpression' in mock_table.scan.call_args.kwargs
-
-    def test_no_match_and_errors_give_none(self, mock_table):
-        mock_table.scan.return_value = {'Items': [{'PK': 'USER#b', 'email': 'other@x.org'}]}
+    def test_no_pointer_gives_none(self, mock_table):
+        mock_table.get_item.return_value = {}
         assert db.find_user_by_email('boss@x.org') is None
-        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X', 'Message': 'boom'}}, 'Scan')
-        assert db.find_user_by_email('boss@x.org') is None
+        assert db.find_users_by_email('boss@x.org') == []

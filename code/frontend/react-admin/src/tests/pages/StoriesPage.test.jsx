@@ -6,14 +6,17 @@ import StoriesPage from '../../pages/story/StoriesPage'
 
 // ── Mock API module ────────────────────────────────────────────
 vi.mock('../../api/storyApi', () => ({
-  listAllStories: vi.fn(),
+  listStoriesPage: vi.fn(),
   deleteStory:    vi.fn(),
   createStory:    vi.fn(),
   getStory:       vi.fn(),
   listEntities:   vi.fn(),
   writeStaticCatalog: vi.fn(),
 }))
-import { listAllStories, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
+import { listStoriesPage, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
+
+// v1.7.0 — the stories list answers one page of the cursor envelope
+const page = (items, nextCursor = null) => ({ items, nextCursor, limit: 50 })
 
 // Mock URL APIs used by export
 const mockObjectURL = 'blob:http://localhost/test-uuid'
@@ -66,7 +69,7 @@ function renderPage() {
 describe('StoriesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listAllStories.mockResolvedValue(MOCK_STORIES)
+    listStoriesPage.mockResolvedValue(page(MOCK_STORIES))
     getStory.mockResolvedValue(MOCK_STORY_DETAIL)
     listEntities.mockResolvedValue([])
     createStory.mockResolvedValue({ uuid: 'new-uuid-111' })
@@ -74,7 +77,7 @@ describe('StoriesPage', () => {
 
   it('shows loading spinner initially', () => {
     // resolves never so spinner stays visible
-    listAllStories.mockReturnValue(new Promise(() => {}))
+    listStoriesPage.mockReturnValue(new Promise(() => {}))
     renderPage()
     expect(screen.getByText(/Loading stories/i)).toBeInTheDocument()
   })
@@ -126,7 +129,7 @@ describe('StoriesPage', () => {
   })
 
   it('shows error alert when API fails', async () => {
-    listAllStories.mockRejectedValue(new Error('Network error'))
+    listStoriesPage.mockRejectedValue(new Error('Network error'))
     renderPage()
     expect(await screen.findByText(/Network error/i)).toBeInTheDocument()
   })
@@ -154,7 +157,7 @@ describe('StoriesPage', () => {
     await userEvent.click(screen.getAllByTitle('Delete')[0])
     await userEvent.click(screen.getByText('Confirm'))
     await waitFor(() => expect(deleteStory).toHaveBeenCalledWith('aaa-111'))
-    expect(listAllStories).toHaveBeenCalledTimes(2) // initial + reload
+    expect(listStoriesPage).toHaveBeenCalledTimes(2) // initial + reload
   })
 
   it('opens detail modal on eye click', async () => {
@@ -171,8 +174,38 @@ describe('StoriesPage', () => {
     const langSelect = screen.getByDisplayValue('en')
     await userEvent.selectOptions(langSelect, 'it')
     await waitFor(() => {
-      expect(listAllStories).toHaveBeenCalledWith('it')
+      expect(listStoriesPage).toHaveBeenCalledWith('it', { limit: 50 })
     })
+  })
+
+  it('v1.7.0 step 12 — load more appends the next page by cursor until the last one', async () => {
+    listStoriesPage
+      .mockResolvedValueOnce(page([MOCK_STORIES[0]], '1'))
+      .mockResolvedValueOnce(page([MOCK_STORIES[1]]))
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    expect(screen.getByText(/more available/)).toBeTruthy()
+    await userEvent.click(screen.getByText('Load more'))
+    await screen.findByText(MOCK_STORIES[1].title)
+    expect(listStoriesPage).toHaveBeenLastCalledWith('en', { limit: 50, cursor: '1' })
+    expect(screen.getByText('No more pages')).toBeTruthy()
+  })
+
+  it('a failed next page shows the error and keeps the loaded rows', async () => {
+    listStoriesPage
+      .mockResolvedValueOnce(page([MOCK_STORIES[0]], '1'))
+      .mockRejectedValueOnce(new Error('page down'))
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByText('Load more'))
+    expect(await screen.findByText('page down')).toBeTruthy()
+    expect(screen.getByText('The Lost Kingdom')).toBeTruthy()
+  })
+
+  it('an envelope without items reads as an empty page', async () => {
+    listStoriesPage.mockResolvedValue({ nextCursor: null })
+    renderPage()
+    expect(await screen.findByText('No stories found.')).toBeTruthy()
   })
 
   it('renders card awesomeIcon when story has card', async () => {
@@ -389,7 +422,7 @@ describe('StoriesPage', () => {
   })
 
   it('closes error alert when X is clicked', async () => {
-    listAllStories.mockRejectedValue(new Error('Persistent error'))
+    listStoriesPage.mockRejectedValue(new Error('Persistent error'))
     renderPage()
     const errorMsg = await screen.findByText(/Persistent error/i)
     const closeBtn = errorMsg.parentElement.querySelector('button')
@@ -416,7 +449,7 @@ describe('StoriesPage', () => {
         { expCost: 5, maxWeight: 20, minCharacter: 1, maxCharacter: 4, life: 100, energy: 50, sad: 10, dexterity: 15, intelligence: 12, constitution: 18, weight: 3 },
       ],
     }
-    listAllStories.mockResolvedValue([storyWithDifficulty])
+    listStoriesPage.mockResolvedValue(page([storyWithDifficulty]))
     renderPage()
     await screen.findByText('Epic Quest')
     await userEvent.click(screen.getAllByTitle('View Info')[0])
@@ -510,7 +543,7 @@ describe('StoriesPage', () => {
   })
 
   it('a detail modal for a story with no title falls back to a generic heading', async () => {
-    listAllStories.mockResolvedValue([{ uuid: 'aaa-111', author: 'Nobody' }])
+    listStoriesPage.mockResolvedValue(page([{ uuid: 'aaa-111', author: 'Nobody' }]))
     renderPage()
     await screen.findByText('Nobody')
 
@@ -524,7 +557,7 @@ describe('StoriesPage', () => {
 describe('StoriesPage — static catalog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listAllStories.mockResolvedValue(MOCK_STORIES)
+    listStoriesPage.mockResolvedValue(page(MOCK_STORIES))
   })
 
   it('writes the catalog and reports the files', async () => {

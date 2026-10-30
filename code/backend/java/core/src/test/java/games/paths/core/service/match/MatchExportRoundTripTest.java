@@ -121,7 +121,7 @@ class MatchExportRoundTripTest {
     }
 
     private void seed() {
-        jdbc.update("INSERT INTO users (id, uuid, username, state, role, email_address, password_hash)"
+        jdbc.update("INSERT INTO users (id, uuid, username, state, role, email_address, guest_cookie_token)"
                 + " VALUES (42, '00000000-0000-4000-8000-000000000042', 'robottest_creator', 6, 'PLAYER', 'c@x.org', 'secret-hash')");
         jdbc.update("INSERT INTO users (id, uuid, username, state, role) VALUES (43, '00000000-0000-4000-8000-000000000043', 'robottest_other', 2, 'ADMIN')");
         jdbc.update("INSERT INTO list_stories (id, uuid) VALUES (9, ?)", STORY);
@@ -332,5 +332,66 @@ class MatchExportRoundTripTest {
                 + " WHERE uuid = '0a0a0a0a-0000-4000-8000-0000000000b1'", Integer.class));
         assertEquals(42, jdbc.queryForObject("SELECT id_user FROM gaming_character_instance"
                 + " WHERE uuid = 'c4c4c4c4-0000-4000-8000-0000000000b1'", Integer.class));
+    }
+
+    private Map<String, Object> googleCopy(String suffix, String email, String subject) {
+        jdbc.update("UPDATE users SET email_address = 'c@gmail.com', nickname = 'robonick' WHERE id = 42");
+        jdbc.update("INSERT INTO users_identities (id_user, provider, provider_subject, email, given_name)"
+                + " VALUES (42, 'GOOGLE', 'sub-42', 'c@gmail.com', 'Mario')");
+        Map<String, Object> doc = exportAfterALaterAction();
+        String text = CanonicalJson.write(doc).replace(MATCH, "0a0a0a0a-0000-4000-8000-0000000000" + suffix)
+                .replace(C1, "c4c4c4c4-0000-4000-8000-0000000000" + suffix)
+                .replace(C2, "c4c4c4c4-0000-4000-8000-00000000f0" + suffix)
+                .replace("\"00000000-0000-4000-8000-000000000042\"", "\"abcdef12-0000-4000-8000-0000000000" + suffix + "\"")
+                .replace("c@gmail.com", email).replace("sub-42", subject);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> copy = MatchExportSamples.withChecksum((Map<String, Object>) CanonicalJson.parse(text));
+        return copy;
+    }
+
+    @Test
+    void v120ExportCarriesTheIdentityAndANewStageRecreatesIt() {
+        Map<String, Object> copy = googleCopy("f1", "mover@gmail.com", "sub-42");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> creator = (Map<String, Object>) ((List<?>) copy.get("users")).get(0);
+        assertEquals("GOOGLE", ((Map<?, ?>) ((List<?>) creator.get("identities")).get(0)).get("provider"));
+
+        Map<String, Object> result = importer.importMatch(request(copy));
+
+        assertEquals(1L, result.get("usersCreated"));
+        Map<String, Object> created = jdbc.queryForMap("SELECT * FROM users WHERE uuid = 'abcdef12-0000-4000-8000-0000000000f1'");
+        assertEquals("mover@gmail.com", created.get("email_address"));
+        assertEquals("robonick#2", created.get("nickname"));
+        Map<String, Object> identity = jdbc.queryForMap("SELECT * FROM users_identities WHERE id_user = ?", created.get("id"));
+        assertEquals("sub-42", identity.get("provider_subject"));
+        assertEquals("Mario", identity.get("given_name"));
+        assertTrue(issueCodes(result, "warnings").contains(MatchExportPort.NICKNAME_RENAMED));
+    }
+
+    @Test
+    void v120SameEmailAndSubjectIsMappedOntoTheGoogleUser() {
+        Map<String, Object> copy = googleCopy("f2", "c@gmail.com", "sub-42");
+        Map<String, Object> result = importer.importMatch(request(copy));
+        assertEquals(42, jdbc.queryForObject("SELECT id_user_creator FROM gaming_match"
+                + " WHERE uuid = '0a0a0a0a-0000-4000-8000-0000000000f2'", Integer.class));
+        assertTrue(issueCodes(result, "warnings").contains(MatchExportPort.USER_MAPPED_BY_EMAIL));
+    }
+
+    @Test
+    void v120SameEmailOtherSubjectIsAConflict() {
+        Map<String, Object> copy = googleCopy("f3", "c@gmail.com", "sub-other");
+        Map<String, Object> check = importer.check(request(copy));
+        assertEquals(Boolean.FALSE, check.get("valid"));
+        assertTrue(issueCodes(check, "errors").contains(MatchExportPort.IDENTITY_MISMATCH));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> issueCodes(Map<String, Object> body, String key) {
+        List<Object> codes = new java.util.ArrayList<>();
+        Object list = body.get(key);
+        if (list instanceof List<?> l) {
+            l.forEach(i -> codes.add(((Map<String, Object>) i).get("code")));
+        }
+        return codes;
     }
 }

@@ -133,7 +133,7 @@ Turn Sequence For Other User Returns 404
     [Tags]    turn-cycle    step24
     ${match}=    New Match With Character
     Start Match    ${TOKEN}    ${match}    200
-    ${other}=    POST On Session    public_session    /api/auth/guest
+    ${other}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${other}    201
     ${response}=    Get Turn Sequence    ${other.json()}[accessToken]    ${match}
     Status Should Be    ${response}    404
@@ -142,14 +142,14 @@ Start Without Token Returns 401
     [Documentation]    POST /start without Authorization → 401.
     [Tags]    turn-cycle    step24
     ${response}=    POST On Session    public_session
-    ...    /api/matches/00000000-0000-0000-0000-000000000000/start    expected_status=any
+    ...    /api/matches/00000000-0000-0000-0000-000000000000/start    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 Pass Without Token Returns 401
     [Documentation]    POST /pass without Authorization → 401.
     [Tags]    turn-cycle    step24
     ${response}=    POST On Session    public_session
-    ...    /api/gameplay/00000000-0000-0000-0000-000000000000/action/pass    expected_status=any
+    ...    /api/gameplay/00000000-0000-0000-0000-000000000000/action/pass    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 Turn Sequence On Created Match Returns Empty Queue
@@ -168,7 +168,7 @@ Pass By Non Participant Returns 404
     [Tags]    turn-cycle    step24
     ${match}=    New Match With Character
     Start Match    ${TOKEN}    ${match}    200
-    ${other}=    POST On Session    public_session    /api/auth/guest
+    ${other}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${other}    201
     ${response}=    Pass Turn    ${other.json()}[accessToken]    ${match}
     Status Should Be    ${response}    404
@@ -179,7 +179,7 @@ Start By Non Creator Returns 404
     ...                leaked to third parties).
     [Tags]    turn-cycle    step24
     ${match}=    New Match With Character
-    ${other}=    POST On Session    public_session    /api/auth/guest
+    ${other}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${other}    201
     ${response}=    Start Match    ${other.json()}[accessToken]    ${match}
     Status Should Be    ${response}    404
@@ -252,7 +252,7 @@ Multiple Consecutive Passes Accumulate Pass Counter
 Suite Setup Turn Cycle
     [Documentation]    Guest login + resolve a joinable loadout from a public story.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout

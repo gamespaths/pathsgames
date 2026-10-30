@@ -30,3 +30,16 @@ def test_cleanup_test_data_zero_when_nothing_matches():
 
     assert result.deleted_guests == 0
     assert result.deleted_matches == 0
+
+
+def test_v120_cleanup_removes_robot_google_users_with_their_matches():
+    guest_port, match_port, identities = MagicMock(), MagicMock(), MagicMock()
+    guest_port.delete_guests_by_username_like.return_value = 0
+    match_port.delete_matches_by_name_like.return_value = 1
+    match_port.delete_matches_by_user_creator_ids.return_value = 2
+    identities.find_non_guest_user_ids_by_nickname_like.return_value = [4, 5]
+    result = TestDataCleanupService(guest_port, match_port, identities).cleanup_test_data()
+    assert result == CleanupResult(deleted_guests=0, deleted_matches=3, deleted_users=2)
+    identities.delete_user_fully.assert_any_call(5)
+    identities.find_non_guest_user_ids_by_nickname_like.return_value = []
+    assert TestDataCleanupService(guest_port, match_port, identities).cleanup_test_data().deleted_users == 0

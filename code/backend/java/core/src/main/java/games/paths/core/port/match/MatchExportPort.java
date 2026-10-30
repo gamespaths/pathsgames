@@ -33,6 +33,10 @@ public interface MatchExportPort {
     String USERNAME_RENAMED = "USERNAME_RENAMED";
     /** Decision 54 (revised): a new user matched by e-mail onto an existing one of the target. */
     String USER_MAPPED_BY_EMAIL = "USER_MAPPED_BY_EMAIL";
+    /** v1.2.0 the email of a Google user belongs on the target to another Google subject (error). */
+    String IDENTITY_MISMATCH = "IDENTITY_MISMATCH";
+    /** v1.2.0 the nickname is taken on the target: the created user gets the first free suffix. */
+    String NICKNAME_RENAMED = "NICKNAME_RENAMED";
     String ROLE_DOWNGRADED = "ROLE_DOWNGRADED";
     String USER_HAS_ACTIVE_MATCH = "USER_HAS_ACTIVE_MATCH";
     String STORY_MATCHES_DELETED = "STORY_MATCHES_DELETED";

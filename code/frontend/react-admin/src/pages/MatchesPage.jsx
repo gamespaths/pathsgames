@@ -11,6 +11,8 @@ import ConfirmModal from '../components/common/ConfirmModal'
 import useEscapeKey from '../hooks/useEscapeKey'
 import { downloadJson } from '../utils/download'
 import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
+import UserPicker from '../components/user/UserPicker'
+import { listAllStories } from '../api/storyApi'
 
 /**
  * MatchesPage — admin view of the matches.
@@ -21,6 +23,8 @@ import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from
  *   - export the latest snapshot as a file (POST /api/admin/matches/{uuid}/export, v0.41.4);
  *   - stop a running match (POST /api/admin/matches/{uuid}/stop);
  *   - delete a stopped match (DELETE /api/admin/matches/{uuid}).
+ * v1.7.0 step 12 — user (picker) and story filters on the server; a page may hold fewer rows than the
+ * limit while more pages exist.
  */
 
 // Fallback used until GET /api/admin/matches/statuses resolves (or if it fails).
@@ -30,6 +34,8 @@ const DEFAULT_STATUSES = [
   { value: 'PAUSED',   terminal: false },
   { value: 'ENDED',    terminal: true },
   { value: 'GAMEOVER', terminal: true },
+  { value: 'CANCELLED', terminal: true }, // v1.2.0 the guest merge
+  { value: 'BANNED', terminal: true }, // v1.7.0 the ban of the creator
 ]
 
 // v0.28.1 — server-side scope (maps to the ?sinceDays= query param).
@@ -55,6 +61,9 @@ export default function MatchesPage() {
   const [filter,       setFilter]       = useState('')
   const [statusFilter, setStatusFilter] = useState('RUNNING') // default scope: running matches
   const [period,       setPeriod]       = useState('') // sinceDays scope
+  const [userFilter,   setUserFilter]   = useState(null) // { uuid, nickname } picked from the users search
+  const [storyFilter,  setStoryFilter]  = useState('') // story uuid
+  const [stories,      setStories]      = useState([])
   const [detail,       setDetail]       = useState(null) // { uuid, loading, info, error, storyCtx }
   const [editing,      setEditing]      = useState(null) // match being edited
   const [confirm,      setConfirm]      = useState(null) // { action, match }
@@ -71,6 +80,8 @@ export default function MatchesPage() {
     const p = { limit: PAGE_LIMIT }
     if (statusFilter) p.status = statusFilter
     if (period) p.sinceDays = Number(period)
+    if (userFilter?.uuid) p.userUuid = userFilter.uuid
+    if (storyFilter) p.storyUuid = storyFilter
     return p
   }
 
@@ -101,7 +112,14 @@ export default function MatchesPage() {
 
   // Reload from the first page whenever the server-side filters change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load() }, [statusFilter, period])
+  useEffect(() => { load() }, [statusFilter, period, userFilter, storyFilter])
+
+  // v1.7.0 step 12 — every story for the story filter (paged API, followed to the end)
+  useEffect(() => {
+    listAllStories('en')
+      .then(list => setStories(Array.isArray(list) ? list : []))
+      .catch(() => setStories([]))
+  }, [])
 
   // v0.41.4 — the latest snapshot of every loaded row, which enables its Export button.
   const loadSnapshots = (uuids) => Promise.all(uuids.map(uuid =>
@@ -211,8 +229,8 @@ export default function MatchesPage() {
       {notice && <div className="pg-alert pg-alert-success mb-3" role="status">{notice}</div>}
 
       {/* Toolbar — search grows, selects + button stay on the same row */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 min-w-0">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-48">
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-ash)', fontSize: '0.8rem' }} />
           <input
             className="pg-input pl-8"
@@ -240,6 +258,17 @@ export default function MatchesPage() {
         >
           {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
+        <select
+          className="pg-input"
+          style={{ width: 'auto', maxWidth: '14rem', flex: '0 0 auto' }}
+          value={storyFilter}
+          onChange={e => setStoryFilter(e.target.value)}
+          aria-label="Filter by story"
+        >
+          <option value="">All stories</option>
+          {stories.map(s => <option key={s.uuid} value={s.uuid}>{s.title || shortUuid(s.uuid)}</option>)}
+        </select>
+        <UserPicker value={userFilter} onChange={setUserFilter} />
         <button className="pg-btn pg-btn-ghost" style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }} onClick={load}>
           <i className="fas fa-sync-alt" /> Refresh
         </button>
@@ -266,7 +295,9 @@ export default function MatchesPage() {
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No matches found.</td></tr>
+                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
+                    {nextCursor ? 'No matches in this page — load more to read further.' : 'No matches found.'}
+                  </td></tr>
                 )}
                 {filtered.map(m => (
                   <tr key={m.uuid}>
@@ -341,7 +372,7 @@ export default function MatchesPage() {
 
       {/* Server-side pagination footer (v0.28.1) — always visible so the paging
           state is clear; the button fetches the next page via the cursor. */}
-      {!loading && matches.length > 0 && (
+      {!loading && (matches.length > 0 || nextCursor) && (
         <div className="flex items-center justify-between mt-4">
           <span style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
             Showing {filtered.length} of {matches.length} loaded

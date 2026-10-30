@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildGameTypeCard,
   buildLoginCard,
+  buildGoogleLoginCard,
   buildTermsCard,
   buildAntibotCard,
   buildFreeToPlay,
@@ -69,6 +70,19 @@ describe('utils/loadoutCards', () => {
     expect(c.title).toBe('book.guest')
     expect(c.description).toBe('book.guestDesc')
     expect(c.urlImage).toBeTruthy()
+  })
+
+  it('buildGoogleLoginCard: the name and the 256px picture with no referrer, the gems without a picture', () => {
+    const c = buildGoogleLoginCard(t, { displayName: 'Mario Rossi', pictureUrl: 'https://x/a=s96-c' })
+    expect(c.title).toBe('Mario Rossi')
+    expect(c.description).toBe('modals.guestUser.bodyGoogle')
+    expect(c.urlImage).toBe('https://x/a=s256-c')
+    expect(c.referrerPolicy).toBe('no-referrer')
+    expect(c.linkCopyright).toBeNull()
+    const n = buildGoogleLoginCard(t, { nickname: 'mario' })
+    expect(n.title).toBe('mario')
+    expect(n.urlImage).toBe(buildLoginCard(t).urlImage)
+    expect(buildGoogleLoginCard(t, null).title).toBe('book.guest')
   })
 
   it('buildTermsCard carries the terms texts', () => {

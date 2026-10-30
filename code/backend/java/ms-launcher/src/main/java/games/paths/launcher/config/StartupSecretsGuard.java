@@ -1,5 +1,6 @@
 package games.paths.launcher.config;
 
+import games.paths.core.service.auth.SubjectHasher;
 import games.paths.core.service.security.EnvironmentRule;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +11,7 @@ import java.util.Set;
 /**
  * StartupSecretsGuard - v0.41.0 (Step 41, decision 5): outside dev/test the server refuses to
  * start with a committed JWT secret (application.yml's or JwtTokenProvider's fallback).
+ * v1.7.0 the same for the banned-subject pepper (BANNED_SUBJECT_PEPPER).
  */
 @Component
 public class StartupSecretsGuard {
@@ -20,8 +22,22 @@ public class StartupSecretsGuard {
 
     public StartupSecretsGuard(
             @Value("${game.server.env:}") String env,
-            @Value("${game.auth.jwt.secret:" + PROVIDER_DEFAULT + "}") String jwtSecret) {
+            @Value("${game.auth.jwt.secret:" + PROVIDER_DEFAULT + "}") String jwtSecret,
+            @Value("${game.auth.banned-subject-pepper:" + SubjectHasher.DEFAULT_PEPPER + "}") String pepper) {
         check(env, jwtSecret);
+        checkPepper(env, pepper);
+    }
+
+    /** v1.7.0 throws when a non dev/test environment runs with a blank or committed pepper. */
+    static void checkPepper(String env, String pepper) {
+        if (EnvironmentRule.isDevOrTest(env)) {
+            return;
+        }
+        if (pepper == null || pepper.isBlank() || SubjectHasher.DEFAULT_PEPPER.equals(pepper)) {
+            throw new IllegalStateException("Refusing to start: environment '" + env
+                    + "' is not dev/test and BANNED_SUBJECT_PEPPER is missing or the committed default."
+                    + " Set BANNED_SUBJECT_PEPPER to a private random value (openssl rand -base64 48).");
+        }
     }
 
     /** Throws when a non dev/test environment runs with a blank or committed secret. */

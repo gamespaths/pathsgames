@@ -35,9 +35,10 @@ def test_require_admin_blocks_non_admin():
 
 def test_list_all_stories_delegates_to_query_port():
     ctrl = _ctrl()
-    ctrl.query_port.list_all_stories.return_value = ["s1"]
-    assert _run(ctrl.list_all_stories(_req(), lang="it")) == ["s1"]
-    ctrl.query_port.list_all_stories.assert_called_once_with("it")
+    ctrl.query_port.list_all_stories_page.return_value = {"items": ["s1"], "nextCursor": "1", "limit": 1}
+    assert _run(ctrl.list_all_stories(_req(), lang="it", limit=1, cursor=None)) == {
+        "items": ["s1"], "nextCursor": "1", "limit": 1}
+    ctrl.query_port.list_all_stories_page.assert_called_once_with("it", 1, None)
 
 
 def test_import_story_rejects_empty_body():

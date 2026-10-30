@@ -3,6 +3,8 @@ package games.paths.launcher.config;
 import games.paths.adapters.rest.filter.JwtAuthenticationFilter;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.launcher.filter.AdminPortFilter;
+import games.paths.launcher.filter.PathGuardFilter;
+import games.paths.launcher.filter.RequestStampFilter;
 import games.paths.launcher.filter.SecurityHeadersFilter;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +30,17 @@ public class SecurityFilterConfig {
     @Value("${game.admin.port:8044}")
     private int adminPort;
 
+    /** v1.10.0 — {@link PathGuardFilter} first (order -3): a non-canonical path never reaches a path check. */
+    @Bean
+    public FilterRegistrationBean<PathGuardFilter> pathGuardFilterRegistration() {
+        FilterRegistrationBean<PathGuardFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new PathGuardFilter());
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(-3);
+        registrationBean.setName("pathGuardFilter");
+        return registrationBean;
+    }
+
     /** v0.41.0 — {@link SecurityHeadersFilter} at order -1: even the refusals carry the headers. */
     @Bean
     public FilterRegistrationBean<SecurityHeadersFilter> securityHeadersFilterRegistration() {
@@ -36,6 +49,17 @@ public class SecurityFilterConfig {
         registrationBean.addUrlPatterns("/*");
         registrationBean.setOrder(-1);
         registrationBean.setName("securityHeadersFilter");
+        return registrationBean;
+    }
+
+    /** v1.7.0 — {@link RequestStampFilter}: one match stamp per request, both ports. */
+    @Bean
+    public FilterRegistrationBean<RequestStampFilter> requestStampFilterRegistration() {
+        FilterRegistrationBean<RequestStampFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new RequestStampFilter());
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(-2);
+        registrationBean.setName("requestStampFilter");
         return registrationBean;
     }
 
@@ -57,12 +81,14 @@ public class SecurityFilterConfig {
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
             SessionPort sessionPort,
-            @Value("${game.auth.public-paths:/api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions}")
+            games.paths.core.port.auth.UserStatePort userStatePort,
+            @Value("${game.auth.public-paths:/api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/auth/google,/api/versions}")
             String publicPathsStr) {
 
         List<String> publicPaths = List.of(publicPathsStr.split(","));
 
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(sessionPort, publicPaths, adminPathPrefix);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(sessionPort, publicPaths, adminPathPrefix,
+                userStatePort);
 
         FilterRegistrationBean<JwtAuthenticationFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(filter);

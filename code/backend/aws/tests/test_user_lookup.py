@@ -90,13 +90,14 @@ def test_view_and_match_count():
 def test_db_utils_scans_and_count(monkeypatch):
     table = MagicMock()
     table.scan.side_effect = [
-        {'Items': [{'PK': 'USER#b', 'SK': 'METADATA', 'email': 'A@x.it', 'username': 'u'}], 'LastEvaluatedKey': {'k': 1}},
-        {'Items': [{'PK': 'USER#a', 'SK': 'METADATA', 'email': 'a@x.it ', 'username': 'v'}]},
         {'Items': [{'PK': 'USER#c', 'SK': 'METADATA', 'username': 'u'}]},
     ]
+    # v1.2.0 the email lookup is the EMAIL# pointer, not a Scan
+    table.get_item.side_effect = [{'Item': {'PK': 'EMAIL#a@x.it', 'user_uuid': 'a'}},
+                                  {'Item': {'PK': 'USER#a', 'SK': 'METADATA'}}]
     table.query.side_effect = [{'Count': 2, 'LastEvaluatedKey': {'k': 1}}, {'Count': 3}]
     monkeypatch.setattr(db_utils, '_table', table)
-    assert [i['PK'] for i in db_utils.find_users_by_email(' a@X.it')] == ['USER#a', 'USER#b']
+    assert [i['PK'] for i in db_utils.find_users_by_email(' a@X.it')] == ['USER#a']
     assert [i['PK'] for i in db_utils.find_users_by_username('u')] == ['USER#c']
     assert db_utils.find_users_by_email('') == [] and db_utils.find_users_by_username(' ') == []
     assert db_utils.count_gsi('GSI1', 'USER_MATCHES#x') == 5

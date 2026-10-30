@@ -138,7 +138,7 @@ An Unknown Stat Is A Bad Request
     Should Be Equal    ${resp.json()}[error]    INVALID_STAT
     ${headers}=    Get Auth Headers    ${token}
     ${empty}=    POST On Session    public_session    /api/gameplay/${match}/action/use-exp
-    ...    headers=${headers}    json=${{ {} }}    expected_status=400
+    ...    headers=${headers}    json=${{ {} }}    expected_status=400    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal    ${empty.json()}[error]    INVALID_STAT
 
 The Wilds Are No Place To Train

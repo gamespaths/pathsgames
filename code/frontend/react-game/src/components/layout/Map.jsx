@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '@/i18n/context'
 import { buildMapGraph, edgeVisibility, MAP_NODE_R } from '@/utils/mapGraph'
+import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import { UserAvatar } from '@/features/guest-user/UserAccountPanel'
 
 /**
  * Map — the world map rendered as the book's LEFT reading page (v0.28.5 Map
@@ -15,6 +17,10 @@ import { buildMapGraph, edgeVisibility, MAP_NODE_R } from '@/utils/mapGraph'
  */
 export default function MapPage({ gameData, matchLocations, selectedId = null, onSelectNode, onClose }) {
   const { t } = useTranslation()
+  // v1.4.0 — a Google user is marked by its round picture instead of the street-view glyph
+  const { user, isGoogleUser } = useGuestUser() ?? {}
+  const pictureUrl = isGoogleUser ? user?.pictureUrl : null
+  const hereIcon = <i className="fas fa-street-view" />
   const graph = useMemo(
     () => buildMapGraph(gameData?.info, matchLocations),
     [gameData?.info, matchLocations],
@@ -194,7 +200,7 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
         {n.id === hereId && (
           <span className="game-map-node__here" title={t('game.map.youAreHere')}
             data-testid="map-here-marker">
-            <i className="fas fa-street-view" />
+            <UserAvatar url={pictureUrl} className="game-map-avatar" fallback={hereIcon} />
           </span>
         )}
       </div>
@@ -238,7 +244,8 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
       </div>
       <div className="game-map-legend">
         <span><i className="game-map-legend__dot" /> {t('game.map.here')}</span>
-        <span><i className="fas fa-street-view" /> {t('game.map.youAreHere')}</span>
+        <span><UserAvatar url={pictureUrl} className="game-map-avatar game-map-avatar--legend" fallback={hereIcon} />
+          {' '}{t('game.map.youAreHere')}</span>
         <span><i className="game-map-legend__safe" /> {t('game.map.safe')}</span>
         <span><b>?</b> {t('game.map.unexplored')}</span>
       </div>

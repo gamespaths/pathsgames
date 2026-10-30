@@ -42,6 +42,11 @@ export function buildCardToSleep(story, playerStats, t) {
   return card
 }
 
+/** v1.8.0 — "Refreshing": the board was reloaded because the same account changed the match elsewhere. */
+export function buildUpdateMatchCard(t) {
+  return metaCard('refresh', t('game.updateMatch.title'), t('game.updateMatch.description'))
+}
+
 export function buildEndGameCard(t) {
   return metaCard('endgame', t('game.endGameCard.title'), t('game.endGameCard.description'));
 }
@@ -168,6 +173,14 @@ export function buildNeighborCard(t, direction = null, fromName = null, toName =
 /** "Guest" login card. `t` is the i18n translate function. */
 export function buildLoginCard(t) {
   return metaCard('gems', t('book.guest'), t('book.guestDesc'));
+}
+
+/** v1.2.0 — login card of a Google user: name as title, the profile picture (256px) as full-card image. */
+export function buildGoogleLoginCard(t, user) {
+  const card = metaCard('gems', user?.displayName ?? user?.nickname ?? t('book.guest'), t('modals.guestUser.bodyGoogle'))
+  if (!user?.pictureUrl) return card
+  return { ...card, urlImage: user.pictureUrl.replace(/=s\d+-c$/, '=s256-c'), referrerPolicy: 'no-referrer',
+    copyrightText: null, linkCopyright: null }
 }
 
 /** Terms & conditions card shown first in the start-game confirmation. */

@@ -127,7 +127,7 @@ def test_mock_user_not_in_db_returns_401(mock_jwt, mock_get):
 @patch('match.handler.db_utils.put_item')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put, mock_query):
+def test_jwt_user_not_in_db_is_refused(mock_jwt, mock_get, mock_put, mock_query):
     # query_gsi is patched because the v0.32.1 duplicate-match guard reads GSI1
     # before creating: unpatched it would reach the real DynamoDB client.
     mock_jwt.return_value = {'uuid': 'jwt-uuid', 'source': 'jwt', 'role': 'PLAYER', 'username': 'j'}
@@ -146,7 +146,8 @@ def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put, mo
     event = make_event('POST', '/api/matches', headers={'Authorization': 'Bearer eyJ.x.y'},
                        body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
-    assert result['statusCode'] == 201, _body(result)
+    # v1.2.0 the synthetic user is gone: a token is valid only for a user in the DB
+    assert result['statusCode'] == 401, _body(result)
 
 
 def test_options_preflight_short_circuit():
@@ -618,7 +619,9 @@ def test_list_user_matches_returns_summaries(mock_jwt, mock_get, mock_query):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     body = _body(result)
-    assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
+    # v1.7.0 step 9 — the envelope; same status, no ts_update: the newest tsInsert first
+    assert [m['uuid'] for m in body['items']] == ['m2', 'm1']
+    assert body['nextCursor'] is None and body['limit'] == 50
     # v0.37.5 — the list reads the summary-only projection, never the full GSI1 items.
     mock_query.assert_called_once_with('GSI1', 'USER_MATCHES#player-uuid-001')
 
@@ -1173,7 +1176,8 @@ def test_list_all_matches_as_admin_returns_envelope(mock_jwt, mock_get, mock_pag
     assert args[0] == 'GSI2' and args[2] == 'MATCH'
     assert kwargs['limit'] == 50 and kwargs['ascending'] is False
     assert kwargs['start_key'] is None and kwargs['sk_from'] is None
-    assert kwargs['eq_filters'] == {'status': None, 'userCreatorUuid': None, 'storyUuid': None}
+    assert kwargs['eq_filters'] == {'summary.status': None, 'summary.storyUuid': None}
+    assert mock_page.call_count == 1
 
 
 @patch('match.handler.db_utils.get_item')
@@ -1236,10 +1240,12 @@ def test_list_all_matches_forwards_filters_and_cursor(mock_jwt, mock_get, mock_p
                            'sinceDays': '7', 'cursor': cursor})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
-    kwargs = mock_page.call_args.kwargs
-    assert kwargs['eq_filters'] == {'status': 'RUNNING', 'userCreatorUuid': 'u-9', 'storyUuid': 's-7'}
+    args, kwargs = mock_page.call_args
+    # v1.7.0 step 12 — userUuid is a key query on GSI1, the other filters stay post-read
+    assert args[0] == 'GSI1' and args[2] == 'USER_MATCHES#u-9'
+    assert kwargs['eq_filters'] == {'summary.status': 'RUNNING', 'summary.storyUuid': 's-7'}
     assert kwargs['start_key'] == {'PK': 'MATCH#prev', 'SK': 'METADATA'}
-    assert kwargs['sk_from'] is not None and len(kwargs['sk_from']) == 20  # 020d ts prefix
+    assert kwargs['sk_from'].startswith('MATCH#') and len(kwargs['sk_from']) == 26  # MATCH# + 020d ts
 
 
 @patch('match.handler.db_utils.query_index_page', return_value=([], None))

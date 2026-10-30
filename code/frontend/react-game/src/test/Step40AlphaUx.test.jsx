@@ -255,9 +255,10 @@ describe('MatchCard (Step 40)', () => {
 })
 
 describe('match status helpers and list order', () => {
-  it('groups active, paused, finished, other and sorts newest first inside', () => {
+  it('groups active (paused included) before the rest and sorts the last played first inside', () => {
+    // v1.7.0 step 9 — CREATED, RUNNING and PAUSED are the active group
     expect([matchStatusGroup('RUNNING'), matchStatusGroup('PAUSED'), matchStatusGroup('ENDED'),
-      matchStatusGroup('X')]).toEqual([0, 1, 2, 3])
+      matchStatusGroup('X')]).toEqual([0, 0, 1, 1])
     expect(MATCH_STATUS_BADGE.GAMEOVER.icon).toContain('story-card-status__defeat')
     const list = [
       { uuid: 'old-end', status: 'ENDED', tsInsert: '2026-01-01T00:00:00Z' },
@@ -267,7 +268,7 @@ describe('match status helpers and list order', () => {
       { uuid: 'new-run', status: 'CREATED', tsInsert: '2026-09-01T00:00:00Z' },
     ]
     expect(sortMatchesForList(list, toEpochMs).map(m => m.uuid))
-      .toEqual(['new-run', 'run', 'paused', 'new-end', 'old-end'])
+      .toEqual(['new-run', 'paused', 'run', 'new-end', 'old-end'])
     expect(sortMatchesForList(null)).toEqual([])
     expect(sortMatchesForList(list).length).toBe(5)
   })
@@ -282,7 +283,8 @@ describe('match status helpers and list order', () => {
     render(<MemoryRouter><UserMatchesList accessToken="tok" onOpenHistory={onOpenHistory} /></MemoryRouter>)
     await screen.findByText('T-s1')
     const titles = [...document.querySelectorAll('.gc-title__text')].map(e => e.textContent)
-    expect(titles).toEqual(['T-s2', 'T-s1'])
+    // v1.8.0 — the user's statistics card opens the grid
+    expect(titles).toEqual(['modals.guestUser.anonymous', 'T-s2', 'T-s1'])
     fireEvent.click(screen.getByText('matches.logOpen'))
     expect(onOpenHistory).toHaveBeenCalledWith(expect.objectContaining({ match: expect.objectContaining({ uuid: 'm-end' }) }))
   })

@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
@@ -37,6 +38,14 @@ import java.util.Map;
  * and trips exactly the same Step 30 edge states.</p>
  */
 public class InventoryService implements InventoryPort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     private final InventoryStorePort store;
     private final UserAccessPort userAccessPort;
@@ -82,6 +91,7 @@ public class InventoryService implements InventoryPort {
     public EventExecutionResult useItem(String matchUuid, String userUuid,
                                         String itemInstanceUuid, String lang) {
         Ctx c = load(matchUuid, userUuid, true);
+        MatchStampPort.check(stamp, matchUuid);
         GamingInventoryItemsEntity row = findOwnRow(c, itemInstanceUuid);
         ItemEntity item = resolveItem(c, row);
 
@@ -108,6 +118,7 @@ public class InventoryService implements InventoryPort {
         // for itself, and what was spent stays spent even if the effect chain ends in a
         // coma. Before v0.35.1 that meant deleting the row; now it means charging the
         // units and deleting the row only when nothing survives them.
+        MatchStampPort.claim(stamp, matchUuid);
         int left = held - spend;
         if (left > 0) {
             store.updateInventoryAmount(c.match.id(), row.getId(), left);
@@ -127,6 +138,7 @@ public class InventoryService implements InventoryPort {
     @Override
     public DropItemResult dropItem(String matchUuid, String userUuid, String itemInstanceUuid) {
         Ctx c = load(matchUuid, userUuid, true);
+        MatchStampPort.check(stamp, matchUuid);
         GamingInventoryItemsEntity row = findOwnRow(c, itemInstanceUuid);
         // No consumable gate and no class gate here: a non-consumable item must be
         // droppable, that is the whole point of carrying one.
@@ -142,6 +154,7 @@ public class InventoryService implements InventoryPort {
                 ? held
                 : Math.min(held, unitAmountOfAction(item.getAmountDrop()));
 
+        MatchStampPort.claim(stamp, matchUuid);
         int left = held - dropped;
         if (left > 0) {
             store.updateInventoryAmount(c.match.id(), row.getId(), left);

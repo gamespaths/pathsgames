@@ -20,6 +20,7 @@ vi.mock('../../api/matchApi', () => ({
 vi.mock('../../api/storyApi', () => ({
   getStory:     vi.fn(),
   listEntities: vi.fn(),
+  listAllStories: vi.fn(() => Promise.resolve([])),
 }))
 import {
   listMatches, getMatchInfo, listMatchStatuses, updateMatch, stopMatch,

@@ -223,3 +223,21 @@ def registry_values(body, key):
             values = [row.get("value") if row.get("value") is not None else row.get("stringValue")]
         out += [str(v) for v in values if v is not None]
     return out
+
+
+def with_user_identity(doc, user_uuid, email, subject):
+    """v1.2.0 the file with the Google identity of one user set (stage migration); checksum recomputed."""
+    out = copy.deepcopy(doc)
+    for u in out.get("users") or []:
+        if u.get("uuid") == user_uuid:
+            u["emailAddress"] = email
+            u["identities"] = [{"provider": "GOOGLE", "subject": subject, "email": email}]
+    return with_checksum(out)
+
+
+def identities_of(doc, user_uuid):
+    """v1.2.0 the neutral identities an export carries for one user."""
+    for u in doc.get("users") or []:
+        if u.get("uuid") == user_uuid:
+            return u.get("identities") or []
+    return []

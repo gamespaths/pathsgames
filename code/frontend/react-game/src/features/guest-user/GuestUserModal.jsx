@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from './GuestUserContext'
 import Book from '@/components/book/Book'
+import GameBookMobile from '@/features/gameplay/GameBookMobile'
 import Card from '@/components/layout/Card'
 import UserMatchesList from './UserMatchesList'
 import MatchLogCard from '@/features/matches/MatchLogCard'
@@ -11,6 +12,8 @@ import MissionCards from '@/features/gameplay/cards/MissionCards'
 import MissionStepsCards from '@/features/gameplay/cards/MissionStepsCards'
 import LoadingCard from '@/components/layout/LoadingCard'
 import UserLanguageSelector from './UserLanguageSelector'
+import UserAccountPanel, { UserAvatar } from './UserAccountPanel'
+import SafeHtml from '@/components/ui/SafeHtml'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turnstile'
 
@@ -49,9 +52,16 @@ export default function GuestUserModal() {
 
   if (!guestModalOpen) return null
 
-  const username    = user?.username ?? t('modals.guestUser.anonymous')
-  const description = t('modals.guestUser.body')
-  const userCard    = { title: username, description, urlImage: null, linkCopyright: null }
+  // v1.2.0 — the displayName (Google: "given family", else name, else nickname) titles the card
+  const username    = user?.displayName ?? user?.username ?? t('modals.guestUser.anonymous')
+  const isGoogle    = user?.accountType === 'GOOGLE'
+  // v1.2.0 — the Google picture before the name; the sign-in / logout panel in the parchment body
+  const title       = isGoogle && user?.pictureUrl ? <span><UserAvatar url={user.pictureUrl} />{username}</span> : username
+  const description = <>
+    <SafeHtml value={t(isGoogle ? 'modals.guestUser.bodyGoogle' : 'modals.guestUser.body')} halfBlankLines />
+    <UserAccountPanel />
+  </>
+  const userCard    = { title, description, urlImage: null, linkCopyright: null }
 
   function closePreview() {
     setPreviewInfo(null)
@@ -84,8 +94,9 @@ export default function GuestUserModal() {
   }
 
   const story = previewInfo?.story ?? null
+  const userExtra = <UserLanguageSelector />
   const leftPage = !previewInfo
-    ? <Card variant="page" card={userCard} loading={loading} extraContent={<UserLanguageSelector />} />
+    ? <Card variant="page" card={userCard} loading={loading} extraContent={userExtra} />
     : matchView === 'missionSteps' && selected
       ? <Card variant="page" card={selected.card} entityType="missions" loading={false}
           story={story} onClose={backToMissions} bonusBadgeShowZeros
@@ -158,14 +169,8 @@ export default function GuestUserModal() {
       onClose={closeGuestModal}
       left={leftPage}
       right={rightPage}
-      mobile={
-        <div className="book-mobile-layout">
-          {/* Big user (or previewed story) card on top, then the matches grid
-              laid out two per row below it. */}
-          {leftPage}
-          {rightPage}
-        </div>
-      }
+      // Same stacked column as the game: user card on top, matches below, with the game's margins.
+      mobile={<GameBookMobile left={leftPage} right={rightPage} />}
     />
   )
 }

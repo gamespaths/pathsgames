@@ -16,7 +16,7 @@ vi.mock('../../api/matchApi', () => ({
   exportMatch:        vi.fn(),
   errorBody:          (e) => e?.response?.data ?? {},
 }))
-vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn() }))
+vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn(), listAllStories: vi.fn(() => Promise.resolve([])) }))
 vi.mock('../../utils/download', () => ({ downloadJson: vi.fn() }))
 
 import { listMatches, listMatchStatuses, listMatchSnapshots, exportMatch } from '../../api/matchApi'

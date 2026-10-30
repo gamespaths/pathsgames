@@ -24,6 +24,7 @@ from app.core.models.match.turn_models import TurnCycleError
 from app.core.ports.event.event_ports import DomainEventPublisher
 from app.core.ports.match.time_ports import TimeAdvancementPort, TimeStorePort
 from app.core.services.match.time_start_recovery_service import TimeStartRecoveryService
+from app.core.services.match.match_stamp import stamp_claim
 
 DEFAULT_LANG = "en"
 
@@ -76,6 +77,7 @@ class TimeAdvancementService(TimeAdvancementPort):
 
         if match["status"] != match_statuses.RUNNING:
             raise TurnCycleError(TurnCycleError.MATCH_NOT_RUNNING, "Match is not RUNNING")
+        stamp_claim(self, match_uuid)
 
         # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
         self.store.set_character_sleeping(match["id"], caller["id"], True)

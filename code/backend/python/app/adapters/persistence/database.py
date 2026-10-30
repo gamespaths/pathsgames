@@ -71,7 +71,11 @@ _ADDED_COLUMNS = {
     # v0.41.1 — the snapshot clock and checksum (a table made before V0.41.1).
     "system_snapshot": ["clock", "checksum"],
     # v0.41.4 — decision 56: the e-mail of a user, copied and matched by the match import.
-    "users": ["email_address"],
+    "users": ["email_address", "theme_selected", "suspended_until", "relink_pending", "sessions_valid_after"],
+    # v1.2.0 — the rotation time that opens the refresh grace; v1.7.0 the revocation reason and time.
+    "users_tokens": ["ts_rotated", "revoked_reason", "ts_update"],
+    # v1.7.0 — the match play time (Java V1.7.0).
+    "gaming_match": ["play_ms"],
 }
 # Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
 _DROPPED_COLUMNS = {
@@ -79,18 +83,37 @@ _DROPPED_COLUMNS = {
     "list_missions_steps": ["condition_value_from", "condition_value_to"],
     # Step 38 — replaced by exp_cost_base / max_stat_value.
     "list_stories_difficulty": ["cost_max_characteristics"],
+    # v1.2.0 — no passwords and no single Google id column (a schema made by the Java migrations).
+    "users": ["password_hash", "google_id_sso"],
 }
+# v1.2.0 — SQLite refuses to drop an indexed column: its index goes first.
+_INDEX_OF_DROPPED = {"google_id_sso": "idx_users_google_sso"}
 # v0.41.0 — indexes create_all makes only on a new table: (table, name, columns).
 _INDEXES = [
     ("users", "idx_users_state_last_access", "state, last_access"),
     ("system_snapshot", "idx_snapshot_match_clock", "id_match, clock"),
-    ("users", "idx_users_email", "email_address"),
 ]
+# v1.2.0 — unique indexes of an existing users table: (table, name, columns, where); duplicates of older
+# data are cleared first (email set to NULL, nickname suffixed with the row id), as Java V1.2.0 does.
+_UNIQUE_INDEXES = [
+    ("users", "uq_users_email", "email_address", "email_address IS NOT NULL"),
+    ("users", "uq_users_nickname", "nickname", None),
+]
+_DEDUPE = {
+    "uq_users_email": ("UPDATE users SET email_address = NULL WHERE email_address IS NOT NULL AND id NOT IN"
+                       " (SELECT MIN(id) FROM users WHERE email_address IS NOT NULL GROUP BY email_address)"),
+    "uq_users_nickname": ("UPDATE users SET nickname = nickname || '#' || id WHERE nickname IS NOT NULL AND id NOT IN"
+                          " (SELECT MIN(id) FROM users WHERE nickname IS NOT NULL GROUP BY nickname)"),
+}
+# v1.7.0 — the column definition of an added column, when it is not a plain nullable one.
+_COLUMN_DEFINITIONS = {"play_ms": "{int} NOT NULL DEFAULT 0", "theme_selected": "TEXT DEFAULT 'default'",
+                       "relink_pending": "INTEGER NOT NULL DEFAULT 0"}
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",
                  "key_to_add", "key_value_to_add",
                  "key_to_add_not_first", "key_value_to_add_not_first",
-                 "condition_value", "condition_values", "uuid", "checksum", "email_address"}
+                 "condition_value", "condition_values", "uuid", "checksum", "email_address", "ts_rotated",
+                 "suspended_until", "sessions_valid_after", "revoked_reason", "ts_update"}
 
 
 def align_schema(bind=None):
@@ -114,6 +137,7 @@ def align_schema(bind=None):
         for column in additions:
             if column not in columns:
                 column_type = "TEXT" if column in _TEXT_COLUMNS else int_type
+                column_type = _COLUMN_DEFINITIONS.get(column, column_type).replace("{int}", int_type)
                 statements.append(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
     for table, drops in _DROPPED_COLUMNS.items():
         if not inspector.has_table(table):
@@ -121,12 +145,24 @@ def align_schema(bind=None):
         columns = {c["name"] for c in inspector.get_columns(table)}
         for column in drops:
             if column in columns:
+                if column in _INDEX_OF_DROPPED:
+                    statements.append(f"DROP INDEX IF EXISTS {_INDEX_OF_DROPPED[column]}")
                 statements.append(f"ALTER TABLE {table} DROP COLUMN {column}")
     for table, name, columns in _INDEXES:
         if not inspector.has_table(table):
             continue
         if name not in {i["name"] for i in inspector.get_indexes(table)}:
             statements.append(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({columns})")
+    for table, name, columns, where in _UNIQUE_INDEXES:
+        if not inspector.has_table(table):
+            continue
+        present = {c["name"] for c in inspector.get_columns(table)} | set(_ADDED_COLUMNS.get(table, []))
+        if columns not in present:
+            continue
+        if name not in {i["name"] for i in inspector.get_indexes(table)}:
+            statements.append(_DEDUPE[name])
+            clause = f" WHERE {where}" if where else ""
+            statements.append(f"CREATE UNIQUE INDEX IF NOT EXISTS {name} ON {table} ({columns}){clause}")
     if not statements:
         return []
     with bind.begin() as connection:

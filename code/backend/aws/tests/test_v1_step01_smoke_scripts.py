@@ -93,6 +93,23 @@ def test_deploy_scripts_invoke_the_smoke_function():
     assert 'smoke_test_invoke "pathsgames-test-SmokeTestFunction" "$AWS_TEST_REGION"' in test
 
 
+@pytest.mark.parametrize('env, expected', [
+    ({'AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY': '0xTEST', 'TURNSTILE_SECRET_KEY': '0xSHARED'}, '0xTEST'),
+    ({'AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY': '', 'TURNSTILE_SECRET_KEY': '0xSHARED'}, ''),
+    ({'TURNSTILE_SECRET_KEY': '0xSHARED'}, '0xSHARED'),
+    ({}, ''),
+], ids=['test-key', 'test-key-empty-turns-off', 'fallback-shared', 'none'])
+def test_test_deploy_turnstile_secret(env, expected):
+    # v1.9.0 — runs the script's own assignment line: AWS_TEST_LAMBDA_* wins even when empty.
+    line = next(l for l in CHANGED[2].read_text().splitlines() if l.startswith('_TURNSTILE_SAM_KEY='))
+    base = {k: v for k, v in os.environ.items()
+            if k not in ('AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY', 'TURNSTILE_SECRET_KEY')}
+    proc = subprocess.run(['bash', '-c', f'set -u; {line}; printf %s "$_TURNSTILE_SAM_KEY"'],
+                          env={**base, **env}, capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout == expected
+
+
 def test_policy_dry_run_allows_scheduler_and_pass_role(tmp_path):
     if shutil.which('python3') is None:
         pytest.skip('python3 not available')
@@ -109,3 +126,58 @@ def test_policy_dry_run_allows_scheduler_and_pass_role(tmp_path):
     assert [r.split(':')[-1] for r in scheduler['Resource']] == ['schedule-group/pathsgames-alpha-*',
                                                                   'schedule/pathsgames-alpha-*/*']
     assert len(json.dumps(doc, separators=(',', ':'))) <= 6144
+
+
+def test_v1_10_test_deploy_mock_access_is_off_by_default_and_never_with_google():
+    script = CHANGED[2].read_text()
+    assert 'AllowMockAccess=true' not in script
+    assert '_ALLOW_MOCK_ACCESS="${AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS:-false}"' in script
+    assert 'AllowMockAccess="$_ALLOW_MOCK_ACCESS"' in script
+    assert 'AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS=true needs AWS_TEST_LAMBDA_GOOGLE_ENABLED=false' in script
+
+
+def _dry_run_docs(tmp_path, *args):
+    proc = subprocess.run(['bash', str(CHANGED[3]), '--dry-run', *args], capture_output=True, text=True, timeout=60,
+                          env=dict(os.environ, HOME=str(tmp_path)))
+    assert proc.returncode == 0, proc.stderr
+    decoder, text, docs, pos = json.JSONDecoder(), proc.stdout, [], 0
+    while (start := text.find('{', pos)) >= 0:
+        doc, pos = decoder.raw_decode(text, start)
+        docs.append(doc)
+    return docs
+
+
+@pytest.mark.parametrize('mode', ['', 'prepare', 'enforce'])
+def test_v1_10_policy_never_allows_trust_edits_and_the_boundary_has_no_iam(tmp_path, mode):
+    if shutil.which('python3') is None:
+        pytest.skip('python3 not available')
+    docs = _dry_run_docs(tmp_path, *(['--boundary', mode] if mode else []))
+    by_sid = {s['Sid']: s for s in docs[0]['Statement']}
+    allowed = [a for s in docs[0]['Statement'] if s['Effect'] == 'Allow'
+               for a in ([s['Action']] if isinstance(s['Action'], str) else s['Action'])]
+    assert 'iam:UpdateAssumeRolePolicy' not in allowed
+    assert by_sid['IamDeny']['Effect'] == 'Deny' and 'iam:UpdateAssumeRolePolicy' in by_sid['IamDeny']['Action']
+    assert len(json.dumps(docs[0], separators=(',', ':'))) <= 6144
+    if not mode:
+        assert len(docs) == 1 and 'iam:CreateRole' in by_sid['IamRoles']['Action']
+        return
+    boundary = docs[1]['Statement'][0]
+    assert not [a for a in boundary['Action'] if a.split(':')[0] in ('iam', 'sts', 'organizations')]
+    condition = {'StringEquals': {'iam:PermissionsBoundary':
+                                  'arn:aws:iam::ACCOUNT_ID:policy/paths-games-alpha-lambda-boundary'}}
+    if mode == 'prepare':
+        assert by_sid['IamPutBoundary']['Condition'] == condition and 'iam:CreateRole' in by_sid['IamRoles']['Action']
+    else:
+        assert 'iam:CreateRole' not in by_sid['IamRoles']['Action']
+        assert by_sid['IamRoleWrites']['Condition'] == condition
+        assert 'iam:CreateRole' in by_sid['IamRoleWrites']['Action']
+
+
+def test_v1_10_policy_refuses_an_unknown_boundary_mode(tmp_path):
+    proc = subprocess.run(['bash', str(CHANGED[3]), '--dry-run', '--boundary', 'maybe'], capture_output=True,
+                          text=True, timeout=60, env=dict(os.environ, HOME=str(tmp_path)))
+    assert proc.returncode == 2 and 'prepare or enforce' in proc.stderr
+
+
+def test_v1_10_stage_deploy_passes_the_permissions_boundary():
+    assert 'PGSTAGE_OV_PermissionsBoundaryArn="$(stage_key IAM_PERMISSIONS_BOUNDARY_ARN)"' in CHANGED[1].read_text()

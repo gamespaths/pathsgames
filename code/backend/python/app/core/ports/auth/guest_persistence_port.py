@@ -7,8 +7,9 @@ class GuestPersistencePort(ABC):
         pass
 
     @abstractmethod
-    def find_guest_by_cookie_token(self, guest_cookie_token: str) -> Optional[Dict[str, Any]]:
-        pass
+    def find_guest_by_cookie_token(self, guest_cookie_token_hash: str,
+                                   legacy_clear: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """v1.2.0 by hash, else by the legacy clear value (rewritten as hash)."""
 
     @abstractmethod
     def store_refresh_token(self, user_id: int, refresh_token: str, expires_at: str) -> None:

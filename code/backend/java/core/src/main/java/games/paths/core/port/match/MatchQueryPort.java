@@ -20,6 +20,12 @@ public interface MatchQueryPort {
     List<MatchSummary> listUserMatches(String userUuid);
 
     /**
+     * v1.7.0 step 9 - one page of the user's matches: active first, then last played (in memory);
+     * {@code cursor} is the position returned as nextCursor by the previous page.
+     */
+    MatchSummaryPage listUserMatchesPage(String userUuid, Integer limit, String cursor);
+
+    /**
      * Returns every match in the platform, newest first. Admin-only view
      * exposed at GET /api/admin/matches.
      */

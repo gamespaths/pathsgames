@@ -167,6 +167,47 @@ class MatchQueryServiceTest {
             assertEquals("story-uuid", result.get(0).getStoryUuid());
             assertEquals("diff-uuid", result.get(0).getDifficultyUuid());
         }
+
+        @Test
+        @DisplayName("v1.7.0 step 9 - tsUpdate is ISO-8601 UTC and moves with a write")
+        void tsUpdateIsIso() {
+            GamingMatchEntity m = match(1L, "m1", 7L, 2L, 3L);
+            m.setTsUpdate("2026-10-22 10:00:00");
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
+            when(matchReadPort.findMatchesByUserId(7L)).thenReturn(List.of(m));
+
+            assertEquals("2026-10-22T10:00:00Z", service.listUserMatches("u").get(0).getTsUpdate());
+            m.setTsUpdate("2026-10-22T10:05:00.123456Z");
+            MatchSummary after = service.listUserMatches("u").get(0);
+            assertEquals("2026-10-22T10:05:00.123456Z", after.getTsUpdate());
+            assertEquals("2026-10-22T10:05:00.123456Z", after.getMatchVersion());
+        }
+
+        @Test
+        @DisplayName("v1.7.0 step 9 - the page puts active matches first, then the last played")
+        void pageSortsActiveFirst() {
+            GamingMatchEntity ended = match(1L, "ended", 7L, 2L, 3L);
+            ended.setStatus("ENDED");
+            ended.setTsUpdate("2026-10-22T12:00:00Z");
+            GamingMatchEntity old = match(2L, "old", 7L, 2L, 3L);
+            old.setTsUpdate("2026-10-01T00:00:00Z");
+            GamingMatchEntity paused = match(3L, "paused", 7L, 2L, 3L);
+            paused.setStatus("PAUSED");
+            paused.setTsUpdate("2026-10-20T00:00:00Z");
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
+            when(matchReadPort.findMatchesByUserId(7L)).thenReturn(List.of(ended, old, paused));
+
+            var page = service.listUserMatchesPage("u", null, null);
+            assertEquals(List.of("paused", "old", "ended"),
+                    page.items().stream().map(MatchSummary::getUuid).toList());
+            assertNull(page.nextCursor());
+            assertEquals(50, page.limit());
+            var first = service.listUserMatchesPage("u", 2, null);
+            assertEquals("2", first.nextCursor());
+            assertEquals(List.of("ended"),
+                    service.listUserMatchesPage("u", 2, first.nextCursor()).items().stream()
+                            .map(MatchSummary::getUuid).toList());
+        }
     }
 
     @Nested

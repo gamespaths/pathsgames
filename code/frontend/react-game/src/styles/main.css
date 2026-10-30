@@ -198,7 +198,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem 2rem;
-  height: 56px;
+  /*height: 56px;*/
   background: var(--navbar-bg);
   border-bottom: 2px solid var(--color-gold-dark);
   box-shadow: 0 2px 12px rgba(0,0,0,0.5);
@@ -324,7 +324,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
+  background: rgba(200, 150, 10, 0.25);
   border: 1px solid var(--color-gold-dark);
   color: var(--color-gold-light);
   border-radius: 20px;
@@ -339,6 +339,38 @@ html, body {
 .nav-user-btn i{
   font-size: 1.25rem;
 }
+
+/* v1.2.0 — Google sign-in: profile picture in the header, the sign-in panel of the user's book */
+.nav-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-gold-dark);
+}
+.nav-user-btn--google { padding: 2px 12px; }
+/* hidden for now: the sign-in lives in the user's book */
+.nav-signin-btn { display: none; padding: 5px 12px; border-radius: 20px; }
+.user-avatar {
+  display: inline-block; /* Tailwind preflight makes img a block: keep it on the name's line */
+  width: 1.2em;
+  height: 1.2em;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-gold-dark);
+  vertical-align: middle;
+  margin-right: 0.4em;
+}
+.user-account-panel { margin: 12px 0; text-align: center; }
+.user-account-panel .lang-btn { margin-left: 0; font-style: normal; font-size: 1.15rem; padding: 0.45rem 1.2rem; }
+.user-account-panel__error { color: var(--color-gold-dark); font-size: 2.5rem; }
+.user-account-panel__nick { opacity: 0.8; }
+.user-account-panel__who { margin-top : 2rem; }
+.user-account-panel__invite{ margin-bottom: 2rem; }
+.user-account-panel__policy{ color: var(--color-gold-dark); }
+.google-signin { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.google-signin__slot { min-height: 40px; }
+.google-signin__status { font-size: 0.85rem; margin: 0; }
 
 /* Guest toast notification */
 .navbar-toast {
@@ -1181,9 +1213,9 @@ html, body {
   text-decoration-color: var(--color-gold);
 }
 /* Step 40 — a link that opens another book (the Devlog intro → credits) reads like the `a` above. */
-.book-page-desc button {
+.book-page-desc button:not(.lang-btn) {
   font: inherit;
-  color: var(--color-gold);
+  color: var(--color-gold-dark);
   background: none;
   border: 0;
   padding: 0;
@@ -1191,7 +1223,10 @@ html, body {
   text-decoration: underline;
   text-decoration-color: rgba(232,184,48,0.35);
 }
-.book-page-desc button:hover { color: var(--color-gold-light); text-decoration-color: var(--color-gold); }
+.book-page-desc button:not(.lang-btn):hover { 
+  color: var(--color-gold); 
+  text-decoration-color: var(--color-gold); 
+}
 /* Step 40 — the Devlog intro: its own <br /> pairs make the empty lines, so no extra margin. */
 .roadmap-intro { margin: 0; }
 /* Step 40 — the credits cards: `.story-card-status` pins the badges on the picture and
@@ -1850,6 +1885,8 @@ html, body {
 .pg-card--phase-inProgress .gc-placeholder,
 .pg-card--phase-inProgress .gc-footer__cards-buttons { color: var(--color-gold-shine); opacity: 1; }
 .pg-card--phase-failed { border-color: #e74c3c !important; }
+/* v1.2.0 — the login card of a Google user: green "Logged" check */
+.pg-card--logged .gc-footer__cards-buttons { color: #2ecc71; opacity: 1; }
 .pg-card--phase-failed .gc-placeholder,
 .pg-card--phase-failed .gc-footer__cards-buttons { color: #e74c3c; }
 
@@ -2348,6 +2385,44 @@ html, body {
   padding: 16px 20px;
 }
 
+/* v1.7.0 step 12 — the match changed on another device: dismissible banner with a link to the log */
+.pg-update-banner {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1070; /* v1.8.0 above .book-overlay (1050) and .error-card-overlay (1060) */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 12px 8px 18px;
+  border: 1px solid #c9a227;
+  border-radius: 6px;
+  background: rgba(20, 10, 2, 0.92);
+  color: #f3e6c4;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+.pg-update-banner-link,
+.pg-update-banner-close {
+  border: none;
+  background: none;
+  color: #e8c766;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pg-update-banner-link {
+  text-decoration: underline;
+}
+
+.pg-update-banner-close {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .game-book-wrapper {
   position: relative;
   display: flex;
@@ -2661,7 +2736,7 @@ html, body {
 /* ═══════════════════════════════════════════
    MOBILE — StartBook vertical layout
    ═══════════════════════════════════════════ */
-/* mobile layout classes and @media (max-width: 767px) → see mobile.css */
+/* mobile layout classes and the mobile @media (≤767px, or ≤991px landscape up to 500px high) → see mobile.css */
 
 /* ═══════════════════════════════════════════
    ANIMATIONS
@@ -2774,7 +2849,7 @@ html, body {
   margin-top: 8px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .start-match-wrapper {
     flex-direction: column;
     height: auto;
@@ -2859,6 +2934,7 @@ html, body {
   color: var(--color-gold-super-deep);
   font-size: 2rem;
   font-style: italic;
+  margin-top: 2rem;
 }
 
 /* MatchCard overlays */
@@ -3065,6 +3141,18 @@ html, body {
   z-index: 3;
 }
 
+/* v1.4.0 — the Google picture of the player in the marker and in the legend */
+.game-map-avatar {
+  display: block;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.game-map-avatar--legend {
+  width: 16px; height: 16px;
+  border: 1px solid var(--color-gold-deep);
+}
+
 /* zoom / center controls over the map */
 .game-map-ctrl {
   position: absolute;
@@ -3119,7 +3207,7 @@ html, body {
    collapses the flex:1 map canvas (its children are absolutely positioned) to
    zero — the map was invisible. Pin an explicit height so it shows and stays
    pannable (drag + the +/−/◎ buttons; no wheel on touch). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .book-mobile-layout .game-map-page { height: auto; }
   .book-mobile-layout .game-map-canvas {
     flex: none;
@@ -3334,9 +3422,10 @@ html, body {
 .policy-book-text {
   font-size: 0.95rem;
   font-style: normal;
-  line-height: 1.6;
-  color: var(--color-brown-deep);
+  /*line-height: 1.6;*/
+  /*color: var(--color-brown-deep);*/
 }
+.policy-book-text .gold-light { color: var(--color-gold-dark); font-weight: 600; font-size: 2rem; }
 .policy-book-text h6 { color: var(--color-gold-deep); font-weight: 700; margin-top: 1rem; }
 .policy-book-text .policy-book-updated { font-style: italic; font-size: 0.8rem; margin-top: 1rem; }
 
@@ -3413,7 +3502,7 @@ html, body {
 .env-badge__icon { font-size: 0.75em; }
 .env-badge__short { display: none; }
 /* Step 42 — mobile: "Local version" → "Local" (the word "version" goes). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .env-badge__full { display: none; }
   .env-badge__short { display: inline; }
 }
@@ -3431,3 +3520,59 @@ html, body {
 .registry-lock-info { display: contents; }
 .registry-lock-info-btn { color: var(--color-brown-light); font-size: 0.8em; line-height: inherit; vertical-align: baseline; }
 .registry-lock-info-text { font: inherit; color: inherit; }
+
+/* v1.8.0 — the logout menu of the user's book (this device, all devices, account deletion) */
+.user-profile__actions, .user-profile__confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 0.5rem; }
+.user-profile__actions { justify-content: center; }
+.user-profile__actions .user-profile__sessions { text-align: center; }
+.user-profile__actions .lang-btn, .user-profile__confirm .lang-btn { margin-left: 0; }
+.user-profile__confirm p { flex-basis: 100%; margin: 0; }
+.user-profile__sessions { flex-basis: 100%; margin: 0; }
+.user-profile__danger { border-color: #8b2e1f; }
+
+/* v1.8.0 — the Google button on the guest login page */
+.book-page-extra .google-signin { margin: 0.3rem 0; }
+
+/* v1.7.0 step 9 — match list: muted cancelled/banned cards, highlight once, toggle */
+.match-card-extra { padding: 0 0.4rem; }
+.match-card-cancelled-note {
+  margin: 0.15rem 0;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  color: var(--color-gold-super-deep);
+}
+.book-page-extra:has(.match-card-cancelled-note){
+  background: var(--book-page-background) !important;
+  overflow: hidden;
+}
+.match-card-cancelled-note { font-style: italic; }
+.pg-card--match-highlight { box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 14px var(--color-gold-deep); }
+.story-card-status--cancelled { opacity: 0.85; }
+.start-match-account-hint {
+  margin: 0.025rem 0;
+  padding: 0 0.025rem;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  /*font-style: italic;*/
+  color: var(--color-gold-super-deep);
+  height:100%;
+}
+.book-page-extra:has(.start-match-account-hint){
+  background: var(--book-page-background) !important;
+  overflow: hidden;
+}
+/* v1.8.0 — guest login card: no artwork, the hint fills the card and its text follows the card width */
+.pg-card--login-guest { container-type: inline-size; }
+.pg-card--login-guest .gc-placeholder { display: none; }
+.pg-card--login-guest .book-page-extra {
+  flex: 1 1 auto;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pg-card--login-guest .start-match-account-hint {
+  height: auto;
+  text-align: center;
+  font-size: clamp(0.85rem, 11cqi, 1.7rem);
+}

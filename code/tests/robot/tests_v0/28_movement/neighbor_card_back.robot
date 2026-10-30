@@ -65,7 +65,7 @@ Admin-Set Neighbor idCardBack Is Reflected As A Distinct cardBack In Match Info
     # Wire forward + return cards through the admin API (partial update).
     &{patch}=    Create Dictionary    idCard=${id_a}    idCardBack=${id_b}
     ${resp}=    PUT On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}
+    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    200
 
     # Play through to a running match and read the enriched match-info.
@@ -96,7 +96,7 @@ Suite Setup Neighbor Card Back
     Set Suite Variable    ${CHARACTER_UUID}    ${character}
     Set Suite Variable    ${CLASS_UUID}        ${class}
     Set Suite Variable    ${TRAIT_UUID}        ${trait}
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
 
@@ -171,4 +171,4 @@ Restore Neighbor Cards
     IF    '${NB_UUID}' == '${EMPTY}'    RETURN
     &{patch}=    Create Dictionary    idCard=${NB_ORIG_CARD}    idCardBack=${NB_ORIG_BACK}
     PUT On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}    expected_status=any
+    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}

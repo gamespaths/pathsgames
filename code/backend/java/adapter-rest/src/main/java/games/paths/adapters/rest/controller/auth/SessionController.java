@@ -4,6 +4,11 @@ import games.paths.adapters.rest.cookie.CookieHelper;
 import games.paths.adapters.rest.dto.RefreshTokenResponse;
 import games.paths.core.model.auth.RefreshedSession;
 import games.paths.core.service.security.CsrfTokenService;
+import games.paths.core.model.auth.AuthException;
+import games.paths.core.model.auth.UserPreferences;
+import games.paths.core.model.auth.UserProfile;
+import games.paths.core.model.auth.UserStats;
+import games.paths.core.port.auth.AccountPort;
 import games.paths.core.port.auth.SessionPort;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * SessionController - REST adapter for session and token management.
@@ -30,6 +36,7 @@ import java.util.Map;
  *   <li>POST /api/auth/logout      → revoke the refresh token (cookie) and delete cookies</li>
  *   <li>POST /api/auth/logout/all  → revoke all sessions for the authenticated user</li>
  *   <li>GET  /api/auth/me          → get current user info from valid access token</li>
+ *   <li>PATCH /api/auth/me         → v1.7.0 change language / theme (CSRF header, not for guests)</li>
  * </ul>
  */
 @RestController
@@ -38,16 +45,22 @@ public class SessionController {
 
     private final SessionPort sessionPort;
     private final CsrfTokenService csrfTokenService;
+    private final AccountPort accountPort;
 
     public SessionController(SessionPort sessionPort) {
-        this(sessionPort, null);
+        this(sessionPort, null, null);
     }
 
-    /** v0.37.7 — a refreshed access token comes with the CSRF token that goes with it. */
-    @org.springframework.beans.factory.annotation.Autowired
     public SessionController(SessionPort sessionPort, CsrfTokenService csrfTokenService) {
+        this(sessionPort, csrfTokenService, null);
+    }
+
+    /** v0.37.7 the CSRF token of a refreshed access token; v1.2.0 the profile and the account deletion. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public SessionController(SessionPort sessionPort, CsrfTokenService csrfTokenService, AccountPort accountPort) {
         this.sessionPort = sessionPort;
         this.csrfTokenService = csrfTokenService;
+        this.accountPort = accountPort;
     }
 
     /**
@@ -69,7 +82,14 @@ public class SessionController {
                     "refreshToken cookie is required");
         }
 
-        RefreshedSession session = sessionPort.refreshToken(refreshToken);
+        RefreshedSession session;
+        try {
+            session = sessionPort.refreshToken(refreshToken);
+        } catch (AuthException e) {
+            // v1.2.0 SESSION_REVOKED (closed from another device) or a disabled / deleting account
+            CookieHelper.deleteRefreshTokenCookie(httpResponse);
+            return AuthErrors.of(e);
+        }
 
         if (session == null) {
             // Token is invalid/expired — delete the stale cookie
@@ -179,19 +199,125 @@ public class SessionController {
                     "Valid access token required");
         }
 
+        return ResponseEntity.ok(meBody(userUuid, httpRequest));
+    }
+
+    /** The body of GET and PATCH /api/auth/me: profile, v1.7.0 preferences and statistics, CSRF token. */
+    private Map<String, Object> meBody(String userUuid, HttpServletRequest httpRequest) {
         Map<String, Object> userInfo = new LinkedHashMap<>();
-        userInfo.put("userUuid", userUuid);
-        userInfo.put("username", httpRequest.getAttribute("username"));
-        userInfo.put("role", httpRequest.getAttribute("role"));
+        Optional<UserProfile> profile = accountPort == null ? Optional.empty() : accountPort.profile(userUuid);
+        if (profile.isPresent()) {
+            // v1.2.0 nickname, displayName, pictureUrl and the account type, read from the DB
+            userInfo.putAll(GoogleAuthController.profileBody(profile.get()));
+        } else {
+            userInfo.put("userUuid", userUuid);
+            userInfo.put("username", httpRequest.getAttribute("username"));
+            userInfo.put("role", httpRequest.getAttribute("role"));
+        }
         // v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
         if (csrfTokenService != null) {
-            String header = httpRequest.getHeader("Authorization");
-            String bearer = header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
-            userInfo.put("csrfToken", csrfTokenService.tokenFor(bearer));
+            userInfo.put("csrfToken", csrfTokenService.tokenFor(bearerOf(httpRequest)));
+        }
+        // v1.7.0 the sessions used in the last 30 days, shown next to "Log out of all devices"
+        userInfo.put("activeSessions", sessionPort.activeSessions(userUuid));
+        if (accountPort != null) {
+            accountPort.preferences(userUuid).ifPresent(p -> userInfo.put("preferences", preferencesBody(p)));
+            UserStats stats = accountPort.stats(userUuid);
+            userInfo.put("stats", statsBody(stats == null ? UserStats.EMPTY : stats));
         }
         userInfo.put("timestamp", System.currentTimeMillis());
+        return userInfo;
+    }
 
-        return ResponseEntity.ok(userInfo);
+    /**
+     * PATCH /api/auth/me - v1.7.0 {language?, highContrast?, theme?}: the X-CSRF-TOKEN header like match
+     * creation, guests refused (403 GOOGLE_ACCOUNT_REQUIRED), values checked against the supported lists.
+     */
+    @PatchMapping("/me")
+    public ResponseEntity<Object> updateCurrentUser(@RequestBody(required = false) Map<String, Object> body,
+                                                    HttpServletRequest httpRequest) {
+        String userUuid = (String) httpRequest.getAttribute("userUuid");
+        if (userUuid == null || userUuid.isBlank() || accountPort == null) {
+            return errorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Valid access token required");
+        }
+        if (csrfTokenService != null && csrfTokenService.isEnforced()) {
+            String presented = httpRequest.getHeader(CsrfTokenService.HEADER);
+            if (presented == null || presented.isBlank()) {
+                return errorResponse(HttpStatus.FORBIDDEN, "CSRF_TOKEN_MISSING",
+                        CsrfTokenService.HEADER + " header is required to change the profile");
+            }
+            if (!csrfTokenService.matches(bearerOf(httpRequest), presented)) {
+                return errorResponse(HttpStatus.FORBIDDEN, "CSRF_TOKEN_INVALID",
+                        CsrfTokenService.HEADER + " does not match the access token");
+            }
+        }
+        Map<String, Object> b = body == null ? Map.of() : body;
+        Object language = b.get("language");
+        Object highContrast = b.get("highContrast");
+        Object theme = b.get("theme");
+        if ((language != null && !(language instanceof String)) || (theme != null && !(theme instanceof String))
+                || (highContrast != null && !(highContrast instanceof Boolean))) {
+            return errorResponse(HttpStatus.BAD_REQUEST, "INVALID_REQUEST",
+                    "language and theme must be strings, highContrast a boolean");
+        }
+        String chosenTheme = theme != null ? (String) theme : highContrast == null ? null
+                : Boolean.TRUE.equals(highContrast) ? UserPreferences.THEME_HIGH_CONTRAST : UserPreferences.THEME_DEFAULT;
+        try {
+            accountPort.updatePreferences(userUuid, (String) language, chosenTheme);
+        } catch (AuthException e) {
+            return AuthErrors.of(e);
+        }
+        return ResponseEntity.ok(meBody(userUuid, httpRequest));
+    }
+
+    static Map<String, Object> preferencesBody(UserPreferences p) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("language", p.language());
+        out.put("theme", p.theme());
+        out.put("highContrast", p.highContrast());
+        return out;
+    }
+
+    static Map<String, Object> statsBody(UserStats s) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("matchesPlayed", s.matchesPlayed());
+        out.put("matchesCompleted", s.matchesCompleted());
+        out.put("matchesGameOver", s.matchesGameOver());
+        out.put("playTimeMs", s.playTimeMs());
+        out.put("clocksPlayed", s.clocksPlayed());
+        return out;
+    }
+
+    private static String bearerOf(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        return header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
+    }
+
+    /**
+     * DELETE /api/auth/me - v1.2.0 account deletion: needs a Google ID token issued less than 5 minutes
+     * ago ({idToken, nonce}); the user goes to state 7 (deleting), a job removes it. 202 Accepted.
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Object> deleteCurrentUser(@RequestBody(required = false) Map<String, Object> body,
+                                                    HttpServletRequest httpRequest,
+                                                    HttpServletResponse httpResponse) {
+        String userUuid = (String) httpRequest.getAttribute("userUuid");
+        if (userUuid == null || userUuid.isBlank() || accountPort == null) {
+            return errorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Valid access token required");
+        }
+        Map<String, Object> b = body == null ? Map.of() : body;
+        try {
+            accountPort.requestDeletion(userUuid, b.get("idToken") instanceof String t ? t : null,
+                    b.get("nonce") instanceof String n ? n : null);
+        } catch (AuthException e) {
+            return AuthErrors.of(e);
+        }
+        CookieHelper.deleteAllAuthCookies(httpResponse);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", "DELETING");
+        result.put("message", "The account and its data are being deleted");
+        result.put("timestamp", System.currentTimeMillis());
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(result);
     }
 
     // === Helper ===

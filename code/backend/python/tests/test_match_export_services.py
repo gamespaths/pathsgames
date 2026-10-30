@@ -134,6 +134,8 @@ def im():
     store.user_by_uuid.return_value = None
     store.username_taken.return_value = False
     store.user_by_email.return_value = None
+    store.identity_by_email.return_value = None
+    store.nickname_taken.return_value = False
     store.match_exists.return_value = False
     store.match_of_character.return_value = None
     store.active_matches_of.return_value = []
@@ -384,3 +386,19 @@ def test_admin_routes():
     service.export_match.side_effect = MatchExportError("MATCH_NOT_FOUND", "no")
     missing = client.post("/api/admin/matches/x/export")
     assert missing.status_code == 404 and "errors" not in missing.json()
+
+
+def test_v170_a_stopped_match_keeps_its_status_and_the_play_time_travels(im):
+    for status in ("CANCELLED", "BANNED"):
+        doc = document()
+        doc["match"]["status"], doc["match"]["playMs"] = status, 42000
+        with_checksum(doc)
+        assert im.check({"export": doc})["valid"] is True
+        im.store.story_id_by_uuid.side_effect = None
+        im.store.story_id_by_uuid.return_value = 9
+        im.story_export.export_story.return_value = doc["story"]["data"]
+        im.time_service.reset_mock()
+        result = im.import_match({"export": doc, "startPaused": True})
+        assert result["matchStatus"] == status
+        im.time_service.start_time_after_restore.assert_not_called()
+        assert im.store.insert_imported.call_args[0][0].match["play_ms"] == 42000

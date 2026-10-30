@@ -7,6 +7,10 @@ seed stories that mirror the data defined in:
 
 POST /api/dev/seed
 
+v1.2.0 — the same function serves the other test-only endpoints: POST /api/dev/cleanup,
+POST /api/dev/admin-token, POST /api/dev/google-token and POST /api/dev/jobs/account-deletion;
+v1.10.0 POST /api/dev/users/{uuid}/expire-suspension.
+
 Returns 403 if ENV != 'dev' so this endpoint is harmless in production deployments.
 
 Fixed deterministic UUIDs — stable across re-runs:
@@ -30,12 +34,17 @@ Access tokens (use in Authorization: Bearer <token> header):
 
 import json
 import os
+import re
 import time
 
 from common import db_utils
+from common import google_verifier
 from common import log_utils
+from common import match_summary
 from common import jwt_utils
+from common import sso
 from common import story_cache
+from common import user_admin
 from common import story_index
 from common import test_data_ttl
 from common.response import HEADERS, finalize as _finalize
@@ -53,10 +62,8 @@ log_utils.quiet_botocore()
 # runs — see POST /api/dev/cleanup below.
 ROBOT_TEST_MARKER = test_data_ttl.ROBOT_TEST_MARKER
 
-# BCrypt hash is loaded from the environment variable SEED_BCRYPT_HASH
-# (set via CloudFormation parameter SeedBcryptHash with NoEcho:true)
-# Never hardcode password hashes in source code.
-BCRYPT_HASH = os.environ.get("SEED_BCRYPT_HASH", "")
+# v1.2.0 — no passwords: SEED_BCRYPT_HASH (SAM parameter SeedBcryptHash) is no longer written.
+DEFAULT_ADMIN_NICKNAME = "robot_admin"
 
 # Seed users — mirrors R__insert_dev_test_data.sql exactly
 SEED_USERS = [
@@ -1565,7 +1572,7 @@ def _handle_cleanup():
     # v0.37.5 — every match METADATA row is on GSI2 (PK=MATCH, ``name`` projected): one
     # Query instead of a Scan of every row of every partition. Matches are deleted whole,
     # so a partition without its METADATA row cannot arise any more (orphanMatches = 0).
-    robot_match_pks = [row["PK"] for row in db_utils.query_gsi("GSI2", "MATCH")
+    robot_match_pks = [row["PK"] for row in map(match_summary.flatten, db_utils.query_gsi("GSI2", "MATCH"))
                        if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER)
                        and not _expires_on_its_own(row["PK"])]
 
@@ -1578,6 +1585,12 @@ def _handle_cleanup():
     # is already gone. Counted, never deleted — this endpoint runs unattended after every
     # test run, and deleting what it cannot identify is not a thing to do unattended.
     orphan_matches = 0  # kept in the response for the callers that read it
+
+    # v1.2.0 — the Google users of the fake provider, with their matches, identities and sessions
+    deleted_users = 0
+    for row in _robot_google_users():
+        sso.delete_user_fully(row.get("uuid") or str(row["PK"])[len("USER#"):])
+        deleted_users += 1
 
     # Remove the seed stories (cascading delete of every item under STORY#{uuid}).
     deleted_stories = 0
@@ -1592,11 +1605,57 @@ def _handle_cleanup():
         "body": json.dumps({
             "deletedGuests":  deleted_guests,
             "deletedMatches": deleted_matches,
+            "deletedUsers":   deleted_users,
             "deletedStories": deleted_stories,
             # Left behind on purpose; see above.
             "orphanMatches":  orphan_matches,
         })
     }
+
+
+# ─── v1.2.0: Robot's admin, fake Google tokens ──────────────────────────────
+
+def _respond(status, body):
+    return {"statusCode": status, "headers": HEADERS, "body": json.dumps(body)}
+
+
+def _json_body(event):
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except (ValueError, TypeError):
+        return {}
+    return body if isinstance(body, dict) else {}
+
+
+def _handle_admin_token(event):
+    """POST /api/dev/admin-token {nickname?} — a real admin user and its token (same code as the
+    manual admin bootstrap Lambda), so Robot's admin passes the DB role check."""
+    nickname = _json_body(event).get("nickname")
+    try:
+        admin = sso.create_admin(nickname if isinstance(nickname, str) and nickname.strip()
+                                 else DEFAULT_ADMIN_NICKNAME)
+    except sso.AuthError as e:
+        return _respond(e.status, {"error": e.code, "message": e.message})
+    return _respond(201, admin)
+
+
+# v1.10.0 the end of a suspension now (Robot auto-unblock)
+_EXPIRE_SUSPENSION = re.compile(r"/api/dev/users/([^/]+)/expire-suspension$")
+
+
+def _handle_expire_suspension(user_uuid):
+    try:
+        result = user_admin.expire_suspension(user_uuid)
+    except user_admin.UserAdminError as e:
+        return _respond(e.status, {"error": e.code, "message": e.message})
+    return _respond(200, {"userUuid": result["uuid"], "state": result["state"],
+                          "suspendedUntil": result["suspendedUntil"]})
+
+
+def _robot_google_users():
+    """The Google users of the fake provider: nickname starting with the robottest marker."""
+    return [row for row in db_utils.query_gsi("GSI2", sso.GOOGLE_USER_LIST) or []
+            if str((row.get("summary") or {}).get("nickname") or "").startswith(ROBOT_TEST_MARKER)]
 
 
 # ─── handler ─────────────────────────────────────────────────────────────────
@@ -1621,11 +1680,20 @@ def _route(event, context):
             })
         }
 
-    # This function serves both dev-only endpoints: /api/dev/seed (default)
-    # and /api/dev/cleanup.
-    raw_path = event.get("rawPath") or event.get("path") or ""
-    if raw_path.rstrip("/").endswith("/api/dev/cleanup"):
+    # This function serves every dev-only endpoint: /api/dev/seed (default), /api/dev/cleanup and
+    # (v1.2.0) the admin token, the fake Google token and the account deletion job.
+    raw_path = (event.get("rawPath") or event.get("path") or "").rstrip("/")
+    if raw_path.endswith("/api/dev/cleanup"):
         return _handle_cleanup()
+    if raw_path.endswith("/api/dev/admin-token"):
+        return _handle_admin_token(event)
+    if raw_path.endswith("/api/dev/google-token"):
+        return _respond(200, {"idToken": google_verifier.mint_fake(_json_body(event))})
+    if raw_path.endswith("/api/dev/jobs/account-deletion"):
+        return _respond(200, {"deletedUsers": sso.run_deletion_job()})
+    expiring = _EXPIRE_SUSPENSION.search(raw_path)
+    if expiring:
+        return _handle_expire_suspension(expiring.group(1))
 
     now = int(time.time() * 1000)
     inserted = []
@@ -1641,7 +1709,6 @@ def _route(event, context):
             "uuid":          uid,
             "username":      u["username"],
             "email":         u["email"],
-            "password_hash": BCRYPT_HASH,
             "role":          u["role"],
             "state":         u["state"],
             "nickname":      u["nickname"],
@@ -1650,7 +1717,11 @@ def _route(event, context):
             "ts_registration": now,
             "ts_last_access":  now,
         }
+        # v1.7.0 step 10 — the admin users list keys (USERSTATE#, GOOGLE_USER_LIST) and the summary
+        item.update(sso.index_keys(item))
         db_utils.put_item(item)
+        # v1.2.0 — the EMAIL# pointer of the email lookups (owner move, import mapping)
+        db_utils.put_item({"PK": f"EMAIL#{u['email'].lower()}", "SK": "METADATA", "user_uuid": uid})
         if jwt_utils.ALLOW_MOCK_ACCESS:
             access_token = f"MOCK_ACCESS_{uid}"
         else:

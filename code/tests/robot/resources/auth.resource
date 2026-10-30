@@ -25,7 +25,7 @@ Create Guest Session And Get Token
     ...                Also stores the full response object in the test variable
     ...                \${GUEST_RESPONSE} for further assertions.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Dictionary Should Contain Key    ${body}    accessToken
@@ -42,7 +42,7 @@ New Guest Token
     ...                Needed wherever a suite creates more than one match on the same
     ...                story: one user may own only one active match per story
     ...                (409 ACTIVE_MATCH_ALREADY_EXISTS).
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Remember Csrf Token    ${response.json()}[accessToken]    ${response.json().get('csrfToken', '')}
     RETURN    ${response.json()}[accessToken]
@@ -112,7 +112,7 @@ Call Logout
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    public_session    /api/auth/logout
     ...    headers=${headers}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Refresh Session
@@ -120,5 +120,5 @@ Refresh Session
     ...                pathsgames.refreshToken cookie is sent automatically by the session
     ...                cookie jar. Returns the response (any status).
     [Arguments]    ${session}=public_session
-    ${response}=    POST On Session    ${session}    /api/auth/refresh    expected_status=any
+    ${response}=    POST On Session    ${session}    /api/auth/refresh    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}

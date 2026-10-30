@@ -3,6 +3,9 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { GuestUserProvider, useGuestUser } from '@/features/guest-user/GuestUserContext'
 import * as authApi from '../api/auth'
 
+// v1.2.0 — the Google switch of /api/echo/status: off, so no test reaches the network
+vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn().mockResolvedValue({ googleEnabled: false }) }))
+
 vi.mock('../context/ServerContext', () => {
   let current = 'http://api.test'
   return {
@@ -42,6 +45,8 @@ describe('GuestUserContext', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
     await setServer('http://api.test')
+    // v1.2.0 — the boot refresh: no refresh cookie in these suites
+    vi.spyOn(authApi, 'refreshSession').mockRejectedValue(new Error('no refresh cookie'))
     // Default happy-path so mounting populates a guest unless a test overrides.
     vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({
       userUuid: 'resumed-uuid', username: 'guest_resumed',
@@ -148,6 +153,8 @@ describe('GuestUserContext — the shapes the auth API can answer with', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
     await setServer('http://api.test')
+    // v1.2.0 — the boot refresh: no refresh cookie in these suites
+    vi.spyOn(authApi, 'refreshSession').mockRejectedValue(new Error('no refresh cookie'))
   })
 
   it('a resume that answers nothing falls through to creating a guest', async () => {

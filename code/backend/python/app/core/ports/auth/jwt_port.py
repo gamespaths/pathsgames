@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 from app.core.models.auth.token_info import TokenInfo
 
 class JwtPort(ABC):
     @abstractmethod
-    def generate_access_token(self, user_uuid: str, username: str, role: str) -> str:
-        pass
+    def generate_access_token(self, user_uuid: str, username: str, role: str,
+                              lifetime_seconds: Optional[int] = None) -> str:
+        """v1.2.0 lifetime_seconds: the admin token of the bootstrap tool."""
 
     @abstractmethod
     def generate_refresh_token(self, user_uuid: str) -> str:

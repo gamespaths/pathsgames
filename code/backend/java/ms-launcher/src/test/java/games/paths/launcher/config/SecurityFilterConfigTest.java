@@ -35,7 +35,7 @@ class SecurityFilterConfigTest {
 
         FilterRegistrationBean<JwtAuthenticationFilter> bean =
                 config.jwtAuthenticationFilterRegistration(
-                        sessionPort,
+                        sessionPort, null,
                         "/api/echo/**,/api/auth/guest,/api/auth/refresh");
 
         assertNotNull(bean);
@@ -72,6 +72,17 @@ class SecurityFilterConfigTest {
 
         assertNotNull(bean.getFilter());
         assertEquals(-1, bean.getOrder());
+        assertTrue(bean.getUrlPatterns().contains("/*"));
+    }
+
+    @Test
+    @DisplayName("v1.7.0 - RequestStampFilter opens one match stamp per request, before every other filter")
+    void requestStampFilterRegistration_createsBean() {
+        FilterRegistrationBean<games.paths.launcher.filter.RequestStampFilter> bean =
+                new SecurityFilterConfig().requestStampFilterRegistration();
+
+        assertNotNull(bean.getFilter());
+        assertEquals(-2, bean.getOrder());
         assertTrue(bean.getUrlPatterns().contains("/*"));
     }
 }

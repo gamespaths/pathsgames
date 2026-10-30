@@ -3,6 +3,7 @@ Active only between ``begin()`` and ``flush()`` (the Lambda handler); write-thro
 import copy
 
 from common import db_utils
+from common import match_summary
 from common import test_data_ttl
 
 METADATA = 'METADATA'
@@ -13,6 +14,24 @@ _ACTIVE = False
 _ITEMS = {}   # (PK, SK) -> the live dict this request reads and mutates
 _LISTS = {}   # (PK, prefix) -> live roster / turn queue, in SK order
 _DIRTY = {}   # (PK, SK) -> snapshot taken at save time, written by flush
+_LOADED_TS = {}  # v1.7.0 PK -> ts_update of the METADATA as read at its first load
+_CLAIMED = {}  # v1.7.0 step 8 PK -> the version this request claimed
+
+
+class StaleMatch(Exception):
+    """v1.7.0 step 8 — the claim lost: another write changed the match since it was read (409)."""
+
+    def __init__(self, match_uuid, current_version):
+        super().__init__(f'stale match {match_uuid}')
+        self.match_uuid, self.current_version = match_uuid, current_version
+
+
+class WriteFailed(Exception):
+    """v1.7.0 step 8 — a write chunk after the claim kept failing: logged, answered 5xx."""
+
+    def __init__(self, match_uuid, cause):
+        super().__init__(f'write failed for match {match_uuid}: {cause}')
+        self.match_uuid, self.cause = match_uuid, cause
 
 
 def begin():
@@ -21,7 +40,11 @@ def begin():
     _ITEMS.clear()
     _LISTS.clear()
     _DIRTY.clear()
+    _LOADED_TS.clear()
+    _CLAIMED.clear()
     _ACTIVE = True
+    # v1.7.0 — one ts_update for every write of the request
+    db_utils.set_request_stamp(db_utils.stamp_ms())
 
 
 def active():
@@ -65,6 +88,8 @@ def _item(pk, sk, consistent):
     item = db_utils.get_item(pk, sk, consistent=consistent)
     if _ACTIVE and item is not None:
         _ITEMS[key] = item
+        if sk == METADATA:
+            _LOADED_TS.setdefault(pk, item.get('ts_update'))
     return item
 
 
@@ -96,7 +121,7 @@ def save(item):
     or write it at once outside a request."""
     _inherit_ttl(item)
     if not _ACTIVE:
-        return db_utils.put_item(item)
+        return db_utils.put_item(match_summary.with_summary(item))
     pk, sk = item.get('PK'), item.get('SK', METADATA)
     _DIRTY[(pk, sk)] = copy.deepcopy(item)
     _ITEMS[(pk, sk)] = item
@@ -132,14 +157,113 @@ def delete_partition(pk):
     return db_utils.delete_all_by_pk(pk)
 
 
-def flush():
-    """Write every queued row in one batch and leave the request. Safe to call twice."""
+def _int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def touch(match_uuid, cap_ms=None):
+    """v1.7.0 the stamp of a successful admin write: ts_update only, never checked (no play time)."""
+    if not match_uuid:
+        return False
+    pk = _pk(match_uuid)
+    if _ACTIVE and (pk, METADATA) in _DIRTY:
+        # the flush stamps it; v1.10.0 with a request stamp above the stored one, so an old If-Match never matches
+        previous = _int(_LOADED_TS.get(pk))
+        if previous is not None and db_utils.stamp_ms() <= previous:
+            db_utils.set_request_stamp(previous + 1)
+        return True
+    meta = _ITEMS.get((pk, METADATA)) or db_utils.get_item(pk, METADATA, consistent=True)
+    previous = _int((meta or {}).get('ts_update'))
+    stamp = db_utils.stamp_ms()
+    return db_utils.update_attributes(pk, METADATA, {
+        'ts_update': stamp if previous is None or stamp > previous else previous + 1})
+
+
+def loaded_version(match_uuid):
+    """v1.7.0 step 8 — the version (ts_update) of the match as read at request start, None if never read."""
+    value = _int(_LOADED_TS.get(_pk(match_uuid)))
+    return None if value is None else str(value)
+
+
+def claim(match_uuid, cap_ms, expected=None):
+    """v1.7.0 step 8 — the first write of a gameplay request: a conditional UpdateItem moves ts_update from the
+    value read at request start (or If-Match ``expected``) to the next one and adds the capped play time."""
+    pk = _pk(match_uuid)
+    if pk in _CLAIMED:
+        return str(_CLAIMED[pk])
+    meta = match(match_uuid)
+    if meta is None:
+        return None
+    old = _int(_LOADED_TS.get(pk, meta.get('ts_update')))
+    if expected is not None and expected != (None if old is None else str(old)):
+        raise StaleMatch(match_uuid, None if old is None else str(old))
+    stamp = db_utils.stamp_ms()
+    new = stamp if old is None or stamp > old else old + 1
+    delta = 0 if old is None else max(0, min(new - old, int(cap_ms)))
+    if not db_utils.claim_version(pk, old, new, delta):
+        current = db_utils.get_item(pk, METADATA, consistent=True)
+        raise StaleMatch(match_uuid, None if current is None else str(_int(current.get('ts_update'))))
+    db_utils.set_request_stamp(new)
+    meta['playMs'] = (_int(meta.get('playMs')) or 0) + delta
+    _CLAIMED[pk] = new
+    save(meta)
+    return str(new)
+
+
+def abandon():
+    """v1.7.0 step 8 — leave the request without writing anything (a stale answer)."""
     global _ACTIVE
-    items = list(_DIRTY.values())
     _DIRTY.clear()
     _ITEMS.clear()
     _LISTS.clear()
+    _LOADED_TS.clear()
+    _CLAIMED.clear()
     _ACTIVE = False
-    if not items:
-        return True
-    return db_utils.batch_put_items(items)
+    db_utils.set_request_stamp(None)
+
+
+def _stale_after_claim(claimed):
+    """v1.10.0 — the StaleMatch of a flush whose claimed version moved (an admin write after the claim)."""
+    for pk, version in claimed.items():
+        current = db_utils.get_item(pk, METADATA, consistent=True)
+        now = None if current is None else _int(current.get('ts_update'))
+        if now != version:
+            return StaleMatch(pk[len('MATCH#'):], None if now is None else str(now))
+    pk = next(iter(claimed))
+    return StaleMatch(pk[len('MATCH#'):], str(claimed[pk]))
+
+
+def flush():
+    """Write every queued row and leave the request. Safe to call twice.
+    v1.7.0 — every match METADATA gets its ``summary`` rebuilt, all rows the request stamp; after a claim
+    (step 8) the rows go in TransactWriteItems chunks, METADATA first and conditional on the claimed version."""
+    global _ACTIVE
+    items = [match_summary.with_summary(i) for i in _DIRTY.values()]
+    claimed = dict(_CLAIMED)
+    _DIRTY.clear()
+    _ITEMS.clear()
+    _LISTS.clear()
+    _LOADED_TS.clear()
+    _CLAIMED.clear()
+    _ACTIVE = False
+    try:
+        if not items:
+            return True
+        if not claimed:
+            return db_utils.batch_put_items(items)
+        items.sort(key=lambda i: (i.get('PK') not in claimed or i.get('SK', METADATA) != METADATA))
+        conditions = {(pk, METADATA): version for pk, version in claimed.items()}
+        try:
+            return db_utils.transact_put_items(items, conditions)
+        except db_utils.TransactConditionFailed as exc:
+            # v1.10.0 the conditional METADATA is in the first chunk: nothing landed, the request is stale
+            if exc.chunk != 0:
+                raise WriteFailed(','.join(pk[len('MATCH#'):] for pk in claimed), exc) from exc
+            raise _stale_after_claim(claimed) from exc
+        except db_utils.TransactWriteFailed as exc:
+            raise WriteFailed(','.join(pk[len('MATCH#'):] for pk in claimed), exc) from exc
+    finally:
+        db_utils.set_request_stamp(None)

@@ -110,7 +110,6 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 return 0
             new_clock = (m.current_clock or 0) + 1
             m.current_clock = new_clock
-            m.ts_update = _now_iso()
             session.commit()
             return new_clock
 

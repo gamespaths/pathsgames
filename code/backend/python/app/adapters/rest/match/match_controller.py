@@ -14,7 +14,7 @@ from app.core.models.match.match_models import (
 from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
 from app.core.services.security import csrf_token_service as _csrf
-from app.core.services.security import rate_limit_service as _rl
+from app.adapters.rest.query_limits import parse_limit
 
 
 _STATUS_BY_CODE = {
@@ -78,6 +78,8 @@ def _summary_to_camel(summary):
         "characterTemplateUuid": summary.character_template_uuid,
         "classUuid": summary.class_uuid,
         "traitUuids": summary.trait_uuids,
+        "matchVersion": summary.match_version,
+        "tsUpdate": summary.ts_update,
     }
 
 
@@ -234,6 +236,7 @@ def _registry_to_camel(groups):
 def _detail_to_camel(detail):
     return {
         "match": _summary_to_camel(detail.match),
+        "matchVersion": detail.match.match_version if detail.match else None,
         "currentLocationId": detail.current_location_id,
         "currentLocationUuid": detail.current_location_uuid,
         "locations": [
@@ -362,8 +365,8 @@ class MatchController:
                               f"{_csrf.HEADER} does not match the access token", 403)
         # Step 41 — at most match_per_ip new matches per source address and window
         if self.rate_limit_service is not None and self.match_per_ip > 0:
-            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
-                               request.client.host if request.client else None)
+            ip = self.rate_limit_service.client_ip_of(request.headers.get("X-Forwarded-For"),
+                                                      request.client.host if request.client else None)
             verdict = self.rate_limit_service.try_acquire("match", ip, self.match_per_ip)
             if not verdict.allowed:
                 return _rate_limited(verdict, "Too many matches created from this address")
@@ -395,12 +398,17 @@ class MatchController:
             return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 400))
         return JSONResponse(status_code=201, content=_summary_to_camel(summary))
 
-    def list_matches(self, request: Request):
+    def list_matches(self, request: Request, limit: Optional[str] = None, cursor: Optional[str] = None):
+        # v1.7.0 step 9 — the envelope {items, nextCursor, limit}: active first, then last played
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
-        results = self.query_port.list_user_matches(user_uuid)
-        return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
+        page = self.query_port.list_user_matches_page(user_uuid, parse_limit(limit), cursor)
+        return JSONResponse(status_code=200, content={
+            "items": [_summary_to_camel(s) for s in page.items],
+            "nextCursor": page.next_cursor,
+            "limit": page.limit,
+        })
 
     def get_match_info(self, uuid_match: str, request: Request, lang: str = "en"):
         user_uuid = getattr(request.state, "user_uuid", None)
@@ -443,7 +451,7 @@ class MatchController:
         return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
 
     def get_match_logs(self, uuid_match: str, request: Request, lang: str = "en",
-                       limit: Optional[int] = None, cursor: Optional[str] = None,
+                       limit: Optional[str] = None, cursor: Optional[str] = None,
                        order: Optional[str] = None):
         """GET /api/matches/{uuid_match}/logs — Step 28.7 consolidated log timeline.
         v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=.
@@ -455,7 +463,7 @@ class MatchController:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit,
+        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, parse_limit(limit),
                                                         cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)

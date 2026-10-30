@@ -60,7 +60,7 @@ ${LONG_TEXT_ID}    ${2}
 Initialize Import Integrity Suite
     [Documentation]    Opens the admin session and imports the fixture story. A leftover
     ...                from an aborted run is removed first, so the suite is re-runnable.
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
     Run Keyword And Ignore Error    Delete Admin Story    ${STORY_UUID}

@@ -132,7 +132,7 @@ Suite Setup Neighbor Edge Orientation
     ...                onto B — so /locations lists the edge from BOTH endpoints.
     Create Public Session
     Create Admin Session
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
 
@@ -225,7 +225,7 @@ Set Neighbor Edge Flag Back
     [Arguments]    ${value}
     &{patch}=    Create Dictionary    flagBack=${value}
     ${resp}=    PUT On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}
+    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    200
 
 Active Location
@@ -282,4 +282,4 @@ Restore Neighbor Edge Flag Back
     IF    '${NB_UUID}' == '${EMPTY}'    RETURN
     &{patch}=    Create Dictionary    flagBack=${NB_ORIG_FLAGBACK}
     PUT On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}    expected_status=any
+    ...    /api/admin/stories/${STORY_UUID}/location-neighbors/${NB_UUID}    json=${patch}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}

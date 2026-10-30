@@ -5,7 +5,7 @@ import Card from '../../components/layout/Card'
 import { selectedEntityForType } from './startBookOptions'
 
 /**
- * StartBookMobile — mobile (≤767px) variant of the start book.
+ * StartBookMobile — mobile (≤767px, or ≤991px landscape up to 500px high) variant of the start book.
  *
  * Reuses the desktop right-page flow components (ConfigView, with OptionPicker
  * for changing a card) so the loadout cards render as a responsive 2-column

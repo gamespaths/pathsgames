@@ -12,6 +12,15 @@ admin_ip_detect() {
     fi
 }
 
+# v1.8.0 — the public IPv4 Cloudflare sees (behind a VPN it may differ from the one AWS sees), or empty.
+admin_ip_detect_cloudflare() {
+    local ip
+    ip="$(curl -sf --max-time 5 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | sed -n 's/^ip=//p' | tr -d '[:space:]')"
+    if [[ "$ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+        printf '%s' "$ip"
+    fi
+}
+
 # Comma list $1 plus IP $2, blanks dropped and duplicates removed (order kept).
 admin_ip_merge() {
     local base="${1:-}" ip="${2:-}"
@@ -41,25 +50,33 @@ admin_ip_whitelist() {
 
 # v0.42.0 — REPLACES the admin allow-list of stack $1 (region $2) with IP $3: previous template, every other
 # parameter kept, waits for the update. $4 = true prints the command only. The authorizer compares bare IPs.
+# v1.8.0 — $3 may be a comma list of IPv4 (no spaces); every entry is checked.
 admin_ip_set_on_stack() {
-    local stack="$1" region="$2" ip="$3" dry_run="${4:-false}" key out
+    local stack="$1" region="$2" ip="$3" dry_run="${4:-false}" key out entry
     local params=()
-    if ! [[ "$ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
-        echo "Error: no valid public IPv4 (detected or --ip): '$ip'." >&2
+    if [ -z "$ip" ]; then
+        echo "Error: no valid public IPv4 (detected or --ip): ''." >&2
         return 1
     fi
-    echo "Stack $stack ($region): admin allow-list -> $ip/32 (replaces the previous list)."
+    for entry in ${ip//,/ }; do
+        if ! [[ "$entry" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+            echo "Error: no valid public IPv4 (detected or --ip): '$entry'." >&2
+            return 1
+        fi
+    done
+    echo "Stack $stack ($region): admin allow-list -> $ip (replaces the previous list)."
     if [ "$dry_run" = "true" ]; then
         echo "Dry run: aws cloudformation update-stack --stack-name $stack --use-previous-template" \
             "--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameters <every other key>,UsePreviousValue=true" \
-            "ParameterKey=AdminIpWhitelist,ParameterValue=$ip"
+            "ParameterKey=AdminIpWhitelist,ParameterValue=${ip//,/\\,}"
         return 0
     fi
     for key in $(aws cloudformation describe-stacks --region "$region" --stack-name "$stack" \
         --query 'Stacks[0].Parameters[].ParameterKey' --output text); do
         if [ "$key" != "AdminIpWhitelist" ]; then params+=("ParameterKey=$key,UsePreviousValue=true"); fi
     done
-    params+=("ParameterKey=AdminIpWhitelist,ParameterValue=$ip")
+    # the CLI shorthand splits on commas: the ones inside the list are escaped
+    params+=("ParameterKey=AdminIpWhitelist,ParameterValue=${ip//,/\\,}")
     out="$(aws cloudformation update-stack --region "$region" --stack-name "$stack" --use-previous-template \
         --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameters "${params[@]}" 2>&1)" || {
         if printf '%s' "$out" | grep -q "No updates are to be performed"; then
@@ -71,5 +88,5 @@ admin_ip_set_on_stack() {
     }
     echo "Waiting for stack-update-complete..."
     aws cloudformation wait stack-update-complete --region "$region" --stack-name "$stack"
-    echo "Admin API open for $ip/32 only (the authorizer has no cache: effective now)."
+        echo "Admin API open for $ip only (the authorizer has no cache: effective now)."
 }

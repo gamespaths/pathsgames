@@ -3,6 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: "Paths Games - daily smoke test of the stage (v1.1.0, V1 step 1): Lambda, schedule, two alarms on public stages"
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -48,6 +52,10 @@ Parameters:
   CsrfEnforced:
     Type: String
     Default: "true"
+  # v1.7.0 — the same play-time cap as the MatchFunction
+  PlayTimeCapSeconds:
+    Type: String
+    Default: "300"
   RobotTestDataTtlHours:
     Type: String
     Default: "0"
@@ -86,6 +94,7 @@ Parameters:
     Default: "42.42.42.42"
 
 Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
   IsSmokeEnabled: !Equals [!Ref SmokeTestEnabled, "true"]
   HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
   HasSmokeAlarms: !And
@@ -141,6 +150,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: SmokeTestLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-SmokeTestFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -180,6 +190,7 @@ Resources:
           RATE_LIMIT_MATCH_PER_GUEST: !Ref RateLimitMatchPerGuest
           RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS: !Ref RateLimitMatchPerGuestWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
+          PLAY_TIME_CAP_SECONDS: !Ref PlayTimeCapSeconds
           ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
           LOG_WARN_ROWS: "5000"
           LOG_WARN_METADATA_KB: "300"
@@ -208,6 +219,7 @@ Resources:
         DailySmokeTest:
           Type: ScheduleV2
           Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
             Name: !Sub "pathsgames-${Environment}-smoke-test-daily"
             GroupName: !Ref SmokeTestScheduleGroup
             ScheduleExpression: !Ref SmokeTestSchedule

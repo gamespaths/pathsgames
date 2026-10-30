@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
@@ -49,6 +50,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("InventoryService (Steps 34 & 35)")
 class InventoryServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private static final String MATCH = "match-uuid";
     private static final String USER = "user-uuid";
     private static final long MATCH_ID = 1L;
@@ -73,6 +77,7 @@ class InventoryServiceTest {
         storyReadPort = mock(StoryReadPort.class);
         effectEngine = mock(EventExecutionService.class);
         service = new InventoryService(store, userAccessPort, contentQueryPort, storyReadPort, effectEngine);
+        service.setMatchStamp(stamp);
 
         when(userAccessPort.findByUuid(USER))
                 .thenReturn(Optional.of(new UserAccessPort.UserView(USER_ID, USER, "guest", "GUEST", 6)));
@@ -187,6 +192,7 @@ class InventoryServiceTest {
 
             // dropItem maps the remaining items after removing the row: one Ctx, one query.
             service.dropItem(MATCH, USER, "row-1");
+            verify(stamp).claimGameplay(MATCH);
 
             verify(store, times(1)).findItemEffectsByItemId(STORY_ID);
         }
@@ -279,6 +285,7 @@ class InventoryServiceTest {
 
             service.useItem(MATCH, USER, "row-1", "en");
 
+            verify(stamp).claimGameplay(MATCH);
             InOrder order = inOrder(store, effectEngine);
             order.verify(store).updateInventoryAmount(MATCH_ID, 1L, 4);
             order.verify(effectEngine).applyStandaloneEffects(eq(MATCH_ID), eq(CHAR_ID), any(), any(), eq("en"), eq(true));
@@ -311,6 +318,7 @@ class InventoryServiceTest {
                     () -> service.useItem(MATCH, USER, "row-1", "en"));
 
             assertEquals(InventoryException.Code.ITEM_NOT_ENOUGH, ex.getCode());
+            verify(stamp, never()).claimGameplay(any());
             // Nothing was spent and nothing ran.
             verify(store, never()).deleteInventoryRow(anyLong(), anyLong());
             verify(store, never()).updateInventoryAmount(anyLong(), anyLong(), anyInt());

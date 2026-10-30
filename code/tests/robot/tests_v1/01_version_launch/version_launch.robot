@@ -19,7 +19,7 @@ ${PLAIN_VERSION_V1_PLUS}    ^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$
 Initialize Launch Sessions
     [Documentation]    Open a public session (BASE_URL) and an admin session (ADMIN_BASE_URL).
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
 
 Echo Version On
     [Documentation]    Returns properties.version of GET /api/echo/status on the given session.

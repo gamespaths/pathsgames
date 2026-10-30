@@ -38,6 +38,39 @@ describe('cookieConsent config', () => {
     expect(Object.keys(cfg.language.translations)).toEqual(['en', 'it'])
   })
 
+  it('v1.7.0 step 12 — lifetimes of 180 and 250 days and the browser storage keys in the table', async () => {
+    const { initCookieConsent } = await import('../consent/cookieConsent')
+    initCookieConsent('en')
+    const cfg = run.mock.calls[0][0]
+    for (const lang of ['en', 'it']) {
+      const rows = cfg.language.translations[lang].preferencesModal.sections[0].cookieTable.body
+      const byName = Object.fromEntries(rows.map(r => [r.name, r.expiration]))
+      expect(byName['pathsgames.guestcookie']).toMatch(/^180 /)
+      expect(byName['pathsgames.refreshToken']).toMatch(/^250 /)
+      const names = rows.map(r => r.name).join(' ')
+      for (const key of ['pathsgames.lang', 'pg_game_server', 'pathsgames.googleNonce']) {
+        expect(names).toContain(key)
+      }
+      expect(names).not.toContain('pathsgames.knownAccount')
+    }
+  })
+
+  it('v1.11.0 turnstilePass shows the configured lifetime and g_state is listed', async () => {
+    const { initCookieConsent, turnstilePassExpiration } = await import('../consent/cookieConsent')
+    expect(turnstilePassExpiration('en', 3000)).toBe('50 hours')
+    expect(turnstilePassExpiration('it', 3000)).toBe('50 ore')
+    expect(turnstilePassExpiration('en', 30)).toBe('30 minutes')
+    expect(turnstilePassExpiration('it', 30)).toBe('30 minuti')
+    initCookieConsent('en')
+    const cfg = run.mock.calls[0][0]
+    for (const lang of ['en', 'it']) {
+      const rows = cfg.language.translations[lang].preferencesModal.sections[0].cookieTable.body
+      const pass = rows.find(r => r.name === 'pathsgames.turnstilePass')
+      expect(pass.expiration).toBe(turnstilePassExpiration(lang))
+      expect(rows.some(r => r.name.startsWith('g_state'))).toBe(true)
+    }
+  })
+
   it('runs only once (idempotent)', async () => {
     const { initCookieConsent } = await import('../consent/cookieConsent')
     initCookieConsent('en')

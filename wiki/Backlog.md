@@ -29,6 +29,8 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 | Free actions | Limited free actions per time | V3 | Low priority |
 | Event/choice blocked when the user HAS an item or key | Negative conditions | V1 (to evaluate) | Choices already support `!=` in Java |
 | Audio | Background music (optional) in V1; sound effects and text reader later | V1 / V2 | Capacity driven |
+| Request-wide transaction | One transaction around each gameplay command on Java and Python | V1 (hardening idea) | Step 8 uses a committed claim of `ts_update` instead |
+| Participation statistics | Profile statistics count the matches a user joined, not only created | V4 | With multiplayer; V1 step 6 counts created matches |
 | Anti-stall rules | Stall detection, inactivity penalties | V4 | Same feature as stalemate detection |
 | Player signal system | Quick pings: "follow me", "danger", "help" | V5 | |
 | Voting system | Group vote on critical choices | V5 | |
@@ -41,20 +43,21 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 
 | Topic | Version | Notes |
 |-------|---------|-------|
-| Test ACM certificate and environment variables | V1 step 41 (analysis, moved from V0), V1 steps 14-15 (env refactor) | Result goes in [Environments](./Environments.md) |
+| Test ACM certificate and environment variables | V1 step 41 (analysis, moved from V0), V1 steps 19-20 (env refactor) | Result goes in [Environments](./Environments.md) |
 | DynamoDB single-table split (users, stories, matches, logs) | V1 | Logs table first, the rest only analysed |
 | Distributed lock for scheduled jobs on several instances | V6 | e.g. ShedLock for Java |
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.4.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First backlog with every feature and its version | September 25, 2026 |
   | 0.41.2 | Basic KPI report marked done | September 29, 2026 |
   | 1.1.0 | V0 items marked done or moved to V1 | October 14, 2026 |
+  | 1.4.0 | Transaction and participation statistics ideas added | October 21, 2026 |
 
-- **Last Updated**: October 14, 2026 (v1.1.0)
+- **Last Updated**: October 21, 2026 (v1.4.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

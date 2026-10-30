@@ -14,9 +14,29 @@ function seg(value) {
   return encodeURIComponent(s)
 }
 
-// GET /api/admin/stories
-export const listAllStories = (lang = 'en') =>
-  apiClient().get('/api/admin/stories', { params: { lang } }).then(r => r.data)
+// v1.7.0 — GET /api/admin/stories: one page, the envelope { items, nextCursor, limit }.
+export const listStoriesPage = (lang = 'en', { limit, cursor } = {}) => {
+  const params = { lang }
+  if (limit) params.limit = limit
+  if (cursor) params.cursor = cursor
+  return apiClient().get('/api/admin/stories', { params }).then(r => r.data)
+}
+
+const ALL_STORIES_PAGE = 200
+const ALL_STORIES_MAX_PAGES = 50
+
+// Every story, following nextCursor (the selectors that list them all); a plain array is one page.
+export const listAllStories = async (lang = 'en') => {
+  const all = []
+  let cursor = null
+  for (let page = 0; page < ALL_STORIES_MAX_PAGES; page++) {
+    const env = await listStoriesPage(lang, { limit: ALL_STORIES_PAGE, cursor })
+    all.push(...(Array.isArray(env) ? env : (env?.items ?? [])))
+    cursor = Array.isArray(env) ? null : (env?.nextCursor ?? null)
+    if (!cursor) break
+  }
+  return all
+}
 
 // POST /api/admin/stories
 export const createStory = (data) =>

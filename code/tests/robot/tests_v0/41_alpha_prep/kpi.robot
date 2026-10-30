@@ -163,4 +163,4 @@ Restore Kpi Snapshot
     [Arguments]    ${match}    ${snapshot}
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     POST On Session    admin_session    /api/admin/matches/${match}/snapshots/${snapshot}/restore
-    ...    headers=${headers}    expected_status=200
+    ...    headers=${headers}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}

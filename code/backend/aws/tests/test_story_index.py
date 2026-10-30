@@ -127,7 +127,7 @@ def test_guest_creation_indexes_the_token_on_gsi1_and_the_list_on_gsi2():
          patch('auth.handler.db_utils.get_item', return_value=None):
         result = ah.lambda_handler(make_event('POST', '/api/auth/guest'), {})
     assert result['statusCode'] in (200, 201), result
-    guest = saved[-1]
+    guest = saved[0]
     assert guest['GSI1_PK'] == f"GUEST_TOKEN#{guest['guest_token']}"
     assert guest['GSI1_SK'] == 'METADATA'
     assert guest['GSI2_PK'] == 'GUEST_LIST' and guest['GSI2_SK'] == f"USER#{guest['uuid']}"
@@ -135,7 +135,7 @@ def test_guest_creation_indexes_the_token_on_gsi1_and_the_list_on_gsi2():
     assert guest['summary']['username'] == guest['username']
     assert guest['summary']['guest_expires_at'] == guest['guest_expires_at']
     assert guest['summary']['ts_last_access'] == guest['ts_last_access']
-    assert 'nickname' not in guest['summary']  # None values are not stored
+    assert guest['summary']['nickname'] == guest['username']  # v1.2.0 guests: nickname = username
 
     user = {'uuid': 'g1', 'username': 'guest', 'role': 'PLAYER', 'guest_token': 'tok'}
     calls = []
@@ -149,5 +149,6 @@ def test_guest_creation_indexes_the_token_on_gsi1_and_the_list_on_gsi2():
         result = ah.lambda_handler(make_event('POST', '/api/auth/guest/resume',
                                               cookies=['pathsgames.guestcookie=tok']), {})
     assert result['statusCode'] == 200, result
-    assert calls == [('GSI1', 'GUEST_TOKEN#tok')]
+    from common import auth_tokens
+    assert calls[0] == ('GSI1', f"GUEST_TOKEN#{auth_tokens.sha256('tok')}")
     assert touch.call_args.kwargs == {'in_summary': True}

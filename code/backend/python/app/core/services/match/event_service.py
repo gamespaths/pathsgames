@@ -42,6 +42,7 @@ from app.core.services.match import (
     choice_availability, edge_state_evaluator, event_availability, registry_service,
 )
 from app.core.services.match.card_mapper import resolve_card
+from app.core.services.match.match_stamp import stamp_check, stamp_claim
 
 ADD = "ADD"
 REMOVE = "REMOVE"
@@ -244,6 +245,7 @@ class EventService(EventPort):
 
         if match.get("status") != "RUNNING":
             raise EventError(EventError.MATCH_NOT_RUNNING, "Match is not RUNNING")
+        stamp_check(self, match_uuid)
 
         event = self.store.find_event_by_story_and_uuid(match["id_story"], event_uuid)
         if not event:
@@ -262,6 +264,7 @@ class EventService(EventPort):
         if not verdict.available:
             raise EventError(verdict.reason, f"Event cannot be executed: {verdict.reason}")
 
+        stamp_claim(self, match_uuid)
         x = _Exec(self, match, actor, ctx, lang or "en", event)
         self._deduct_costs(x, event)
         self._run_chain(x, event)
@@ -301,6 +304,7 @@ class EventService(EventPort):
             verdict = event_availability.check(event, ctx)
             if not verdict.available:
                 raise EventError(verdict.reason, f"Event cannot be executed: {verdict.reason}")
+            stamp_claim(self, match.get("uuid"))
             self._deduct_costs(x, event)
             # The marker slice of _apply_event, without its effects: same message format,
             # so the ONCE accounting and the log timeline cannot tell the flows apart.
@@ -348,6 +352,7 @@ class EventService(EventPort):
             raise self._not_found()
         if match.get("status") != "RUNNING":
             raise EventError(EventError.MATCH_NOT_RUNNING, "Match is not RUNNING")
+        stamp_check(self, match_uuid)
 
         choice = self.store.find_choice_by_story_and_uuid(match["id_story"], choice_uuid)
         if not choice:
@@ -374,6 +379,7 @@ class EventService(EventPort):
             raise EventError(EventError.CHOICE_NOT_OPEN,
                              "No open choice cycle for this event: open it before resolving it")
 
+        stamp_claim(self, match_uuid)
         x = _Exec(self, match, actor, ctx, lang or "en", event)
         x.seed_events_by_id(events_by_id)  # already read above — do not pay for it twice
 

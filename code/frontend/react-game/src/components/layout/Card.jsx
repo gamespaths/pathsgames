@@ -1,4 +1,5 @@
 import CardCreditsBar from './CardCreditsBar'
+import { safeExternalUrl } from '@/utils/safeUrl'
 import { useTranslation } from '../../i18n/context'
 import BonusBadgeList from '../ui/BonusBadgeList'
 import CardImage from './CardImage'
@@ -80,6 +81,7 @@ export default function Card({
   extraContent=null, extraContentClassName=null, statItemsToPageContent=null, descriptionTag=false,
   positionBonusBadge = 'overlay', /* 'desc' | 'overlay' | 'extra' */
   additionalCardClasses,
+  testId, // base of the footer buttons' data-testid (see CardButtons)
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
   const { t } = useTranslation()
@@ -97,7 +99,7 @@ export default function Card({
   const urlImage      = urlImageProp ?? card?.urlImage ?? card?.alternativeImage ?? null
   const icon          = iconProp      ?? card?.awesomeIcon ?? 'fas fa-info'
   const name          = nameProp      ?? card?.title     ?? card?.name ?? card?.title ?? entity?.name ?? "-"
-  const linkCopyright = linkProp     ?? card?.linkCopyright ?? null
+  const linkCopyright = safeExternalUrl(linkProp ?? card?.linkCopyright ?? null)
   const pageDesc  = card?.description ?? entity?.description ?? null
   const isDisabled = disabled || locked
   const isBig      = variant === 'big'
@@ -187,11 +189,11 @@ export default function Card({
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
       { isPage && <h2 className="book-page-title">
-          { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')}>
+          { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')} data-testid="page-back">
           <i className="fas fa-arrow-left" />
         </button>}
         
-        { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')}>
+        { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')} data-testid="page-forward">
           <i className="fas fa-arrow-right" />
         </button>}
         <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
@@ -224,6 +226,7 @@ export default function Card({
       ) : (
         <CardImage
           src={urlImage} placeholderIcon={icon} renderPlaceholder={!isPage}
+          referrerPolicy={card?.referrerPolicy}
           alt={imageAlt || name}
           imgClassName={
             !isPage ? ['gc-img', imageClassName].filter(Boolean).join(' ')
@@ -260,7 +263,7 @@ export default function Card({
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
             flagInformationCard={flagInformationCard}
             infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 
-            actionsList={actionsList} actionListClass={actionListClass}
+            actionsList={actionsList} actionListClass={actionListClass} testId={testId}
           />
 
       {viewLink}

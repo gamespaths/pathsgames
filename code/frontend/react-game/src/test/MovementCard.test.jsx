@@ -361,3 +361,18 @@ describe('MovementCard — the sleeping refusal and the icon fallbacks', () => {
     expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({ card: null }))
   })
 })
+
+describe('MovementCard — test id by direction', () => {
+  it('names card and preview after the direction, with a fallback when it is missing', () => {
+    const onPreview = vi.fn()
+    const { unmount } = render(<MovementCard location={LOCATION} totalEnergyCost={1} story={STORY}
+      onPreview={onPreview} playerStats={{ energy: 30 }} />)
+    expect(capturedProps.testId).toBe('movement-north')
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][0].props.testId).toBe('movement-north')
+    unmount()
+    render(<MovementCard location={{ ...LOCATION, direction: null }} story={STORY}
+      onPreview={vi.fn()} playerStats={{ energy: 30 }} />)
+    expect(capturedProps.testId).toBe('movement-none')
+  })
+})

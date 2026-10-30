@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Query, Path, HTTPException, Body, Request
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.core.ports.story.story_query_port import StoryQueryPort
 from app.core.ports.story.story_import_port import StoryImportPort
 from app.core.ports.story.story_validator_port import StoryValidationException
 from app.core.models.story.story_summary import StorySummary
 from app.core.models.story.story_import_result import StoryImportResult
 from app.core.ports.story.story_catalog_export_port import CatalogNotConfiguredError
+from app.adapters.rest.query_limits import parse_limit
 
 class StoryAdminController:
     def __init__(self, query_port: StoryQueryPort, import_port: StoryImportPort, validator_port=None,
@@ -16,15 +17,18 @@ class StoryAdminController:
         self.catalog_export_port = catalog_export_port
         self.router = APIRouter(prefix="/api/admin/stories", tags=["Story Admin"])
 
-        self.router.add_api_route("", self.list_all_stories, methods=["GET"], response_model=List[StorySummary])
+        self.router.add_api_route("", self.list_all_stories, methods=["GET"])
         self.router.add_api_route("/import", self.import_story, methods=["POST"], response_model=StoryImportResult, status_code=201)
         self.router.add_api_route("/catalog", self.write_catalog, methods=["POST"])
         self.router.add_api_route("/{uuid}/validate", self.validate_story, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.delete_story, methods=["DELETE"])
 
-    async def list_all_stories(self, req: Request, lang: str = Query("en")) -> List[StorySummary]:
+    async def list_all_stories(self, req: Request, lang: str = Query("en"), limit: Optional[str] = Query(None),
+                               cursor: Optional[str] = Query(None)) -> Dict[str, Any]:
+        """v1.7.0 the {items, nextCursor, limit} envelope (limit default 50, max 200)."""
         self._require_admin(req)
-        return self.query_port.list_all_stories(lang)
+        page = self.query_port.list_all_stories_page(lang, parse_limit(limit), cursor)
+        return {"items": page["items"], "nextCursor": page["nextCursor"], "limit": page["limit"]}
 
     async def import_story(self, req: Request, data: Dict[str, Any] = Body(default=None)) -> StoryImportResult:
         self._require_admin(req)

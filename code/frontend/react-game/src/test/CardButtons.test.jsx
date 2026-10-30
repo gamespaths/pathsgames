@@ -179,3 +179,22 @@ describe('CardButtons — secondary actions beside the (i)', () => {
     expect(screen.queryByLabelText('drop-it')).toBeNull()
   })
 })
+
+describe('CardButtons test ids', () => {
+  it('derives info / action / secondary ids from testId', () => {
+    render(<CardButtons name="Move" onAction={vi.fn()} actionLabel="go" testId="movement"
+      flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()}
+      actionsList={[{ label: 'map', icon: 'fa-map', onAction: vi.fn(), testId: 'bookmark-map' }]} />)
+    expect(screen.getByTestId('movement-info')).toBeInTheDocument()
+    expect(screen.getByTestId('movement-action')).toHaveTextContent('go')
+    expect(screen.getByTestId('bookmark-map')).toHaveTextContent('map')
+  })
+
+  it('derives the select id and sets no id without testId', () => {
+    const { unmount } = render(<CardButtons name="Terms" onSelect={vi.fn()} selectLabel="accept" testId="terms" />)
+    expect(screen.getByTestId('terms-select')).toHaveTextContent('accept')
+    unmount()
+    render(<CardButtons name="Terms" onSelect={vi.fn()} selectLabel="accept" />)
+    expect(document.querySelector('[data-testid]')).toBeNull()
+  })
+})

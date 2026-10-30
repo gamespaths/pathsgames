@@ -187,7 +187,7 @@ Restore Snapshot
     [Arguments]    ${match}    ${snapshot}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     ${resp}=    POST On Session    admin_session    /api/admin/matches/${match}/snapshots/${snapshot}/restore
-    ...    headers=${headers}    expected_status=${expected_status}
+    ...    headers=${headers}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${resp}
 
 Match State

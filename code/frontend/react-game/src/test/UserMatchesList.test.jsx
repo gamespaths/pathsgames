@@ -45,10 +45,12 @@ describe('UserMatchesList', () => {
     expect(await screen.findByText('matches.title')).toBeInTheDocument()
   })
 
-  it('shows empty message when no matches', async () => {
+  it('v1.8.0 — no matches: only the statistics card of the user, no empty text', async () => {
     listMatches.mockResolvedValue([])
-    wrap(<UserMatchesList accessToken="tok" />)
-    expect(await screen.findByText('matches.noMatches')).toBeInTheDocument()
+    const { container } = wrap(<UserMatchesList accessToken="tok" />)
+    await screen.findByText('matches.title')
+    expect(container.querySelector('.user-stats-card')).toBeTruthy()
+    expect(screen.queryByText('matches.noMatches')).toBeNull()
   })
 
   it('shows error message when API fails', async () => {
@@ -82,8 +84,9 @@ describe('UserMatchesList — payloads that are not a list, and an early unmount
 
   it('a response that is not an array is read as no match at all', async () => {
     listMatches.mockResolvedValue({ items: [] })
-    wrap(<UserMatchesList accessToken="tok" />)
-    expect(await screen.findByText('matches.noMatches')).toBeInTheDocument()
+    const { container } = wrap(<UserMatchesList accessToken="tok" />)
+    await screen.findByText('matches.title')
+    expect(container.querySelectorAll('.selection-list > *')).toHaveLength(1)
   })
 
   it('a story that fails to load leaves its match without one', async () => {

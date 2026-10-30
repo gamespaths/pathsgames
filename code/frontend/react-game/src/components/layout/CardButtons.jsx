@@ -21,6 +21,8 @@ export default function CardButtons({
   // `fas fa-info` icon (e.g. an alternative (i) glyph like `fas fa-info-circle`);
   // `infoLabelClassName` is appended to the label span class (default blank).
   infoLabel, infoIconClassName, infoLabelClassName = "",
+  // Optional test id base: buttons get `<testId>-info`, `-select`, `-action`; secondary ones `a.testId`.
+  testId,
 }) {
   const [actionStarted, setActionStarted] = useState(false)
   const { t } = useTranslation()
@@ -31,12 +33,14 @@ export default function CardButtons({
 
   const previewLabel = infoLabel ?? t('card.info')
   const previewIconClassName = infoIconClassName ?? 'fas fa-info'
+  const tid = (suffix) => (testId ? `${testId}-${suffix}` : undefined)
 
   function getPreviewButton(flagShowLabel = false, iconClassName = "", alone = false, buttonClassName = "mr-0") {
     return <button
         className={`gc-footer__btn ${alone ? 'gc-footer__btn--icon' : ' '} ${buttonClassName} `}
         onClick={onPreviewClick}
         aria-label={previewLabel}
+        data-testid={tid('info')}
         >
         <i className={`${previewIconClassName} ${iconClassName}`} />
         {flagShowLabel && <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{previewLabel}</span>}
@@ -49,6 +53,7 @@ export default function CardButtons({
   function secondaryButtons() {
     return secondaryActions.map((a, i) =>
       <button key={i} className="gc-footer__btn" aria-label={a.ariaLabel ?? a.label ?? undefined}
+        data-testid={a.testId}
         onClick={async () => {
           setActionStarted(true)
           try { await a.onAction() } catch { /* handled by the action */ } finally { setActionStarted(false) }
@@ -84,6 +89,7 @@ export default function CardButtons({
       <button
         className={`gc-footer__btn${selected ? ' gc-footer__btn--selected' : ''}`}
         onClick={onSelect}
+        data-testid={tid('select')}
       >
         <i className={`fas ${selected ? 'fa-check' : (selectIcon ?? 'fa-hand-pointer')} me-1`} />
         <span className="gc-footer__btn-label">{selectLabel}</span>
@@ -102,7 +108,7 @@ export default function CardButtons({
     return (<div className={divStyle}><div className={gcActionClass}>
       {flagInformationCard && getPreviewButton(!previewOpened, " me-1", previewOpened)}
       {(!actionOnlyIfPreview || previewOpened) && !actionStarted &&
-        <button className="gc-footer__btn" onClick={async () => {
+        <button className="gc-footer__btn" data-testid={tid('action')} onClick={async () => {
           // Show the in-progress spinner, then clear it once the action settles
           // so a card that stays mounted (e.g. GoToSleepCard while energy is
           // still <= 1) returns to its actionable state instead of spinning

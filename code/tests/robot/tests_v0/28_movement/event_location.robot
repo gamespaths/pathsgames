@@ -52,7 +52,7 @@ Admin-Set Event Location Is Reflected In Match Info LocationsActive
     # Bind the event to the start location through the admin API.
     &{patch}=    Create Dictionary    idSpecificLocation=${start}
     ${resp}=    PUT On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/events/${EV_UUID}    json=${patch}
+    ...    /api/admin/stories/${STORY_UUID}/events/${EV_UUID}    json=${patch}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    200
 
     # Play through and confirm the event shows under the start location.
@@ -73,7 +73,7 @@ Suite Setup Event Location
     Set Suite Variable    ${CHARACTER_UUID}    ${character}
     Set Suite Variable    ${CLASS_UUID}        ${class}
     Set Suite Variable    ${TRAIT_UUID}        ${trait}
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
 
@@ -135,4 +135,4 @@ Restore Event Location
     IF    '${EV_UUID}' == '${EMPTY}'    RETURN
     &{patch}=    Create Dictionary    idSpecificLocation=${EV_ORIG_LOC}
     PUT On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/events/${EV_UUID}    json=${patch}    expected_status=any
+    ...    /api/admin/stories/${STORY_UUID}/events/${EV_UUID}    json=${patch}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}

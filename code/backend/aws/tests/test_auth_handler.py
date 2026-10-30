@@ -79,12 +79,10 @@ def test_create_guest_sets_cookies():
     cookie_str = ' '.join(result['cookies'])
     assert 'pathsgames.refreshToken' in cookie_str
     assert 'pathsgames.guestcookie' in cookie_str
-    # Cross-origin from http://localhost:5174 requires SameSite=None; Secure
-    # otherwise Chrome drops the cookies. See lambda/auth/handler.py
-    # docstring for the rationale.
-    assert 'SameSite=None' in cookie_str
+    # v1.7.0 SameSite is the COOKIE_SAME_SITE parameter: Lax by default, None where the API is cross-site
+    assert 'SameSite=Lax' in cookie_str
     assert 'Secure' in cookie_str
-    assert 'SameSite=Lax' not in cookie_str
+    assert 'SameSite=None' not in cookie_str
 
 
 def test_create_guest_with_test_marker_uses_marker_prefix():
@@ -117,7 +115,8 @@ def _create_guest_row(env, headers, ttl_hours='1'):
         from auth.handler import lambda_handler
         result = lambda_handler(make_event('POST', '/api/auth/guest', headers=headers), {})
     assert result['statusCode'] == 201
-    return put.call_args[0][0]
+    # v1.2.0 the USER# row first, then the REFRESH# session row
+    return put.call_args_list[0][0][0]
 
 
 def test_create_guest_honours_test_marker_on_the_test_stack():
@@ -234,56 +233,7 @@ def test_refresh_token_valid_returns_200():
     assert _body(result)['accessToken'].startswith('MOCK_ACCESS_')
 
 
-def test_refresh_token_stale_version_revoked_returns_401():
-    # The user's current token_version (5) differs from the token's (0) → revoked.
-    user = dict(PLAYER_USER, token_version=5)
-    with patch('auth.handler.db_utils.get_item', return_value=user), \
-         patch('auth.handler.db_utils.put_item', return_value=True):
-        from auth.handler import lambda_handler
-        event = make_event('POST', '/api/auth/refresh',
-                           cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002.0'])
-        result = lambda_handler(event, {})
-    assert result['statusCode'] == 401
-
-
-def test_refresh_token_matching_version_returns_200():
-    user = dict(PLAYER_USER, token_version=3)
-    with patch('auth.handler.db_utils.get_item', return_value=user), \
-         patch('auth.handler.db_utils.put_item', return_value=True):
-        from auth.handler import lambda_handler
-        event = make_event('POST', '/api/auth/refresh',
-                           cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002.3'])
-        result = lambda_handler(event, {})
-    assert result['statusCode'] == 200
-
-
-def test_refresh_rotation_bumps_token_version():
-    user = dict(PLAYER_USER, token_version=0)
-    captured = {}
-    def _capture(item):
-        captured.update(item)
-        return True
-    with patch('auth.handler.db_utils.get_item', return_value=user), \
-         patch('auth.handler.db_utils.put_item', side_effect=_capture):
-        from auth.handler import lambda_handler
-        event = make_event('POST', '/api/auth/refresh',
-                           cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002.0'])
-        result = lambda_handler(event, {})
-    assert result['statusCode'] == 200
-    assert captured.get('token_version') == 1
-
-
-def test_logout_bumps_token_version():
-    user = dict(PLAYER_USER, token_version=2)
-    captured = {}
-    with patch('auth.handler.db_utils.get_item', return_value=user), \
-         patch('auth.handler.db_utils.put_item', side_effect=lambda i: captured.update(i) or True):
-        from auth.handler import lambda_handler
-        event = make_event('POST', '/api/auth/logout',
-                           headers={'Authorization': 'Bearer MOCK_ACCESS_player-uuid-002'})
-        result = lambda_handler(event, {})
-    assert result['statusCode'] == 200
-    assert captured.get('token_version') == 3
+# v1.2.0 — the token_version rotation is gone: hashed REFRESH# sessions, see test_v1_google_sso.py
 
 
 # ── admin: list_guests ────────────────────────────────────────────────────────

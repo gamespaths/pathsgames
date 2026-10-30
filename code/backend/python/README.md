@@ -141,6 +141,8 @@ docker rmi pathsgames-backend-python
 | GET | `/api/echo/status` | Server status, timestamp, and properties |
 | POST | `/api/auth/guest` | Create a new guest session |
 | POST | `/api/auth/guest/resume` | Resume an existing guest session |
+| POST | `/api/auth/google` | Google login with a GIS ID token and nonce (V1.2.0; errors in `wiki/ApiConventions.md` §5) |
+| GET / DELETE | `/api/auth/me` | Profile (`displayName`, `pictureUrl`, `username`, `nickname`, stats) / account deletion (202, fresh ID token) |
 | GET | `/api/admin/guests` | List all guest users |
 | GET | `/api/admin/guests/stats` | Guest statistics |
 | GET | `/api/admin/guests/{uuid}` | Get guest by UUID |
@@ -159,6 +161,14 @@ docker rmi pathsgames-backend-python
 | POST | `/api/admin/matches/import` | Dry-run or import a match export file; 413 above `MATCH_EXPORT_MAX_BYTES` (default 5000000, `config.py`). Users matched by uuid then e-mail; new column `users.email_address` + index `idx_users_email` added by `align_schema` (v0.41.4) |
 | GET / PUT | `/api/admin/matches/{uuidMatch}/owner` | Read the owner / move the creator and the characters to another user (uuid, e-mail or username; 409 on terminal, multi-character, not-eligible or duplicate-active target; ADMIN, admin port; `match_owner_service.py`, v0.41.6) |
 | GET | `/api/admin/users/{identifier}` | One user by uuid, e-mail or username, the owner-move preview (ADMIN, admin port; `user_admin_controller.py`, `user_directory_adapter`; v0.41.6) |
+
+## Google login and admin bootstrap (V1.2.0)
+
+Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. New table `users_identities` and the column drops go through `create_all` plus the ALTER list in `database.py`. Admin: `python -m app.scripts.create_admin <nick>` (script `code/scripts/dev/create_admin_python.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. Dev-only `POST /api/dev/users/{uuid}/expire-suspension` (V1.10.0). `TRUSTED_PROXIES` (CIDRs whose `X-Forwarded-For` is believed, default empty); the Docker image sets `ENV=production`.
+
+## Profile, sessions and user admin (V1.7.0)
+
+Same contract as the Java backend (spec `v1.7.0-multi-device-api.yaml`): `GET`/`PATCH /api/auth/me`, `matchVersion` / `If-Match` / 409 `STALE_MATCH` (`request_stamp_middleware.py`, `match_stamp.py`), list envelopes for `GET /api/matches` and `GET /api/admin/stories`, admin users endpoints on port 8044. New columns and tables (`play_ms`, `suspended_until`, `relink_pending`, `sessions_valid_after`, `revoked_reason`, `users_banned_subjects`, `admin_intervention_log`) are added by `create_all` plus `align_schema()`. Env: `MAX_TOKENS_PER_USER` (12), `REFRESH_TOKEN_DAYS` (250), `COOKIE_SAME_SITE` (`Lax`; `None` only when the API is on another site than the page), `BANNED_SUBJECT_PEPPER` (startup refused outside dev/test without it), `PLAY_TIME_CAP_SECONDS`, `SUPPORTED_LANGUAGES`, `SUPPORTED_THEMES`, `MATCH_REFETCH_*`. A non-integer `?limit=` reads as absent (`query_limits.parse_limit`); auth cookies use `Path=/api/auth`; weather and join are owner-only (404 `MATCH_NOT_FOUND`).
 
 ## Architecture
 

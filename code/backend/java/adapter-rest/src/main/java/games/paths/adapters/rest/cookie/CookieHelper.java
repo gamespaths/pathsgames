@@ -14,10 +14,10 @@ import java.time.Duration;
  *
  * <p>Two cookies are managed:</p>
  * <ul>
- *   <li><b>pathsgames.refreshToken</b> — contains the JWT refresh token (7-day lifetime).
+ *   <li><b>pathsgames.refreshToken</b> — contains the JWT refresh token (v1.7.0: 250 days, renewed at refresh).
  *       HttpOnly so JavaScript cannot read it, eliminating the XSS "blast radius"
  *       for refresh tokens.</li>
- *   <li><b>pathsgames.guestcookie</b> — contains the opaque guest-resume UUID (30-day lifetime).
+ *   <li><b>pathsgames.guestcookie</b> — contains the opaque guest-resume UUID (180-day lifetime).
  *       HttpOnly so the browser sends it automatically on POST /api/auth/guest/resume
  *       without JavaScript involvement.</li>
  * </ul>
@@ -46,15 +46,15 @@ public final class CookieHelper {
     /** Path scope — cookies are only sent for /api/auth/** requests. */
     private static final String COOKIE_PATH = "/api/auth";
 
-    /** Default max-age for the refresh-token cookie (6 months ≈ 180 days). */
-    public static final int REFRESH_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;   // 15 552 000
+    /** v1.7.0 max-age of the refresh-token cookie: 250 days (sliding, under the 400-day browser cap). */
+    public static final int REFRESH_MAX_AGE_SECONDS = 250 * 24 * 60 * 60;   // 21 600 000
 
     /** Default max-age for the guest-cookie-token cookie (6 months ≈ 180 days). */
     public static final int GUEST_COOKIE_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;  // 15 552 000
 
     /** Applied cookie policy — overridden at startup by CookiePolicyInitializer. */
     //private static boolean secure  = false;
-    private static String sameSite = "None";
+    private static String sameSite = "Lax";
 
     private CookieHelper() { /* static utility */ }
 

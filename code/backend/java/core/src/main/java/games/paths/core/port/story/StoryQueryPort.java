@@ -32,6 +32,16 @@ public interface StoryQueryPort {
     List<StorySummary> listAllStories(String lang);
 
     /**
+     * v1.7.0 one page of every story (admin), in the order of {@link #listAllStories(String)}.
+     *
+     * @param lang   the language code for text resolution
+     * @param limit  page size (default 50, max 200)
+     * @param cursor the nextCursor of the previous page, null for the first one
+     * @return the page envelope
+     */
+    games.paths.core.model.story.StorySummaryPage listAllStoriesPage(String lang, Integer limit, String cursor);
+
+    /**
      * Retrieves the full detail of a single story by UUID.
      *
      * @param uuid the story UUID

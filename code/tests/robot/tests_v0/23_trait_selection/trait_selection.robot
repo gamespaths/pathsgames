@@ -340,7 +340,7 @@ Find Hidden Trait
 Suite Setup Trait Selection
     [Documentation]    Guest login + resolve loadout and the full story detail.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
@@ -381,7 +381,7 @@ Join Fresh Match With Difficulty And Traits
     ...                it with the shared template, the given class and traits; returns the
     ...                created character JSON.
     [Arguments]    ${difficulty_uuid}    ${class_uuid}    ${trait_uuids}
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     ${token}=    Set Variable    ${guest.json()}[accessToken]
     ${match}=    Create Match    ${token}    ${STORY_UUID}    ${difficulty_uuid}    robottest_step23

@@ -144,7 +144,7 @@ Create Match With Turnstile Token But No Auth Returns 401
     ...    turnstileToken=some-cf-token
     ${response}=    POST On Session    public_session    /api/matches
     ...    json=${body}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 # ── Match info for a Turnstile-created match is fully accessible ─────────────
@@ -198,7 +198,7 @@ Suite Setup Turnstile
     ${enforced}=    Set Variable If    '${cf_token}' != '${EMPTY}'    ${TRUE}    ${FALSE}
     Set Suite Variable    ${TURNSTILE_ENFORCED}    ${enforced}
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Set Suite Variable    ${TOKEN}    ${body}[accessToken]

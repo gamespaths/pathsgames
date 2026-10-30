@@ -5,9 +5,9 @@ identity, admin access, abuse controls, and the frontend/infrastructure hardenin
 
 ## 1. Guest login and JWT (access + refresh, with rotation)
 
-There is no password account in V0 — every player is a **guest**. `POST /api/auth/guest`
-creates one and returns an access token (JWT, 30 min default), a refresh token (JWT, 7 days
-default) and a `guestCookieToken` used to resume the same identity later via
+In V0 every player is a **guest**; Google login is added in V1 (§1.1). `POST /api/auth/guest`
+creates one and returns an access token (JWT, 30 min default), a refresh token (JWT, 180 days
+for a guest; 250 days for a Google user, see §1.2) and a `guestCookieToken` used to resume the same identity later via
 `POST /api/auth/guest/resume`. Full claim tables and DB columns:
 [Step12](documentation_v0/Step12_GuestLoginMethod.md).
 
@@ -26,6 +26,61 @@ default) and a `guestCookieToken` used to resume the same identity later via
 - `POST /api/auth/logout` / `POST /api/auth/logout/all` revoke one or all sessions and clear
   both HttpOnly cookies.
 
+### 1.1 Google login (V1.2.0, [Steps 2-5](documentation_v1/Step03_GoogleSsoBackendFlow.md))
+
+Passwords no longer exist: a player is a guest or a Google user (`users_identities`).
+
+- **Login**: `POST /api/auth/google` with a Google Identity Services ID token (no client secret) and a
+  frontend nonce. Checks: signature (JWKS), `aud` = stage client id, `iss`, `exp`, `nonce`, replay
+  (token hash kept until `exp` in `auth_id_token_seen` / `GOOGLEJTI#`), `email_verified`, domain
+  `@gmail.com` only (`googlemail.com` refused). The email identifies the user and is never updated;
+  identity key = `sub` + email (`IDENTITY_MISMATCH` if the email has another `sub`). The email, name
+  and picture are never logged (log sanitizer on the 3 backends).
+- **Tokens**: access and refresh JWTs carry `iss` (stage + backend) and `aud`. Refresh revokes only the
+  token used (lifetime, grace and cap in §1.2); a revoked session answers `SESSION_REVOKED`. Refresh and guest cookie tokens are stored as SHA-256 hashes (lazy migration).
+  `users.state` is checked on every request (60 s cache on Java/Python, evicted on state change);
+  the role always comes from the DB; the AWS synthetic user is gone and `ALLOW_MOCK_ACCESS` defaults to
+  `false`.
+- **Switches**: `GOOGLE_ENABLED` (code default true, false only on test; exposed with the client id in
+  `GET /api/echo/status`, button hidden when false) and rate limit `RATE_LIMIT_GOOGLE_PER_IP`.
+- **Deletion and retention**: `DELETE /api/auth/me` needs an ID token fresher than 5 minutes
+  (`FRESH_TOKEN_REQUIRED`), answers 202 and sets state 7; a chunked idempotent job removes the user,
+  personal data, matches and logs (login meanwhile: `ACCOUNT_DELETION_IN_PROGRESS`). A second job
+  deletes Google users idle for 24 months (`ts_last_access`). AWS: `AccountJobsFunction`.
+- **Admin bootstrap**: no admin from the API. AWS `AdminBootstrapFunction` (no route), Java
+  `--paths.admin.create=<nick>`, Python `python -m app.scripts.create_admin`; wrapped by
+  `code/scripts/dev/create_admin_{java,python}.sh <local|ec2> <nick>` and
+  `code/scripts/prod/aws_create_admin.sh <stage> <nick>`. Admin token lasts 365 days, 30 on AWS `prod`.
+- **Policies**: static `privacy.html`, `terms.html`, `cookies.html` (react-game `postbuild`) for the Google
+  brand; CSP allows `accounts.google.com` and `googleusercontent.com` (profile picture).
+
+### 1.2 Sessions and account protection (V1.7.0, [Steps 10 and 12](documentation_v1/Step12_PaginationAndMultiDeviceContinuity.md))
+
+- **Lifetimes**: refresh token 250 days, sliding (`REFRESH_TOKEN_DAYS`); a guest's stays capped at 180
+  days. The cookie follows. Rotation grace for the just-rotated token: 120 s.
+- **Cap**: 12 sessions per user (`MAX_TOKENS_PER_USER`; AWS `MaxSessionsPerUser`). The least recently
+  refreshed one is revoked with reason `LIMIT` and answers 401 `SESSION_LIMIT`. `users_tokens.revoked_reason`
+  (`ROTATED`, `LOGOUT`, `LOGOUT_ALL`, `LIMIT`, `ADMIN`); rows `ROTATED`/`LOGOUT` are purged after 7 days
+  (daily job); reusing a rotated token after the grace revokes every session of the user.
+- **`sessions_valid_after`** (`users` column, AWS attribute on `USER#`): set by "log out of all devices", ban and
+  suspend; an access token issued before it answers 401 `SESSION_REVOKED` (within the 60 s state cache).
+  `GET /api/auth/me` returns `activeSessions` (refresh tokens used in the last 30 days).
+- **Cookie path**: auth cookies are set with `Path=/api/auth` on all three backends.
+- **Cookie `SameSite`**: `COOKIE_SAME_SITE` (AWS `CookieSameSite`), default `Lax`. `None` only when the page
+  and the API are on different sites (AWS `test`, whose pages call `execute-api` URLs).
+- **Ban and suspend** (admin, Google users only, [Step 10](documentation_v1/Step10_AdminUserManagementBackend.md)):
+  ban sets state 4 and stores HMAC-SHA256 hashes of the Google `sub` and of the email in `users_banned_subjects`
+  (AWS `BANSUB#<hash>`, `BANEMAIL#<hash>`), keyed with the stage pepper `BANNED_SUBJECT_PEPPER` (AWS
+  `BannedSubjectPepper`): one value per stage, never rotated, required outside dev/test (startup refused on
+  Java/Python, 500 on AWS). A login with a banned `sub` or email is refused. Suspend sets state 3 with
+  `suspended_until` (max 90 days) and lifts itself at the next login or refresh. Both revoke the sessions and
+  evict the 60 s state cache; an ADMIN can never be banned or suspended; guests are not bannable. Unblock
+  removes the hashes. Every action writes `admin_intervention_log` (admin uuid, action, target uuid, reason
+  required, at most 500 chars; no nickname or email; 24-month retention; AWS `ADMINLOG#YYYY-MM`, ttl).
+- **Admin users API** (admin port only): `GET /api/admin/users`, `GET /api/admin/users/{identifier}`,
+  `POST /api/admin/users/{uuid}/{ban|suspend|unblock|relink-subject|deletion}`. The email is returned by the
+  detail only. `relink-subject` arms a one-time replacement of the Google subject for an `IDENTITY_MISMATCH`.
+
 ## 2. Admin role and the admin port
 
 Admin access is a **role** (`role: ADMIN` in the JWT) *and* a **network boundary**: the admin
@@ -33,7 +88,8 @@ API is never reachable from the public listener.
 
 - Java/Python: public port `8042` (dev) / `8080` (prod) 404s any `/api/admin/**` path; only
   the dedicated **admin port `8044`** (`game.admin.port` / env `ADMIN_PORT`) serves it. Lock
-  8044 to the owner's IP at the network layer (firewall/security group).
+  8044 to the owner's IP at the network layer (firewall/security group). Java also rejects non-canonical
+  paths and guards admin controllers by port and role (§10).
 - react-admin pastes a JWT admin token at login and talks only to the admin port (dev proxy
   `/api/admin/**` → `localhost:8044`).
 - AWS: admin endpoints sit behind a **separate API Gateway** (`PathsGamesAdminApi`) with its
@@ -105,14 +161,15 @@ Full detail: [Step20](documentation_v0/Step20_GameWebSiteFirstRun.md).
   `pathsgames.turnstilePass` cookie so a confirmed human isn't re-challenged on every load —
   UX only, **not** the security boundary. The authoritative check is always the server-side
   `turnstileToken` verification on `POST /api/matches`, using a fresh, never-cached token.
-  When no site key is configured the widget is skipped (dev bypass); Robot uses a deployed
+  The policy texts and the cookie table show this real lifetime. When no site key is configured the widget is skipped (dev bypass); Robot uses a deployed
   `TURNSTILE_BYPASS_TOKEN`, honored only when the AWS stack's environment isn't `prod`.
 - **Cookie consent**: self-hosted `vanilla-cookieconsent` v3.1.0 + Google Consent Mode v2,
   shared between the website and react-game, replacing the former third-party CookieYes.
   Consent starts fully denied; Google tags (via GTM) write no cookies until the user opts
   into the `analytics` category. Strictly-necessary, consent-exempt cookies:
   `pathsgames.guestcookie`, `pathsgames.refreshToken`, `pathsgames.cookiesConsent`,
-  `pathsgames.turnstilePass`, plus the `pathsgames.lang` localStorage key.
+  `pathsgames.turnstilePass`, `g_state` (set by Google Identity Services on the site after a
+  sign-in; remembers the sign-in prompt state, 6 months), plus the `pathsgames.lang` localStorage key.
 
 - **Smoke test Lambda (V1 step 1, AWS)**: no new code path in the public Lambdas and no route; the
   smoke function is not reachable from the internet (Scheduler and IAM invoke only). It creates its
@@ -188,12 +245,52 @@ across environments.
   tokens, so copied guests cannot resume and SSO users log in again. The file carries a SHA-256
   checksum and is validated against a JSON Schema before any write.
 - **Size cap**: `MATCH_EXPORT_MAX_BYTES` (default 5000000), above it the import answers 413.
+- **V1.7.0**: the file adds `match.playMs` (missing = 0) and the statuses `CANCELLED`/`BANNED`; every stopped match (`ENDED`, `GAMEOVER`, `CANCELLED`, `BANNED`) is imported with its own status and no time-start runs for it.
 - A story with the same id but another fingerprint is refused with 409 `STORY_DIFFERS` unless the
   admin chooses `storyMode`. Details: [Step 41 §9](./documentation_v0/Step41_AlphaPreparation.md).
 - **Owner move (v0.41.6)**: `GET`/`PUT /api/admin/matches/{uuidMatch}/owner` and `GET /api/admin/users/{identifier}` are admin-only on port 8044 and behind the AWS allow-list.
 
+## 10. Security review fixes (V1.10.0, [OpenAPI](../code/backend/java/adapter-rest/src/main/resources/openapi/v1.10.0-security-fixes-api.yaml))
+
+- **Java path guard (critical)**: the admin API was reachable on the public port with an encoded or
+  `;`-padded path (`/api/%61dmin/...`). `PathGuardFilter` (first filter, both ports) now answers 400
+  `INVALID_PATH` to any non-canonical path: `;`, `\`, dot segments, broken escapes, escapes of unreserved
+  characters or of `/`, `\`, `;`, `%`; valid escapes such as `%40`, `%2B` and UTF-8 stay. `RequestPaths.routed()`
+  makes `AdminPortFilter` and `JwtAuthenticationFilter` decide on the decoded path, and
+  `AdminHandlerInterceptor` refuses admin controllers off the admin port (404) or without the ADMIN role (403),
+  and dev controllers off the admin port. Robot: `admin_path_guard.robot`.
+- **Logout-all**: a refresh token issued before `sessions_valid_after` is refused with 401 `SESSION_REVOKED`
+  also inside the rotation grace; `ACCOUNT_DISABLED` is checked first (3 backends).
+- **Mock tokens (AWS test stack)**: `AllowMockAccess` follows `AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS` (default
+  `false`); `true` is refused by `aws_backend_deploy.sh` unless `AWS_TEST_LAMBDA_GOOGLE_ENABLED=false`.
+- **Python fail-closed**: the Docker image sets `ENV=production`; `check_secrets` refuses the committed JWT
+  secret whenever `HOST` is not loopback, even in dev/test; `null` left the default CORS list; a CORS `*`
+  means no credentials; the EC2 Python test scripts use `AWS_TEST_APIGW_CORS_ORIGINS` instead of `*`.
+- **`X-Forwarded-For` (Java, Python)**: believed only behind a trusted proxy. `TRUSTED_PROXIES` (comma-separated
+  CIDRs, default empty = the socket peer is the client); the right-most hop that is not a proxy is the client.
+  Set it when a load balancer or CDN sits in front; unset, a forged header cannot fake the address of the
+  per-IP limits of §4, but every client then shows the proxy address.
+- **CI IAM** (`code/scripts/prod/aws_create_policy_github_actions.sh`): `iam:UpdateAssumeRolePolicy` and
+  `DeleteRolePermissionsBoundary` are always denied. Optional permissions boundary
+  `paths-games-alpha-lambda-boundary` for the Lambda roles, in two phases: `--boundary prepare`, one alpha
+  deploy with `AWS_ALPHA_IAM_PERMISSIONS_BOUNDARY_ARN` (also a GitHub Variable; SAM parameter
+  `PermissionsBoundaryArn`, empty = none, on every Lambda and schedule role), then `--boundary enforce`.
+  Scoping the CI policy to the API Gateway resources is not done yet.
+- **Planned**: `JWT_SECRET`, the ban pepper and the Turnstile secrets still travel as Lambda environment
+  variables; moving them to SSM SecureString is [V1 step 38](documentation_v1/Roadmap.md).
+- **Local AWS**: `start_local.sh` passes empty Turnstile keys to `sam local`, so Turnstile is always off there.
+
+### 10.1 Low items of the review (V1.11.0)
+
+- **Owner only**: `GET /api/matches/{uuid}/weather` and `POST /api/matches/{uuid}/join` answer 404 `MATCH_NOT_FOUND` to anyone but the match creator, on Java (`WeatherController`, `CharacterCommandService`), Python and AWS (`_require_owned_match`, `_join_match`). The `If-Match` check of `join` comes after the owner check. One human player per match until V4 ([GameRules](GameRules.md)).
+- **Cookie path**: Python auth cookies use `Path=/api/auth` like Java and AWS; the legacy `Path=/` copy is deleted at the next set or clear.
+- **react-game links**: copyright and credit links (`linkCopyright`) open only when `http` or `https` (`src/utils/safeUrl.js` `safeExternalUrl`, used by `Card.jsx` and `PolicyBook.jsx`).
+- **AWS tokens**: access and refresh tokens without `exp` are refused (`common/jwt_utils.py`).
+- **Deploy log**: `aws_backend_deploy_stage.sh` masks `BannedSubjectPepper` in the printed parameters.
+- **npm**: react-game `dompurify` 3.4.17 and `axios` 1.21.0, react-admin `axios` 1.21.0. Open audit items: `follow-redirects` (Node only) and `react-router` (v7 migration planned later).
+
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -202,8 +299,12 @@ across environments.
   | 0.41.2 | Production website CSP switched to restricted | September 29, 2026 |
   | 0.41.4 | Admin-only match export and import, no secrets copied; owner move | October 3, 2026 |
   | 1.1.0 | Smoke test function noted as not public | October 13, 2026 |
+  | 1.2.0 | Google login, hashed sessions, account deletion | October 20, 2026 |
+  | 1.7.0 | Session limits, bans, suspensions and cookie rules | October 23, 2026 |
+  | 1.10.0 | Security review fixes and proxy settings | October 28, 2026 |
+  | 1.11.0 | Owner-only match reads, safer links and tokens; cookie list | October 29, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.1.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

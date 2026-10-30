@@ -87,8 +87,13 @@ public class GamingMatchEntity {
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
-    @Column(name = "ts_update", nullable = false)
+    // v1.7.0 - written only by the match stamp (MatchStampStoreAdapter) and the native admin updates.
+    @Column(name = "ts_update", nullable = false, updatable = false)
     private String tsUpdate;
+
+    // v1.7.0 - play time in ms, grown only by the gameplay stamp.
+    @Column(name = "play_ms", nullable = false, updatable = false)
+    private Long playMs;
 
     @PrePersist
     protected void onCreate() {
@@ -102,11 +107,7 @@ public class GamingMatchEntity {
         if (singlePlayer == null) singlePlayer = 1;
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
+        if (playMs == null) playMs = 0L;
     }
 
     // === Getters & Setters ===
@@ -170,6 +171,9 @@ public class GamingMatchEntity {
 
     public String getTsUpdate() { return tsUpdate; }
     public void setTsUpdate(String tsUpdate) { this.tsUpdate = tsUpdate; }
+
+    public Long getPlayMs() { return playMs; }
+    public void setPlayMs(Long playMs) { this.playMs = playMs; }
 
     public Integer getSinglePlayer() { return singlePlayer; }
     public void setSinglePlayer(Integer singlePlayer) { this.singlePlayer = singlePlayer; }

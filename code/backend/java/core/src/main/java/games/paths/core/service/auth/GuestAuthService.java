@@ -27,6 +27,8 @@ public class GuestAuthService implements GuestAuthPort {
 
     private final JwtPort jwtPort;
     private final GuestPersistencePort persistencePort;
+    private games.paths.core.port.auth.TokenPersistencePort tokenPersistencePort;
+    private int maxTokensPerUser = SessionService.DEFAULT_MAX_TOKENS_PER_USER;
 
     public GuestAuthService(JwtPort jwtPort, GuestPersistencePort persistencePort) {
         this.jwtPort = jwtPort;
@@ -57,17 +59,19 @@ public class GuestAuthService implements GuestAuthPort {
         Instant expiresAt = bornAt.plus(GUEST_SESSION_DAYS, ChronoUnit.DAYS);
         String expiresAtIso = expiresAt.toString();
 
-        // 3. Persist guest user in database (state=6 for guest)
-        long userId = persistencePort.createGuestUser(userUuid, username, guestCookieToken, expiresAtIso);
+        // 3. Persist guest user in database (state=6 for guest); v1.2.0 the cookie token as hash
+        long userId = persistencePort.createGuestUser(userUuid, username, TokenHasher.sha256(guestCookieToken),
+                expiresAtIso);
 
         // 4. Issue JWT tokens
         String accessToken = jwtPort.generateAccessToken(userUuid, username, GUEST_ROLE);
         String refreshToken = jwtPort.generateRefreshToken(userUuid);
 
         // 5. Store refresh token
-        long refreshExpiresMs = jwtPort.getRefreshTokenExpirationMs();
+        // v1.7.0 a guest refresh token never outlives the 180-day guest cookie
+        long refreshExpiresMs = SessionService.refreshExpiry(jwtPort.getRefreshTokenExpirationMs(), true, Instant.now());
         String refreshExpiresAt = Instant.ofEpochMilli(refreshExpiresMs).toString();
-        persistencePort.storeRefreshToken(userId, refreshToken, refreshExpiresAt);
+        storeRefresh(userId, refreshToken, refreshExpiresAt);
 
         // 6. Update last access
         persistencePort.updateLastAccess(userId);
@@ -92,8 +96,9 @@ public class GuestAuthService implements GuestAuthPort {
             return null;
         }
 
-        // Look up guest user by cookie token
-        Map<String, Object> guestData = persistencePort.findGuestByCookieToken(guestCookieToken);
+        // Look up guest user by cookie token hash (v1.2.0 lazy migration of a clear value)
+        Map<String, Object> guestData = persistencePort.findGuestByCookieToken(
+                TokenHasher.sha256(guestCookieToken), TokenHasher.legacy(guestCookieToken, Instant.now()));
         if (guestData == null) {
             return null;
         }
@@ -120,9 +125,10 @@ public class GuestAuthService implements GuestAuthPort {
         String refreshToken = jwtPort.generateRefreshToken(userUuid);
 
         // Store new refresh token
-        long refreshExpiresMs = jwtPort.getRefreshTokenExpirationMs();
+        // v1.7.0 a guest refresh token never outlives the 180-day guest cookie
+        long refreshExpiresMs = SessionService.refreshExpiry(jwtPort.getRefreshTokenExpirationMs(), true, Instant.now());
         String refreshExpiresAt = Instant.ofEpochMilli(refreshExpiresMs).toString();
-        persistencePort.storeRefreshToken(userId, refreshToken, refreshExpiresAt);
+        storeRefresh(userId, refreshToken, refreshExpiresAt);
 
         // Update last access
         persistencePort.updateLastAccess(userId);
@@ -136,6 +142,19 @@ public class GuestAuthService implements GuestAuthPort {
                 .refreshTokenExpiresAt(refreshExpiresMs)
                 .guestCookieToken(guestCookieToken)
                 .build();
+    }
+
+    /** v1.2.0 the cap of active sessions per user, also on guest create and resume. */
+    public void setTokenPersistence(games.paths.core.port.auth.TokenPersistencePort port, int maxTokens) {
+        this.tokenPersistencePort = port;
+        this.maxTokensPerUser = maxTokens;
+    }
+
+    private void storeRefresh(long userId, String refreshToken, String expiresAt) {
+        persistencePort.storeRefreshToken(userId, TokenHasher.sha256(refreshToken), expiresAt);
+        if (tokenPersistencePort != null) {
+            tokenPersistencePort.revokeOldestTokensIfLimitExceeded(userId, maxTokensPerUser);
+        }
     }
 
     @Override

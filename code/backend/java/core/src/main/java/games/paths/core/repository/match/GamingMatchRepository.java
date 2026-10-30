@@ -33,6 +33,11 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
             nativeQuery = true)
     int updateOwner(@Param("idMatch") Long idMatch, @Param("idUser") Long idUser, @Param("ts") String ts);
 
+    /** v1.7.0 - profile statistics: per status, matches, play time and clocks of one creator. */
+    @Query("SELECT m.status, COUNT(m), COALESCE(SUM(m.playMs), 0), COALESCE(SUM(m.currentClock), 0)"
+            + " FROM GamingMatchEntity m WHERE m.idUserCreator = :idUser AND m.status IN :statuses GROUP BY m.status")
+    List<Object[]> totalsByStatus(@Param("idUser") Long idUser, @Param("statuses") List<String> statuses);
+
     long countByIdUserCreatorAndStatusIn(Long idUserCreator, List<String> statuses);
 
     /**

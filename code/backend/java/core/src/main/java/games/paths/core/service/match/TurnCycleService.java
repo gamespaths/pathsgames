@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.port.match.KpiPort;
@@ -25,6 +26,14 @@ import java.util.Map;
  * <p>See {@code wiki/documentation_v0/Step24_TurnCycleEngine.md}.</p>
  */
 public class TurnCycleService implements TurnCyclePort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     private final TurnCycleStorePort store;
     private final UserAccessPort userAccessPort;
@@ -73,6 +82,7 @@ public class TurnCycleService implements TurnCyclePort {
             throw new TurnCycleException(TurnCycleException.Code.MATCH_NOT_STARTABLE,
                     "Match is not in CREATED state");
         }
+        MatchStampPort.check(stamp, matchUuid);
 
         List<CharacterTurnView> characters = store.findCharactersByMatchId(match.id());
         if (characters == null || characters.isEmpty()) {
@@ -94,6 +104,7 @@ public class TurnCycleService implements TurnCyclePort {
         QueueRow top = rows.get(0);
         rows.set(0, withStatus(top, TurnStatuses.ACTIVE, null, null));
 
+        MatchStampPort.claim(stamp, matchUuid);
         store.replaceQueue(match.id(), rows);
         store.updateMatchStatusAndTurn(match.id(), MatchStatuses.RUNNING, top.idCharacterMatch());
         store.stampMatchStart(match.id());
@@ -132,6 +143,7 @@ public class TurnCycleService implements TurnCyclePort {
             throw new TurnCycleException(TurnCycleException.Code.MATCH_NOT_RUNNING,
                     "Match is not RUNNING");
         }
+        MatchStampPort.check(stamp, matchUuid);
 
         List<CharacterTurnView> characters = store.findCharactersByMatchId(match.id());
         Map<Long, CharacterTurnView> byId = indexById(characters);
@@ -157,6 +169,7 @@ public class TurnCycleService implements TurnCyclePort {
                     "It is not your character's turn");
         }
 
+        MatchStampPort.claim(stamp, matchUuid);
         // Complete the current turn.
         QueueRow completed = new QueueRow(active.idCharacterMatch(), active.uuid(), active.clock(),
                 active.priority(), TurnStatuses.COMPLETED, active.passCounter() + 1,

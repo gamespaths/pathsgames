@@ -109,7 +109,7 @@ class GuestPersistenceAdapterTest {
 
             when(userRepository.findByGuestCookieTokenAndState("token", 6)).thenReturn(Optional.of(user));
 
-            Map<String, Object> res = adapter.findGuestByCookieToken("token");
+            Map<String, Object> res = adapter.findGuestByCookieToken("token", null);
 
             assertNotNull(res);
             assertEquals(7L, ((Number) res.get("id")).longValue());
@@ -128,7 +128,7 @@ class GuestPersistenceAdapterTest {
 
             when(userRepository.findByGuestCookieTokenAndState("token-null", 6)).thenReturn(Optional.of(user));
 
-            Map<String, Object> res = adapter.findGuestByCookieToken("token-null");
+            Map<String, Object> res = adapter.findGuestByCookieToken("token-null", null);
 
             assertEquals("", res.get("guest_expires_at"), "Branch coverage for null expiration");
         }
@@ -137,7 +137,32 @@ class GuestPersistenceAdapterTest {
         @DisplayName("Should return null when cookie token does not exist")
         void findGuestByCookieToken_notFound() {
             when(userRepository.findByGuestCookieTokenAndState("unknown", 6)).thenReturn(Optional.empty());
-            assertNull(adapter.findGuestByCookieToken("unknown"));
+            assertNull(adapter.findGuestByCookieToken("unknown", null));
+            assertNull(adapter.findGuestByCookieToken(null, "clear"));
+        }
+
+        @Test
+        @DisplayName("v1.2.0 a clear cookie token found by the fallback is rewritten as hash")
+        void findGuestByCookieToken_legacyClearValue() {
+            UserEntity user = new UserEntity();
+            user.setId(9L);
+            user.setUuid("u-9");
+            user.setUsername("guest9");
+            when(userRepository.findByGuestCookieTokenAndState("hash", 6)).thenReturn(Optional.empty());
+            when(userRepository.findByGuestCookieTokenAndState("clear", 6)).thenReturn(Optional.of(user));
+
+            Map<String, Object> res = adapter.findGuestByCookieToken("hash", "clear");
+
+            assertEquals("u-9", res.get("uuid"));
+            assertEquals("hash", user.getGuestCookieToken());
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        @DisplayName("v1.2.0 no legacy value and no hash match: null")
+        void findGuestByCookieToken_legacyMiss() {
+            when(userRepository.findByGuestCookieTokenAndState(anyString(), eq(6))).thenReturn(Optional.empty());
+            assertNull(adapter.findGuestByCookieToken("hash", "clear"));
         }
     }
 

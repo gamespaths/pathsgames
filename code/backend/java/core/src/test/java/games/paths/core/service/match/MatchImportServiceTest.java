@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -309,6 +310,41 @@ class MatchImportServiceTest {
                 .map(l -> String.valueOf(l.columns().get("log_message"))).toList();
         assertTrue(messages.contains("EVENT_EXECUTED 13 imported"), messages.toString());
         assertTrue(messages.contains("IMPORTED_UNCOUNTED CHOICE_SELECTED 14"), messages.toString());
+    }
+
+    @Test
+    void v170_playTimeTravelsAndAStoppedMatchKeepsItsStatus() {
+        for (String status : List.of("CANCELLED", "BANNED")) {
+            Map<String, Object> doc = MatchExportSamples.document();
+            MatchExportSamples.section(doc, "match").put("status", status);
+            MatchExportSamples.section(doc, "match").put("playMs", 42_000);
+            MatchExportSamples.withChecksum(doc);
+            Map<String, Object> check = service.check(request(doc));
+            assertEquals(true, check.get("valid"), check.toString());
+            when(store.storyIdByUuid(STORY)).thenReturn(Optional.of(9L));
+            when(storyExport.exportStory(STORY)).thenReturn(storyOf(doc));
+            clearInvocations(store, snapshotStore, timeService);
+            Map<String, Object> result = service.importMatch(request(doc, "startPaused", true));
+            assertEquals(status, result.get("matchStatus"));
+            verify(snapshotStore).setStatus(77L, status);
+            verify(timeService, never()).startTimeAfterRestore(MATCH);
+            ArgumentCaptor<ImportRows> rows = ArgumentCaptor.captor();
+            verify(store).insertImported(rows.capture());
+            assertEquals(42_000L, rows.getValue().match().get("play_ms"));
+        }
+    }
+
+    @Test
+    void v170_anExportWithoutPlayTimeImportsZero() {
+        Map<String, Object> doc = MatchExportSamples.document();
+        MatchExportSamples.section(doc, "match").remove("playMs");
+        MatchExportSamples.withChecksum(doc);
+        when(store.storyIdByUuid(STORY)).thenReturn(Optional.of(9L));
+        when(storyExport.exportStory(STORY)).thenReturn(storyOf(doc));
+        service.importMatch(request(doc));
+        ArgumentCaptor<ImportRows> rows = ArgumentCaptor.captor();
+        verify(store).insertImported(rows.capture());
+        assertEquals(0L, rows.getValue().match().get("play_ms"));
     }
 
     @Test

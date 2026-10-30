@@ -13,6 +13,13 @@ describe('CardImage', () => {
     expect(img.className).toBe('gc-img big')
   })
 
+  it('passes the referrer policy (Google profile pictures), none by default', () => {
+    const { container, rerender } = render(<CardImage src="p.png" referrerPolicy="no-referrer" />)
+    expect(container.querySelector('img').getAttribute('referrerpolicy')).toBe('no-referrer')
+    rerender(<CardImage src="p.png" />)
+    expect(container.querySelector('img').hasAttribute('referrerpolicy')).toBe(false)
+  })
+
   it('renders the icon placeholder when no source', () => {
     const { container } = render(<CardImage placeholderIcon="fas fa-star" />)
     expect(container.querySelector('.gc-placeholder .fa-star')).toBeTruthy()

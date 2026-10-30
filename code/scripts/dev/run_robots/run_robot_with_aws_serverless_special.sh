@@ -45,6 +45,14 @@ if [ "$API_URL" = "https://" ] || [ -z "$ADMIN_API_URL" ] || [ "$ADMIN_API_URL" 
     exit 1
 fi
 
+# v1.8.0 — admin allow-list first, before the Lambda env is saved (ROBOT_SKIP_ADMIN_IP=true keeps the stack list).
+if [ "${ROBOT_SKIP_ADMIN_IP:-false}" != "true" ]; then
+    if ! "$PROJECT_ROOT/code/scripts/test/aws/aws_set_admin_ip.sh" "$ENV_NAME" \
+        --stack "$AWS_TEST_SAM_STACK_NAME" --region "$REGION"; then
+        echo "WARNING: the admin allow-list could not be updated, the admin echo below may answer 403." >&2
+    fi
+fi
+
 # Nothing is changed unless both APIs answer: the tests need the admin API to stop and delete their matches.
 if ! curl -s --fail "$API_URL/api/echo/status" > /dev/null; then
     echo "Error: $API_URL did not answer /api/echo/status." >&2

@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -45,6 +49,18 @@ Parameters:
   CsrfEnforced:
     Type: String
     Default: "true"
+  # v1.7.0 — the choices PATCH /api/auth/me accepts
+  SupportedLanguages:
+    Type: String
+    Default: "en,it"
+  SupportedThemes:
+    Type: String
+    Default: "default,high-contrast"
+  # v1.7.0 step 10 — HMAC pepper of the banned Google subjects and emails
+  BannedSubjectPepper:
+    Type: String
+    Default: ""
+    NoEcho: true
   RobotTestDataTtlHours:
     Type: String
     Default: "0"
@@ -62,8 +78,29 @@ Parameters:
   GuestCleanupSchedule:
     Type: String
     Default: "cron(42 0 * * ? *)"
+  # v1.2.0 — Google sign-in, its per-IP limit and the admin bootstrap token lifetime
+  GoogleClientId:
+    Type: String
+    Default: "paths-games-dev.apps.googleusercontent.com"
+  GoogleEnabled:
+    Type: String
+    Default: "true"
+  RateLimitGooglePerIp:
+    Type: String
+    Default: "30"
+  # v1.7.0 step 12 — sessions per user and the SameSite of the auth cookies
+  MaxSessionsPerUser:
+    Type: String
+    Default: "12"
+  CookieSameSite:
+    Type: String
+    Default: "Lax"
+  AdminTokenDays:
+    Type: String
+    Default: "365"
 
 Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
   IsGuestCleanupEnabled: !Equals [!Ref GuestCleanupEnabled, "true"]
 
 Resources:
@@ -93,6 +130,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: AuthLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-AuthFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -125,6 +163,14 @@ Resources:
           RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
           ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_ENABLED: !Ref GoogleEnabled
+          RATE_LIMIT_GOOGLE_PER_IP: !Ref RateLimitGooglePerIp
+          SUPPORTED_LANGUAGES: !Ref SupportedLanguages
+          SUPPORTED_THEMES: !Ref SupportedThemes
+          BANNED_SUBJECT_PEPPER: !Ref BannedSubjectPepper
+          MAX_SESSIONS_PER_USER: !Ref MaxSessionsPerUser
+          COOKIE_SAME_SITE: !Ref CookieSameSite
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -177,6 +223,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: GuestCleanupLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -213,6 +260,7 @@ Resources:
         DailyGuestCleanup:
           Type: ScheduleV2
           Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
             Name: !Sub "pathsgames-${Environment}-guest-cleanup-daily"
             GroupName: !Ref GuestCleanupScheduleGroup
             ScheduleExpression: !Ref GuestCleanupSchedule
@@ -221,6 +269,146 @@ Resources:
             State: !If [IsGuestCleanupEnabled, ENABLED, DISABLED]
             FlexibleTimeWindow:
               Mode: "OFF"
+
+  # v1.2.0 — DELETE /api/auth/me finishes here: one chunk of state-7 users every 10 minutes,
+  # and once a day the Google users idle for 24 months are set to deleting.
+  AccountJobsLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AccountJobsFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-AccountJobsFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  AccountJobsFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: AccountJobsLogGroup
+    Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
+      FunctionName: !Sub "pathsgames-${Environment}-AccountJobsFunction"
+      Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
+      Handler: auth.handler.scheduled_account_jobs
+      Timeout: 300
+      MemorySize: 256
+      CodeUri: ../lambda/
+      PropagateTags: true
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-AccountJobsFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+          JWT_SECRET: !Ref JwtSecret
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Events:
+        AccountDeletion:
+          Type: ScheduleV2
+          Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
+            Name: !Sub "pathsgames-${Environment}-account-deletion"
+            GroupName: !Ref GuestCleanupScheduleGroup
+            ScheduleExpression: "rate(10 minutes)"
+            Input: '{"job": "deletion"}'
+            Description: "Deletes one chunk of the users in state 7 (deleting)"
+            FlexibleTimeWindow:
+              Mode: "OFF"
+        AccountRetention:
+          Type: ScheduleV2
+          Properties:
+            PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
+            Name: !Sub "pathsgames-${Environment}-account-retention"
+            GroupName: !Ref GuestCleanupScheduleGroup
+            ScheduleExpression: "cron(52 0 * * ? *)"
+            ScheduleExpressionTimezone: UTC
+            Input: '{"job": "retention"}'
+            Description: "Sets the Google users idle for 24 months to deleting"
+            FlexibleTimeWindow:
+              Mode: "OFF"
+
+  # v1.2.0 — the admin bootstrap: NO API route, invoked by hand (console or aws_create_admin.sh);
+  # it answers the admin user and its token, never logged.
+  AdminBootstrapLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AdminBootstrapFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-AdminBootstrapFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  AdminBootstrapFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: AdminBootstrapLogGroup
+    Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
+      FunctionName: !Sub "pathsgames-${Environment}-AdminBootstrapFunction"
+      Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: WARN
+      Handler: admin_bootstrap.handler.lambda_handler
+      Timeout: 30
+      MemorySize: 128
+      CodeUri: ../lambda/
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-AdminBootstrapFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+          JWT_SECRET: !Ref JwtSecret
+          ADMIN_TOKEN_DAYS: !Ref AdminTokenDays
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
 
   AuthIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -297,6 +485,29 @@ Resources:
       RouteKey: "GET /api/auth/me"
       Target: !Sub "integrations/${AuthIntegration}"
 
+  # v1.2.0 — Google sign-in and the account deletion
+  GoogleLoginRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/auth/google"
+      Target: !Sub "integrations/${AuthIntegration}"
+
+  DeleteMeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "DELETE /api/auth/me"
+      Target: !Sub "integrations/${AuthIntegration}"
+
+  # v1.7.0 — the profile preferences (language, theme)
+  PatchMeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PATCH /api/auth/me"
+      Target: !Sub "integrations/${AuthIntegration}"
+
   # ── Admin routes — served on the admin HTTP API, gated by the IP authorizer ──
   ListGuestsRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -363,6 +574,61 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # v1.7.0 step 10 — the users list and the user actions (same path variable name as the GET above)
+  ListAdminUsersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/users"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  BanAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/ban"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  SuspendAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/suspend"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  UnblockAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/unblock"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  RelinkAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/relink-subject"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  DeletionAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/deletion"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
   DeleteGuestRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -371,3 +637,7 @@ Resources:
       Target: !Sub "integrations/${AuthAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
+
+Outputs:
+  AdminBootstrapFunctionName:
+    Value: !Ref AdminBootstrapFunction

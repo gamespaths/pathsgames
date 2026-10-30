@@ -2,6 +2,8 @@ package games.paths.core.persistence.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
+import games.paths.core.model.match.MatchStatusTotals;
+import games.paths.core.model.match.RequestStamp;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SnapshotStorePort;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
@@ -146,7 +148,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
 
     @Override
     public int changeOwner(long idMatch, long idUser) {
-        String now = java.time.Instant.now().toString();
+        String now = RequestStamp.now();
         matchRepository.updateOwner(idMatch, idUser, now);
         return characterRepository.updateOwner(idMatch, idUser, now);
     }
@@ -217,5 +219,30 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         registryStorePort.deleteByMatchIdIn(matchIds);
         matchRepository.delete(opt.get());
         return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findMatchUuidsByUserCreator(long idUser, java.util.Collection<String> statuses) {
+        if (statuses == null || statuses.isEmpty()) {
+            return List.of();
+        }
+        return matchRepository.findByIdUserCreatorOrderByTsInsertDesc(idUser).stream()
+                .filter(m -> statuses.contains(m.getStatus())).map(GamingMatchEntity::getUuid).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MatchStatusTotals> totalsByStatus(long idUser, List<String> statuses) {
+        if (statuses == null || statuses.isEmpty()) {
+            return List.of();
+        }
+        return matchRepository.totalsByStatus(idUser, statuses).stream()
+                .map(r -> new MatchStatusTotals(String.valueOf(r[0]), num(r[1]), num(r[2]), num(r[3])))
+                .toList();
+    }
+
+    private static long num(Object value) {
+        return value instanceof Number n ? n.longValue() : 0L;
     }
 }

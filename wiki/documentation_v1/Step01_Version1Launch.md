@@ -1,6 +1,6 @@
 # Step 1 — Version 1 launch (daily smoke test)
 
-**Status: sub-points 1-8 DONE (October 14, 2026); sub-point 8 Robot suites written, to be run by the owner.** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
+**Status: sub-points 1-8 DONE (October 14, 2026); Robot suites green on Java, Python and AWS (1.10.0 run).** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
 Roadmap line: *V1 starts on top of the launched alpha* ([Roadmap](./Roadmap.md) step 1).
 Step 1 is released as `1.1.0` (bumped by the owner, never by an agent).
 Touches only the **AWS backend** (`code/backend/aws/`), `code/scripts/` and docs. **No API, OpenAPI,
@@ -417,13 +417,14 @@ the (i) names value and key (hidden key: no key nor value), see sub-point 8.
 No open doubt. Decided (owner flow start → movement → pass → sleep): `pass` only ends the turn, so the clock is checked after `sleep`, which triggers the time-end.
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.11.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.1.0 | Daily game check, fast locations, clearer registry lock messages | October 14, 2026 |
+  | 1.11.0 | Status updated: automatic tests run and green | October 29, 2026 |
 
-- **Last Updated**: October 14, 2026 (v1.1.0)
+- **Last Updated**: October 29, 2026 (v1.11.0)
 - **Status**: done; sub-point 8 Robot to run by the owner; sub-points 1-7 verified (Robot green on all backends, deploy and smoke verified by the owner, October 14, 2026); no open doubt
 
 # &lt; Paths Games /&gt;

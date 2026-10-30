@@ -2,6 +2,7 @@ package games.paths.adapters.admin.controller.story;
 
 import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.model.story.StorySummary;
+import games.paths.core.model.story.StorySummaryPage;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryCrudPort;
@@ -105,43 +106,50 @@ class StoryAdminControllerTest {
     class ListAllStories {
 
         @Test
-        @DisplayName("Should return 200 with all stories")
+        @DisplayName("v1.7.0 the {items, nextCursor, limit} envelope of one page")
         void listAll_success() throws Exception {
             StorySummary s1 = new StorySummary("uuid-1", "Story 1", null, "Author1",
                     null, null, "PUBLIC", 0, 0, 2, null);
             StorySummary s2 = new StorySummary("uuid-2", "Story 2", null, "Author2",
                     null, null, "PRIVATE", 0, 0, 1, null);
 
-            when(storyQueryPort.listAllStories("en")).thenReturn(List.of(s1, s2));
+            when(storyQueryPort.listAllStoriesPage("en", null, null))
+                    .thenReturn(new StorySummaryPage(List.of(s1, s2), "2", 50));
 
             mockMvc.perform(get("/api/admin/stories"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(2)))
-                    .andExpect(jsonPath("$[0].uuid").value("uuid-1"))
-                    .andExpect(jsonPath("$[0].visibility").value("PUBLIC"))
-                    .andExpect(jsonPath("$[1].uuid").value("uuid-2"))
-                    .andExpect(jsonPath("$[1].visibility").value("PRIVATE"));
+                    .andExpect(jsonPath("$.items", hasSize(2)))
+                    .andExpect(jsonPath("$.items[0].uuid").value("uuid-1"))
+                    .andExpect(jsonPath("$.items[0].visibility").value("PUBLIC"))
+                    .andExpect(jsonPath("$.items[1].uuid").value("uuid-2"))
+                    .andExpect(jsonPath("$.items[1].visibility").value("PRIVATE"))
+                    .andExpect(jsonPath("$.nextCursor").value("2"))
+                    .andExpect(jsonPath("$.limit").value(50));
         }
 
         @Test
-        @DisplayName("Should return 200 with empty list when no stories")
+        @DisplayName("Should return an empty page with a null nextCursor")
         void listAll_empty() throws Exception {
-            when(storyQueryPort.listAllStories("en")).thenReturn(List.of());
+            when(storyQueryPort.listAllStoriesPage("en", null, null))
+                    .thenReturn(new StorySummaryPage(List.of(), null, 50));
 
             mockMvc.perform(get("/api/admin/stories"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(0)));
+                    .andExpect(jsonPath("$.items", hasSize(0)))
+                    .andExpect(jsonPath("$.nextCursor").value(nullValue()));
         }
 
         @Test
-        @DisplayName("Should pass lang parameter to port")
+        @DisplayName("Should pass lang, limit and cursor to the port")
         void listAll_withLang() throws Exception {
-            when(storyQueryPort.listAllStories("it")).thenReturn(List.of());
+            when(storyQueryPort.listAllStoriesPage("it", 10, "20"))
+                    .thenReturn(new StorySummaryPage(List.of(), null, 10));
 
-            mockMvc.perform(get("/api/admin/stories").param("lang", "it"))
+            mockMvc.perform(get("/api/admin/stories").param("lang", "it").param("limit", "10")
+                            .param("cursor", "20"))
                     .andExpect(status().isOk());
 
-            verify(storyQueryPort).listAllStories("it");
+            verify(storyQueryPort).listAllStoriesPage("it", 10, "20");
         }
     }
 

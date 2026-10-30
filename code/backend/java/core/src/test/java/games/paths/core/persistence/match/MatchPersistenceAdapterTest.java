@@ -351,4 +351,30 @@ class MatchPersistenceAdapterTest {
         verify(registryStorePort).deleteByMatchIdIn(ids);
         verify(matchRepository).deleteByIdIn(ids);
     }
+
+    @Test
+    void totalsByStatusMapsTheGroupedRows() {
+        List<String> statuses = List.of("RUNNING", "ENDED");
+        when(matchRepository.totalsByStatus(7L, statuses)).thenReturn(List.of(
+                new Object[]{"RUNNING", 2L, 1500L, 9}, new Object[]{"ENDED", 1L, null, 4L}));
+        List<games.paths.core.model.match.MatchStatusTotals> totals = adapter.totalsByStatus(7L, statuses);
+        assertEquals(new games.paths.core.model.match.MatchStatusTotals("RUNNING", 2, 1500, 9), totals.get(0));
+        assertEquals(new games.paths.core.model.match.MatchStatusTotals("ENDED", 1, 0, 4), totals.get(1));
+        assertTrue(adapter.totalsByStatus(7L, List.of()).isEmpty());
+        assertTrue(adapter.totalsByStatus(7L, null).isEmpty());
+    }
+
+    @Test
+    void findMatchUuidsByUserCreatorKeepsTheGivenStatuses() {
+        GamingMatchEntity running = new GamingMatchEntity();
+        running.setUuid("m-1");
+        running.setStatus("RUNNING");
+        GamingMatchEntity ended = new GamingMatchEntity();
+        ended.setUuid("m-2");
+        ended.setStatus("ENDED");
+        when(matchRepository.findByIdUserCreatorOrderByTsInsertDesc(7L)).thenReturn(List.of(running, ended));
+        assertEquals(List.of("m-1"), adapter.findMatchUuidsByUserCreator(7L, java.util.Set.of("RUNNING", "PAUSED")));
+        assertTrue(adapter.findMatchUuidsByUserCreator(7L, java.util.Set.of()).isEmpty());
+        assertTrue(adapter.findMatchUuidsByUserCreator(7L, null).isEmpty());
+    }
 }

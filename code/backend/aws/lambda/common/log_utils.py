@@ -8,6 +8,9 @@ NOISY_LOGGERS = ('botocore.credentials',)
 
 
 def quiet_botocore(level=logging.WARNING):
-    """Raise the noisy AWS SDK loggers to `level`; the application loggers stay as configured."""
+    """Raise the noisy AWS SDK loggers to `level`; the application loggers stay as configured.
+    v1.2.0 — the log sanitizer goes on the root logger: no email or name reaches CloudWatch."""
     for name in NOISY_LOGGERS:
         logging.getLogger(name).setLevel(level)
+    from common import log_sanitizer
+    log_sanitizer.install()

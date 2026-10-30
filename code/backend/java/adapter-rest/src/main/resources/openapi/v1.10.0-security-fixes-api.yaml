@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — V1 security fixes (1.10.0)
+  description: |
+    Contract changes of the 1.10.0 security review. Same contract on Java, Python and AWS.
+
+    **Canonical paths (Java).** A request path the filters could read differently from the router
+    answers **400 `INVALID_PATH`** on both ports, before any other check: a `;`, a `\`, a `.` or `..`
+    segment, a broken escape, or an escape of a character that never needs one (letters, digits,
+    `-._~`, `/ \ ; %`, controls). `%40`, `%2B` and UTF-8 escapes stay valid (the admin user lookup by
+    email). The port and role checks decide on the decoded path, and every admin controller also
+    refuses a call off the admin port (404) or without the ADMIN role (403). Python and AWS answer 404
+    to such paths on the public URL (no admin route there).
+
+    **Refresh after "log out of all devices".** `POST /api/auth/refresh` with a refresh token issued
+    before `sessions_valid_after` (log out of all devices, ban, suspension) answers 401
+    `SESSION_REVOKED`, also inside the 2-minute grace of a just-rotated token. The account state is
+    checked first: a banned or suspended user answers 403 `ACCOUNT_DISABLED`.
+
+    **Stale at the write (AWS).** When the match version moves between the claim and the write of
+    the rows (an admin write in between), the gameplay write answers 409 `STALE_MATCH` with the
+    current `matchVersion` (no longer 500 `WRITE_FAILED`); nothing of the request is written.
+
+    **Client address.** The per-IP rate limits of Java and Python read `X-Forwarded-For` only when
+    the socket peer is a trusted proxy (`TRUSTED_PROXIES`, CIDR list; empty by default), and then
+    take the right-most hop that is not a proxy.
+  version: 1.10.0
+
+servers:
+  - url: http://localhost:8044
+    description: Admin port (dev endpoints)
+
+paths:
+  /api/dev/users/{userUuid}/expire-suspension:
+    post:
+      summary: End a suspension now (test endpoints only)
+      description: |
+        Moves `suspended_until` of a suspended user (state 3) one second into the past, so the next
+        login or refresh unblocks the user automatically (Robot). No intervention-log row. 403
+        `DEV_ENDPOINTS_DISABLED` outside dev/test.
+      tags: [Dev]
+      parameters:
+        - name: userUuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The suspension now ends in the past
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userUuid:
+                    type: string
+                  state:
+                    type: integer
+                    example: 3
+                  suspendedUntil:
+                    type: string
+                    format: date-time
+        '403':
+          description: DEV_ENDPOINTS_DISABLED
+        '404':
+          description: USER_NOT_FOUND
+        '409':
+          description: INVALID_STATE_TRANSITION (the user is not suspended)
+
+components:
+  schemas:
+    InvalidPathError:
+      type: object
+      description: Java, 400 on a non-canonical request path
+      properties:
+        error:
+          type: string
+          enum: [INVALID_PATH]
+        message:
+          type: string

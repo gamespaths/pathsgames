@@ -86,6 +86,7 @@ public final class NeutralColumnCodec {
         out.put("timestampGameover", ts(m.get("timestamp_gameover")));
         out.put("timestampLockExpiration", ts(m.get("timestamp_lock_expiration")));
         out.put("createdAt", ts(m.get("ts_insert")));
+        out.put("playMs", nz(lng(m.get("play_ms"))));
         return out;
     }
 
@@ -209,6 +210,42 @@ public final class NeutralColumnCodec {
         out.put("guest", state != null && state == 6L);
         out.put("role", str(u.get("role")));
         out.put("emailAddress", str(u.get("email_address")));
+        List<Map<String, Object>> identities = new ArrayList<>();
+        if (u.get("identities") instanceof List<?> rows) {
+            rows.forEach(r -> identities.add(identity((Map<?, ?>) r)));
+        }
+        if (!identities.isEmpty()) {
+            out.put("identities", identities);
+        }
+        return out;
+    }
+
+    /** v1.2.0 one users_identities row in the neutral form (the stage migration of Google users). */
+    public static Map<String, Object> identity(Map<?, ?> r) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("provider", str(r.get("provider")));
+        out.put("subject", str(r.get("provider_subject")));
+        out.put("email", str(r.get("email")));
+        out.put("profileName", str(r.get("profile_name")));
+        out.put("givenName", str(r.get("given_name")));
+        out.put("familyName", str(r.get("family_name")));
+        out.put("pictureUrl", str(r.get("picture_url")));
+        out.put("locale", str(r.get("locale")));
+        return out;
+    }
+
+    /** v1.2.0 the users_identities columns of a neutral identity, for the import insert. */
+    public static Map<String, Object> identityRow(Map<?, ?> n) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("provider", str(n.get("provider")));
+        out.put("provider_subject", str(n.get("subject")));
+        String email = str(n.get("email"));
+        out.put("email", email == null ? null : email.toLowerCase(java.util.Locale.ROOT));
+        out.put("profile_name", str(n.get("profileName")));
+        out.put("given_name", str(n.get("givenName")));
+        out.put("family_name", str(n.get("familyName")));
+        out.put("picture_url", str(n.get("pictureUrl")));
+        out.put("locale", str(n.get("locale")));
         return out;
     }
 
@@ -541,6 +578,7 @@ public final class NeutralColumnCodec {
         c.put("trait_uuids", MatchTraitCodec.join(traits));
         c.put("ts_insert", first(str(m.get("createdAt")), now));
         c.put("ts_update", now);
+        c.put("play_ms", nz(lng(m.get("playMs"))));
         return c;
     }
 

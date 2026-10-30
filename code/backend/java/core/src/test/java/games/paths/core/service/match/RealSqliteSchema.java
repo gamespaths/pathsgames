@@ -18,6 +18,8 @@ import java.util.stream.Stream;
 final class RealSqliteSchema {
 
     static final Path MIGRATIONS = Path.of("..", "adapter-sqlite", "src", "main", "resources", "db", "migration", "v0");
+    /** v1.2.0 the V1 migrations run after the V0 ones. */
+    static final Path MIGRATIONS_V1 = MIGRATIONS.resolveSibling("v1");
 
     private RealSqliteSchema() {
     }
@@ -25,7 +27,7 @@ final class RealSqliteSchema {
     static SingleConnectionDataSource create() throws IOException, SQLException {
         SingleConnectionDataSource dataSource = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
         List<Path> files;
-        try (Stream<Path> s = Files.list(MIGRATIONS)) {
+        try (Stream<Path> s = Stream.concat(Files.list(MIGRATIONS), Files.list(MIGRATIONS_V1))) {
             files = s.filter(p -> p.getFileName().toString().endsWith(".sql")).sorted(Comparator.comparing(
                     RealSqliteSchema::version, RealSqliteSchema::compareVersions)).toList();
         }
@@ -39,7 +41,8 @@ final class RealSqliteSchema {
 
     private static int[] version(Path p) {
         String v = p.getFileName().toString().substring(1).split("__")[0];
-        return Arrays.stream(v.split("\\.")).mapToInt(Integer::parseInt).toArray();
+        // Flyway reads "_" as a version separator too (V1.7.0_1 = 1.7.0.1)
+        return Arrays.stream(v.split("[._]")).mapToInt(Integer::parseInt).toArray();
     }
 
     private static int compareVersions(int[] a, int[] b) {

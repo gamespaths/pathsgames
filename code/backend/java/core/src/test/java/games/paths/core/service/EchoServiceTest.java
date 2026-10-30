@@ -107,4 +107,39 @@ class EchoServiceTest {
                 "Timestamp should be between " + before + " and " + after);
         }
     }
+
+    @org.junit.jupiter.api.Test
+    void v170SupportedListsDefaultAndConfigured() {
+        EchoService service = new EchoService("OK", Map.of());
+        assertEquals(java.util.List.of("en", "it"), service.getSupportedLanguages());
+        assertEquals(java.util.List.of("default", "high-contrast"), service.getSupportedThemes());
+        service.setSupported(java.util.List.of("en", "it", "fr"), null);
+        assertEquals(java.util.List.of("en", "it", "fr"), service.getSupportedLanguages());
+        service.setSupported(null, java.util.List.of("default"));
+        assertEquals(java.util.List.of("default"), service.getSupportedThemes());
+        assertEquals(java.util.List.of("en", "it", "fr"), service.getSupportedLanguages());
+    }
+
+    @org.junit.jupiter.api.Test
+    void v170Step8MatchRefetchDefaultsAndConfigured() {
+        EchoService service = new EchoService("OK", Map.of());
+        assertEquals(java.util.List.of("webkit"), service.getMatchRefetchBrowsers());
+        assertEquals(30, service.getMatchRefetchMinHiddenSeconds());
+        service.setMatchRefetch(null, null);
+        service.setMatchRefetch(java.util.List.of(), -1);
+        assertEquals(java.util.List.of("webkit"), service.getMatchRefetchBrowsers());
+        assertEquals(30, service.getMatchRefetchMinHiddenSeconds());
+        service.setMatchRefetch(java.util.List.of("all"), 0);
+        assertEquals(java.util.List.of("all"), service.getMatchRefetchBrowsers());
+        assertEquals(0, service.getMatchRefetchMinHiddenSeconds());
+        games.paths.core.port.EchoPort bare = new games.paths.core.port.EchoPort() {
+            public String getServerStatus() { return "OK"; }
+            public long getTimestamp() { return 0L; }
+            public Map<String, String> getServerProperties() { return Map.of(); }
+            public java.util.List<String> getSupportedLanguages() { return java.util.List.of(); }
+            public java.util.List<String> getSupportedThemes() { return java.util.List.of(); }
+        };
+        assertEquals(java.util.List.of("webkit"), bare.getMatchRefetchBrowsers());
+        assertEquals(30, bare.getMatchRefetchMinHiddenSeconds());
+    }
 }

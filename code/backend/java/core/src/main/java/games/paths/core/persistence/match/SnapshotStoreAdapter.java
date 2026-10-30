@@ -1,6 +1,7 @@
 package games.paths.core.persistence.match;
 
 import games.paths.core.model.match.LogTable;
+import games.paths.core.model.match.RequestStamp;
 import games.paths.core.port.match.SnapshotStorePort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlParameterValue;
@@ -263,13 +264,13 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
                 values.put(column, rows.get(0).get(column));
             }
         }
-        values.put("ts_update", Instant.now().toString());
+        values.put("ts_update", RequestStamp.now());
         update(MATCH_TABLE, values, "id = ?", idMatch);
     }
 
     @Override
     public void setStatus(long idMatch, String status) {
-        jdbc.update(UPDATE_MATCH_STATUS, status, Instant.now().toString(), idMatch);
+        jdbc.update(UPDATE_MATCH_STATUS, status, RequestStamp.now(), idMatch);
     }
 
     @Override

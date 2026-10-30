@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listAllStories, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
+import { listStoriesPage, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import ErrorAlert from '../../components/common/ErrorAlert'
 import ConfirmModal from '../../components/common/ConfirmModal'
@@ -20,8 +20,13 @@ function sortKeysDeep(value) {
   return value
 }
 
+// v1.7.0 — the stories list is cursor-paged on the server: one page, then "Load more".
+export const STORIES_PAGE_LIMIT = 50
+
 export default function StoriesPage() {
   const [stories,  setStories]  = useState([])
+  const [nextCursor,  setNextCursor]  = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState('')
   const [success,  setSuccess]  = useState('')
@@ -33,9 +38,25 @@ export default function StoriesPage() {
 
   const load = () => {
     setLoading(true); setError('')
-    listAllStories(lang)
-      .then(data => { setStories(data); setLoading(false) })
+    listStoriesPage(lang, { limit: STORIES_PAGE_LIMIT })
+      .then(env => {
+        setStories(Array.isArray(env?.items) ? env.items : [])
+        setNextCursor(env?.nextCursor ?? null)
+        setLoading(false)
+      })
       .catch(e  => { setError(e.message); setLoading(false) })
+  }
+
+  const loadMore = () => {
+    if (!nextCursor) return
+    setLoadingMore(true); setError('')
+    listStoriesPage(lang, { limit: STORIES_PAGE_LIMIT, cursor: nextCursor })
+      .then(env => {
+        setStories(prev => [...prev, ...(Array.isArray(env?.items) ? env.items : [])])
+        setNextCursor(env?.nextCursor ?? null)
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoadingMore(false))
   }
 
   useEffect(load, [lang])
@@ -257,6 +278,18 @@ export default function StoriesPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {!loading && (stories.length > 0 || nextCursor) && (
+        <div className="flex items-center justify-between mt-4">
+          <span style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
+            Showing {filtered.length} of {stories.length} loaded{nextCursor ? ' — more available' : ' — all loaded'}
+          </span>
+          <button className="pg-btn pg-btn-ghost" onClick={loadMore} disabled={loadingMore || !nextCursor}>
+            <i className="fas fa-angles-down" />{' '}
+            {loadingMore ? 'Loading…' : nextCursor ? 'Load more' : 'No more pages'}
+          </button>
         </div>
       )}
 
