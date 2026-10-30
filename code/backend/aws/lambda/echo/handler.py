@@ -3,12 +3,28 @@ import os
 import time
 from datetime import datetime, timezone
 
+from common import google_verifier
 from common import log_utils
+from common import profile
 from common.http_utils import normalize_path as _normalize_path
 from common.response import HEADERS, finalize as _finalize
 
 # v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
 log_utils.quiet_botocore()
+
+def match_refetch_browsers():
+    """v1.7.0 step 8 MATCH_REFETCH_BROWSERS: webkit (default) or all."""
+    return profile.parse_list(os.environ.get('MATCH_REFETCH_BROWSERS'), ['webkit'])
+
+
+def match_refetch_min_hidden_seconds():
+    """v1.7.0 step 8 MATCH_REFETCH_MIN_HIDDEN_SECONDS, default 30 (a bad or negative value too)."""
+    try:
+        value = int(os.environ.get('MATCH_REFETCH_MIN_HIDDEN_SECONDS', '30') or 30)
+    except ValueError:
+        return 30
+    return value if value >= 0 else 30
+
 
 def lambda_handler(event, context):
     """v0.41.0 — every answer leaves through finalize (security headers)."""
@@ -32,8 +48,17 @@ def _route(event, context):
             # (injected as the ENV variable on the function).
             "env":     os.environ.get("ENV", "dev"),
             "name":    "Paths Games",
-            "version": "1.1.0"
-        }
+            "version": "1.12.0"
+        },
+        # v1.2.0 the Google sign-in switch and the client id, read by react-game at runtime
+        "googleEnabled": google_verifier.enabled(),
+        "googleClientId": google_verifier.client_id(),
+        # v1.7.0 the profile choices; react-game shows those it also has a bundle for
+        "supportedLanguages": profile.supported_languages(),
+        "supportedThemes": profile.supported_themes(),
+        # v1.7.0 step 8 when react-game refetches a match on page return
+        "matchRefetchBrowsers": match_refetch_browsers(),
+        "matchRefetchMinHiddenSeconds": match_refetch_min_hidden_seconds(),
     }
 
     return {

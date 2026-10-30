@@ -93,6 +93,10 @@ class _Counter:
         self.counts[key] = self.counts.get(key, 0) + 1
         return {'Attributes': {'cnt': self.counts[key]}}
 
+    def query(self, **kwargs):
+        # v1.2.0 the session cap reads the user's active sessions (none here)
+        return {'Items': []}
+
 
 def test_rate_limit_counts_per_window_and_refuses_past_the_limit(monkeypatch):
     from common import security_utils, db_utils

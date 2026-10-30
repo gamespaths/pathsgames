@@ -254,4 +254,4 @@ def test_dashboard_has_the_smoke_function_and_stays_under_fifty_metrics(mon):
     assert body.count('pathsgames-${Environment}-SmokeTestFunction"') == 3
     widgets = json.loads(re.sub(r'\$\{[^}]+\}', 'X', body))['widgets']
     total = sum(len(w['properties']['metrics']) for w in widgets)
-    assert total == 45 and total <= 50
+    assert total == 48 and total <= 50  # v1.2.0 +3: AccountJobsFunction

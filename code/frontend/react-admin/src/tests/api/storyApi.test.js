@@ -22,11 +22,31 @@ describe('storyApi', () => {
     })
   })
 
-  it('listAllStories calls correct endpoint', async () => {
+  it('listAllStories reads a plain array (backend before 1.7.0) as one page', async () => {
     mockGet.mockResolvedValue({ data: ['story1', 'story2'] })
     const res = await storyApi.listAllStories('it')
-    expect(mockGet).toHaveBeenCalledWith('/api/admin/stories', { params: { lang: 'it' } })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/stories', { params: { lang: 'it', limit: 200 } })
     expect(res).toEqual(['story1', 'story2'])
+  })
+
+  it('v1.7.0 listAllStories follows nextCursor through every page', async () => {
+    mockGet
+      .mockResolvedValueOnce({ data: { items: ['s1', 's2'], nextCursor: '2', limit: 200 } })
+      .mockResolvedValueOnce({ data: { items: ['s3'], nextCursor: null, limit: 200 } })
+    expect(await storyApi.listAllStories()).toEqual(['s1', 's2', 's3'])
+    expect(mockGet).toHaveBeenNthCalledWith(2, '/api/admin/stories', { params: { lang: 'en', limit: 200, cursor: '2' } })
+    mockGet.mockReset()
+    mockGet.mockResolvedValue({ data: { nextCursor: 'again' } })
+    expect(await storyApi.listAllStories('en')).toEqual([])
+    expect(mockGet).toHaveBeenCalledTimes(50)
+  })
+
+  it('v1.7.0 listStoriesPage sends only the given paging params', async () => {
+    mockGet.mockResolvedValue({ data: { items: [], nextCursor: null, limit: 10 } })
+    await storyApi.listStoriesPage()
+    expect(mockGet).toHaveBeenLastCalledWith('/api/admin/stories', { params: { lang: 'en' } })
+    await storyApi.listStoriesPage('it', { limit: 10, cursor: '20' })
+    expect(mockGet).toHaveBeenLastCalledWith('/api/admin/stories', { params: { lang: 'it', limit: 10, cursor: '20' } })
   })
 
   it('createStory calls correct endpoint', async () => {

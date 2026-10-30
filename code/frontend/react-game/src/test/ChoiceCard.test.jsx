@@ -56,6 +56,7 @@ describe('ChoiceCard (Step 31)', () => {
     // Convention: never pass `label` to Card.
     expect(capturedProps.label).toBeUndefined()
     expect(capturedProps.selectLabel).toBe('Do')
+    expect(capturedProps.testId).toBe('choice')
   })
 
   it('falls back to a card built from the option fields when it has no card', () => {

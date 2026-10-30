@@ -36,7 +36,10 @@ def test_create_guest(client, mock_guest_port, mock_jwt_port):
     
     response = client.post("/api/auth/guest")
     assert response.status_code == 201
-    assert response.json()["accessToken"] == "access"
+    # v1.2.0 the tokens of the service, never a second pair issued by the controller
+    assert response.json()["accessToken"] == "a"
+    assert response.json()["accessTokenExpiresAt"] == 1
+    mock_jwt_port.generate_access_token.assert_not_called()
 
 def test_resume_guest(client, mock_guest_port, mock_jwt_port):
     session = GuestSession(user_uuid="u1", username="user1", access_token="a", refresh_token="r", access_token_expires_at=1, refresh_token_expires_at=2, guest_cookie_token="cookie")

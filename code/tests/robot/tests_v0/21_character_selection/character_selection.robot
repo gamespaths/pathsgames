@@ -182,7 +182,7 @@ Join Terminated Match Returns 409
 Get Players From Non Participant Returns 404
     [Documentation]    A guest who has no character in the match cannot list its players → 404.
     [Tags]    characters    step21
-    ${other}=    POST On Session    public_session    /api/auth/guest
+    ${other}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${other}    201
     ${response}=    Get Match Players    ${other.json()}[accessToken]    ${MATCH_UUID}
     Status Should Be    ${response}    404
@@ -207,7 +207,7 @@ Suite Setup Character Selection
     ...                Also opens an admin session (admin port) and loads the full story
     ...                detail for the class-compatibility / players scenarios.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
@@ -221,4 +221,4 @@ Suite Setup Character Selection
     Set Suite Variable    ${DETAIL}    ${detail.json()}
     ${admin_token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${admin_token}
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false

@@ -7,6 +7,7 @@ import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
 
@@ -226,11 +227,27 @@ class MatchControllerTest {
     }
 
     @Test
-    void listMatches_returnsArray() throws Exception {
-        when(queryPort.listUserMatches("user-uuid")).thenReturn(List.of(summary()));
+    void listMatches_returnsEnvelope() throws Exception {
+        MatchSummary s = summary();
+        s.setTsUpdate("2026-10-22T10:00:00Z");
+        when(queryPort.listUserMatchesPage("user-uuid", null, null))
+                .thenReturn(new MatchSummaryPage(List.of(s), null, 50));
         mockMvc.perform(authed(get("/api/matches")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].uuid").value("match-uuid"));
+                .andExpect(jsonPath("$.items[0].uuid").value("match-uuid"))
+                .andExpect(jsonPath("$.items[0].tsUpdate").value("2026-10-22T10:00:00Z"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist())
+                .andExpect(jsonPath("$.limit").value(50));
+    }
+
+    @Test
+    void listMatches_passesLimitAndCursor() throws Exception {
+        when(queryPort.listUserMatchesPage("user-uuid", 2, "4"))
+                .thenReturn(new MatchSummaryPage(List.of(summary()), "6", 2));
+        mockMvc.perform(authed(get("/api/matches").param("limit", "2").param("cursor", "4")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nextCursor").value("6"))
+                .andExpect(jsonPath("$.limit").value(2));
     }
 
     @Test

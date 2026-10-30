@@ -354,7 +354,7 @@ Force Coma
     ${body}=    Create Dictionary    life=${0}    coma=${True}    sleeping=${False}
     POST On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/player/${player}/changeStatistics
-    ...    json=${body}    expected_status=200
+    ...    json=${body}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     ${state}=    Get Character Detail    ${token}    ${match_uuid}    ${player}    200
     Should Be True    ${state.json()}[isComa]
     ...    msg=setup failed: the character is not comatose

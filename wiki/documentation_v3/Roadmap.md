@@ -25,7 +25,7 @@ Shared references: [Architecture](../Architecture.md),
     - List of doubts for the owner (docs)
 2. **Steam SSO — backend** — login with Steam on all three backends.
     - Steam OpenID 2.0 flow (different from Google OAuth) (backend)
-    - New provider in the identity table prepared in V1 (backend)
+    - New provider in the identity table prepared in V1; a Steam user has no email and is identified by its Steam id (backend)
     - Link Steam to an existing logged user; two accounts that are already separate stay separate (backend)
     - OpenAPI spec (backend)
     - Unit tests with provider mocks (tests)

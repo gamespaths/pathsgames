@@ -6,7 +6,7 @@
 #
 # Authenticated (Bearer access token issued by /api/auth/guest):
 #   POST /api/matches                  → 201, MatchSummary
-#   GET  /api/matches                  → 200, MatchSummary[]
+#   GET  /api/matches                  → 200, {items: MatchSummary[], nextCursor, limit} (v1.7.0 step 9)
 #   GET  /api/match/{uuidMatch}/info   → 200 MatchInfo | 404
 #
 # Admin (Bearer access token with role ADMIN):
@@ -39,7 +39,7 @@ Create Match
     ${response}=    POST On Session    public_session    /api/matches
     ...    headers=${headers}
     ...    json=${body}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Create Match With Rng Seed
@@ -60,7 +60,7 @@ Create Match With Rng Seed
     ${response}=    POST On Session    public_session    /api/matches
     ...    headers=${headers}
     ...    json=${body}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Match Weather
@@ -145,15 +145,16 @@ Create Match With Loadout
     ${response}=    POST On Session    public_session    /api/matches
     ...    headers=${headers}
     ...    json=${body}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 List Matches
-    [Documentation]    GET /api/matches with the given Bearer token.
-    [Arguments]    ${token}    ${expected_status}=any
+    [Documentation]    GET /api/matches with the given Bearer token. v1.7.0 step 9 — answers the
+    ...                envelope {items, nextCursor, limit}; ${params} may carry limit/cursor.
+    [Arguments]    ${token}    ${expected_status}=any    ${params}=${None}
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    public_session    /api/matches
-    ...    headers=${headers}
+    ...    headers=${headers}    params=${params}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
@@ -196,7 +197,7 @@ End Match
     ${response}=    PATCH On Session    public_session
     ...    /api/match/${match_uuid}/end/${event_uuid}
     ...    headers=${headers}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Create Match With Turnstile Token
@@ -217,7 +218,7 @@ Create Match With Turnstile Token
     ${response}=    POST On Session    public_session    /api/matches
     ...    headers=${headers}
     ...    json=${body}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Pick First Public Story With Difficulty
@@ -310,7 +311,7 @@ Join Match
     ${response}=    POST On Session    public_session    /api/matches/${match_uuid}/join
     ...    headers=${headers}
     ...    json=${body}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Match Players
@@ -366,7 +367,7 @@ Admin Change Statistics
     ${response}=    POST On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/player/${player_uuid}/changeStatistics
     ...    headers=${headers}    json=${body}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Admin Stop Match
@@ -375,7 +376,7 @@ Admin Stop Match
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    admin_session    /api/admin/matches/${match_uuid}/stop
     ...    headers=${headers}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Admin Pause Match
@@ -384,7 +385,7 @@ Admin Pause Match
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    admin_session    /api/admin/matches/${match_uuid}/pause
     ...    headers=${headers}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Admin Resume Match
@@ -393,7 +394,7 @@ Admin Resume Match
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    admin_session    /api/admin/matches/${match_uuid}/resume
     ...    headers=${headers}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Admin Delete Match
@@ -402,7 +403,7 @@ Admin Delete Match
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    DELETE On Session    admin_session    /api/admin/matches/${match_uuid}
     ...    headers=${headers}
-    ...    expected_status=${expected_status}
+    ...    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 # ── Step 24 — turn cycle engine ──
@@ -412,7 +413,7 @@ Start Match
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    public_session    /api/matches/${match_uuid}/start
-    ...    headers=${headers}    expected_status=${expected_status}
+    ...    headers=${headers}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Pass Turn
@@ -420,7 +421,7 @@ Pass Turn
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/pass
-    ...    headers=${headers}    expected_status=${expected_status}
+    ...    headers=${headers}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Turn Sequence
@@ -436,7 +437,7 @@ Sleep Action
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/sleep
-    ...    headers=${headers}    expected_status=${expected_status}
+    ...    headers=${headers}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Clock
@@ -455,7 +456,7 @@ Start Movement
     ${headers}=    Get Auth Headers    ${token}
     &{body}=    Create Dictionary    targetLocationUuid=${target_location_uuid}
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/movements/start
-    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Locations
@@ -487,7 +488,7 @@ Select Choice
         Set To Dictionary    ${params}    lang=${lang}
     END
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/select-choice
-    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Execute Event
@@ -503,7 +504,7 @@ Execute Event
         Set To Dictionary    ${params}    lang=${lang}
     END
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/execute-event
-    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Registry
@@ -573,7 +574,7 @@ Admin Upsert Registry
     END
     ${response}=    PUT On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/registry
-    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Admin Delete Registry
@@ -587,7 +588,7 @@ Admin Delete Registry
     END
     ${response}=    DELETE On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/registry
-    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Inventory
@@ -618,7 +619,7 @@ Use Item
         Set To Dictionary    ${params}    lang=${lang}
     END
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/use-item
-    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Use Exp
@@ -630,7 +631,7 @@ Use Exp
     ${headers}=    Get Auth Headers    ${token}
     &{body}=    Create Dictionary    stat=${stat}
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/use-exp
-    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Drop Item
@@ -641,7 +642,7 @@ Drop Item
     ${headers}=    Get Auth Headers    ${token}
     &{body}=    Create Dictionary    itemInstanceUuid=${item_instance_uuid}
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/drop-item
-    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Resources

@@ -4,7 +4,7 @@ name: Dependency Scan
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ main  ] # ex develop #no , release , release/*
     paths:
       - "code/backend/java/**/pom.xml"
       - "code/backend/python/requirements.txt"
@@ -14,8 +14,8 @@ on:
       - "osv-scanner.toml"
       - ".github/workflows/dependency-scan.yml"
   # Weekly, Monday 05:42 UTC; GitHub runs schedules on the default branch (main) only.
-  schedule:
-    - cron: "42 5 * * 1"
+  #schedule:
+  #  - cron: "42 5 * * 1"
 
 permissions:
   contents: read

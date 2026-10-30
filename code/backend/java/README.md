@@ -45,6 +45,14 @@ code/backend/java/
 | **dev** (default) | `application-dev.yml` | 8042 | SQLite | Local development |
 | **prod** | `application-prod.yml` | 8080 | PostgreSQL | Production environment |
 
+## Google login (V1.2.0)
+
+`POST /api/auth/google`, `GET`/`DELETE /api/auth/me` (spec `v1.2.0-google-sso-api.yaml`); identities in `users_identities`, no passwords. Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. Admin bootstrap: `--paths.admin.create=<nick>` (script `code/scripts/dev/create_admin_java.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. Dev-only `POST /api/dev/users/{uuid}/expire-suspension` (admin port, V1.10.0). `TRUSTED_PROXIES` (CIDRs whose `X-Forwarded-For` is believed, default empty); `PathGuardFilter` answers 400 `INVALID_PATH` to non-canonical paths ([Security §10](../../../wiki/Security.md)). Details: [Security §1.1](../../../wiki/Security.md).
+
+## Profile, sessions and user admin (V1.7.0)
+
+Spec `v1.7.0-multi-device-api.yaml`. `GET`/`PATCH /api/auth/me`; `matchVersion` / `If-Match` / 409 `STALE_MATCH` (`RequestStampFilter`, `MatchStampService`, `MatchVersionAdvice`); `GET /api/matches` and `GET /api/admin/stories` answer `{items, nextCursor, limit}`; admin port: `GET /api/admin/users`, `GET /api/admin/users/{identifier}`, `POST /api/admin/users/{uuid}/ban|suspend|unblock|relink-subject|deletion`. Env: `MAX_TOKENS_PER_USER` (12), `REFRESH_TOKEN_DAYS` (250, guest 180), `COOKIE_SAME_SITE` (`Lax`; `None` only when the API is on another site than the page), `BANNED_SUBJECT_PEPPER` (required outside dev/test), `PLAY_TIME_CAP_SECONDS`, `SUPPORTED_LANGUAGES`, `SUPPORTED_THEMES`, `MATCH_REFETCH_BROWSERS`, `MATCH_REFETCH_MIN_HIDDEN_SECONDS`. `RevokedTokenCleanupScheduler` purges rotated/logged-out refresh tokens after 7 days. A non-integer `?limit=` reads as absent (`QueryLimits`, default 50); `GET /api/matches/{uuid}/weather` and `POST /api/matches/{uuid}/join` are owner-only (404 `MATCH_NOT_FOUND`). Details: [Security](../../../wiki/Security.md) §1.2, §10.1.
+
 ## Database & Flyway
 
 Both profiles use **Flyway** for automatic schema migration. Migrations run on every application startup — only new, unapplied versions are executed.
@@ -190,7 +198,7 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 1.1.0
+- **Document Version**: 1.7.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
@@ -209,7 +217,8 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
     | 0.29.0 | (still v0.29.0, no version bump) Movement availability verdict on `/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, the movement twin of the event verdict added in Step 29 (`EventAvailabilityChecker`). New `core/service/match/MovementAvailabilityChecker.java` — pure static function, no ports, no I/O, same 8-code order as `movements/start` (§ Validation Order: `CHARACTER_CANNOT_ACT` → `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → `NOT_A_NEIGHBOR` → `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` → `LOCATION_FULL`). `MovementService.startMovement` refactored to call the checker instead of its own if-chain. `MatchQueryService` loads the check context once per request and loops the checker over neighbors, no port call inside the loop. `LocationNeighborInfo`/`MatchInfoResponse` gain `available`/`reason`. OpenAPI `v0.19.0-match-creation-api.yaml` updated. No Flyway migration | Jul 13, 2026 |
     | 0.41.6 | Admin match owner move (`MatchOwnerService`, owner and user lookup endpoints) and story uuid check (`StoryUuid`) | Oct 3, 2026 |
     | 1.1.0 | API specs checked automatically, clearer reasons for locked actions | October 14, 2026 |
-- **Last Updated**: October 14, 2026 (v1.1.0)
+    | 1.7.0 | Profile, match version, sessions and user admin added | October 23, 2026 |
+- **Last Updated**: October 23, 2026 (v1.7.0)
 - **Status**: In progress
 
 

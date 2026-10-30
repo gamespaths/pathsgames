@@ -39,6 +39,8 @@ case "${JWT_SECRET:-}" in
 		;;
 esac
 export JWT_SECRET
+# v1.8.0 — the prod profile also refuses a missing pepper: a random one per run when .env has none.
+export BANNED_SUBJECT_PEPPER="${BANNED_SUBJECT_PEPPER:-$(openssl rand -base64 48)}"
 # v0.41.4 - ROBOT_RATE_LIMITS=1 (run_robot_everywhere *_LIMITED): limits on, only the rate-limit tests.
 # Per guest < per-IP matches, so that case meets its own bucket; 10 guests leave room for the setups.
 if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then
@@ -46,7 +48,7 @@ if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then
 	ROBOT_SCOPE=(--include rate-limit --variable RATE_LIMIT_GUEST_PER_IP:10 --variable RATE_LIMIT_MATCH_PER_IP:5
 		--variable RATE_LIMIT_MATCH_PER_GUEST:3 --outputdir reports-local-java-postgres-limited/)
 else
-	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0 RATE_LIMIT_GOOGLE_PER_IP=0
 	ROBOT_SCOPE=(--outputdir reports-local-java-postgres/)
 fi
 

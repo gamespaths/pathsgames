@@ -1,3 +1,4 @@
+import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings, check_secrets
@@ -16,6 +17,11 @@ from app.adapters.persistence.auth.token_persistence_adapter import TokenPersist
 from app.core.services.auth.session_service import SessionService
 from app.adapters.rest.auth.session_controller import SessionController
 from app.adapters.rest.middleware.jwt_middleware import JwtMiddleware
+from app.adapters.rest.middleware.request_stamp_middleware import RequestStampMiddleware
+from app.adapters.persistence.match.match_stamp_store_adapter import MatchStampStoreAdapter
+from app.core.models.auth.profile import DEFAULT_LANGUAGES, DEFAULT_THEMES, parse_list
+from app.core.models.match.stale_match import STALE_MATCH, StaleMatchError
+from app.core.services.match.match_stamp import MatchStampService
 
 from app.adapters.persistence.story.story_read_adapter import StoryReadAdapter
 from app.adapters.persistence.story.story_persistence_adapter import StoryPersistenceAdapter
@@ -107,7 +113,9 @@ token_persistence = TokenPersistenceAdapter(SessionLocal)
 jwt_adapter = JwtAdapter(
     secret=settings.jwt_secret,
     access_token_minutes=settings.access_token_minutes,
-    refresh_token_days=settings.refresh_token_days
+    refresh_token_days=settings.refresh_token_days,
+    issuer=settings.jwt_issuer_effective,
+    audience=settings.jwt_audience_effective,
 )
 story_read_adapter = StoryReadAdapter(SessionLocal)
 story_persistence_adapter = StoryPersistenceAdapter(SessionLocal)
@@ -120,10 +128,16 @@ echo_service = EchoService(
         "version": settings.version,
         "applicationName": settings.app_name,
         "port": str(settings.port),
-    }
+    },
+    # v1.7.0 the profile choices of PATCH /api/auth/me
+    supported_languages=parse_list(settings.supported_languages, DEFAULT_LANGUAGES),
+    supported_themes=parse_list(settings.supported_themes, DEFAULT_THEMES),
 )
-session_service = SessionService(jwt_adapter, token_persistence, 5)
-guest_auth_service = GuestAuthService(jwt_adapter, persistence_adapter)
+# v1.7.0 step 8 the page-return refetch of a match, shown by /api/echo/status
+echo_service.set_match_refetch(parse_list(settings.match_refetch_browsers, ["webkit"]),
+                               settings.match_refetch_min_hidden_seconds)
+session_service = SessionService(jwt_adapter, token_persistence, settings.max_tokens_per_user)
+guest_auth_service = GuestAuthService(jwt_adapter, persistence_adapter, token_persistence, settings.max_tokens_per_user)
 story_query_service = StoryQueryService(story_read_adapter)
 story_validator_service = StoryValidatorService(story_read_adapter)
 story_import_service = StoryImportService(story_persistence_adapter, story_validator_service)
@@ -206,15 +220,58 @@ match_query_service = MatchQueryService(
 )
 match_query_service.set_mission_service(mission_service)
 
+# v1.2.0 — Google SSO: verifier (and the test-only fake provider), login with guest merge, the 60 s
+# user state cache, account deletion and the admin bootstrap.
+from app.adapters.auth.google_verifier import FakeGoogleTokens, GoogleIdTokenVerifier
+from app.adapters.persistence.auth.identity_persistence_adapter import IdentityPersistenceAdapter
+from app.adapters.persistence.auth.guest_merge_persistence_adapter import GuestMergePersistenceAdapter
+from app.core.services.auth.account_service import AccountService
+from app.core.services.auth.admin_bootstrap_service import AdminBootstrapService
+from app.core.services.auth.google_login_service import GoogleLoginService
+from app.core.services.auth.guest_merge_service import GuestMergeService
+from app.core.services.auth.user_state_service import UserStateService
+from app.adapters.rest.auth.google_auth_controller import GoogleAuthController
+identity_persistence = IdentityPersistenceAdapter(SessionLocal)
+fake_google_tokens = FakeGoogleTokens(bool(settings.dev_test_endpoints_enabled), settings.google_client_id,
+                                      settings.jwt_secret)
+google_verifier = GoogleIdTokenVerifier(settings.google_client_id, fake_google_tokens)
+user_state_service = UserStateService(identity_persistence)
+session_service.user_state = user_state_service
+google_login_service = GoogleLoginService(google_verifier, identity_persistence, jwt_adapter, token_persistence,
+                                          persistence_adapter, GuestMergeService(GuestMergePersistenceAdapter(SessionLocal)),
+                                          enabled=settings.google_enabled, max_tokens_per_user=settings.max_tokens_per_user,
+                                          user_state=user_state_service)
+account_service = AccountService(identity_persistence, google_verifier, token_persistence, match_persistence_adapter,
+                                 user_state_service, settings.account_deletion_chunk, settings.account_retention_months)
+account_service.configure_preferences(echo_service.get_supported_languages(), echo_service.get_supported_themes())
+admin_bootstrap_service = AdminBootstrapService(identity_persistence, jwt_adapter, settings.admin_token_days)
+# v1.7.0 step 10 — the account guard (ban hashes, suspension end, re-link) and the admin user management
+from app.adapters.persistence.auth.admin_intervention_adapter import AdminInterventionAdapter
+from app.adapters.persistence.auth.user_admin_persistence_adapter import UserAdminPersistenceAdapter
+from app.core.services.auth.account_guard_service import AccountGuardService
+from app.core.services.auth.subject_hasher import SubjectHasher
+from app.core.services.auth.user_admin_service import UserAdminService
+user_admin_persistence = UserAdminPersistenceAdapter(SessionLocal)
+admin_intervention_adapter = AdminInterventionAdapter(SessionLocal)
+subject_hasher = SubjectHasher(settings.banned_subject_pepper)
+account_guard_service = AccountGuardService(user_admin_persistence, admin_intervention_adapter, user_state_service,
+                                            subject_hasher)
+google_login_service.account_guard = account_guard_service
+session_service.account_guard = account_guard_service
+user_admin_service = UserAdminService(identity_persistence, user_admin_persistence, token_persistence,
+                                      user_state_service, admin_intervention_adapter, subject_hasher,
+                                      match_persistence_adapter, match_command_service, account_service)
+
 # Dev-only test-data cleanup service
-test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter)
+test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter,
+                                                   identity_persistence)
 
 # 4. Initialize Controllers
-echo_controller = EchoController(echo_service)
+echo_controller = EchoController(echo_service, google_login_service)
 # v0.37.7 — Step 41 security: the rate limiter and the CSRF token issuer shared by the controllers.
 from app.core.services.security.rate_limit_service import RateLimitService
 from app.core.services.security.csrf_token_service import CsrfTokenService
-rate_limit_service = RateLimitService(settings.rate_limit_window_seconds)
+rate_limit_service = RateLimitService(settings.rate_limit_window_seconds, trusted_proxies=settings.trusted_proxies)
 csrf_token_service = CsrfTokenService(settings.csrf_secret or settings.jwt_secret, settings.csrf_enforced)
 
 guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence,
@@ -222,7 +279,9 @@ guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, tok
                                             rate_limit_service, settings.rate_limit_guest_per_ip,
                                             csrf_token_service)
 guest_admin_controller = GuestAdminController(guest_admin_service)
-session_controller = SessionController(session_service, csrf_token_service)
+session_controller = SessionController(session_service, csrf_token_service, account_service)
+google_auth_controller = GoogleAuthController(google_login_service, rate_limit_service,
+                                              settings.rate_limit_google_per_ip, csrf_token_service)
 story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service,
                                               story_catalog_export_service)
@@ -242,7 +301,8 @@ character_controller = CharacterController(character_command_service, character_
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
 weather_store_adapter = WeatherStoreAdapter(SessionLocal)
 weather_selection_service = WeatherSelectionService(weather_store_adapter, registry_service)
-weather_controller = WeatherController(weather_selection_service, content_query_service)
+weather_controller = WeatherController(weather_selection_service, content_query_service, match_persistence_adapter,
+                                       user_access_adapter)
 
 # Step 28 — movement system service (shared by player and admin controllers).
 # story_match_read_adapter resolves the location cards on GET /locations;
@@ -353,7 +413,16 @@ experience_controller = ExperienceController(experience_service)
 movement_service.location_entry = event_service
 time_advancement_service.set_automatic_event_runner(event_service)
 
-dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
+# v1.7.0 — a gameplay write checks If-Match and claims the next version before its first write (step 8);
+# admin writes stamp ts_update only.
+match_stamp_service = MatchStampService(MatchStampStoreAdapter(SessionLocal), settings.play_time_cap_seconds)
+for _stamped_service in (turn_cycle_service, character_command_service, time_advancement_service,
+                         experience_service, event_service, inventory_service, movement_service,
+                         match_command_service, registry_service):
+    _stamped_service.match_stamp = match_stamp_service
+
+dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled,
+                               admin_bootstrap_service, fake_google_tokens, account_service, user_admin_service)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -375,6 +444,13 @@ async def _http_exception_handler(request: Request, exc: StarletteHTTPException)
     return JSONResponse(status_code=exc.status_code, content={"error": "HTTP_EXCEPTION", "message": str(exc.detail)})
 
 
+async def _stale_match_handler(request: Request, exc: StaleMatchError):
+    """v1.7.0 step 8 — 409 STALE_MATCH with the current version, before any write."""
+    return JSONResponse(status_code=409, content={
+        "error": STALE_MATCH, "message": exc.message, "matchVersion": exc.current_version,
+        "timestamp": int(time.time() * 1000)})
+
+
 async def _validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=400,
@@ -392,6 +468,7 @@ public_paths = [
     "/api/auth/guest",
     "/api/auth/guest/resume",
     "/api/auth/refresh",
+    "/api/auth/google",
     "/api/dev/**"
 ]
 # v0.41.0 — decision 34: the FastAPI docs exist only on dev/test, and there they are public.
@@ -403,9 +480,10 @@ if settings.is_dev_or_test:
 def _cors_params():
     # v0.41.0 — Retry-After is exposed, so the browser can read it on a 429
     if settings.cors_allowed_origins == "*":
+        # v1.10.0 any origin, never with credentials: a foreign page cannot read a refresh answer
         return {
-            "allow_origin_regex": r".*",
-            "allow_credentials": True,
+            "allow_origins": ["*"],
+            "allow_credentials": False,
             "allow_methods": ["*"],
             "allow_headers": ["*"],
             "expose_headers": ["Retry-After"],
@@ -432,9 +510,13 @@ def _build_app(routers) -> FastAPI:
     application = FastAPI(title=settings.app_name, version=settings.version, **_docs_params())
     application.add_exception_handler(StarletteHTTPException, _http_exception_handler)
     application.add_exception_handler(RequestValidationError, _validation_exception_handler)
-    application.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
+    application.add_exception_handler(StaleMatchError, _stale_match_handler)
+    application.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths,
+                               user_state=user_state_service)
     # v0.41.0 — security headers outside the JWT check, so its refusals carry them too
     application.add_middleware(SecurityHeadersMiddleware)
+    # v1.7.0 — one match stamp per request
+    application.add_middleware(RequestStampMiddleware)
     # CORS added LAST so it is OUTERMOST (per S8414).
     application.add_middleware(CORSMiddleware, **_cors_params())
     for entry in routers:
@@ -449,6 +531,7 @@ def _build_app(routers) -> FastAPI:
 app = _build_app([
     echo_controller.router,
     guest_auth_controller.router,
+    google_auth_controller.router,
     (session_controller.router, {"prefix": "/api/auth"}),
     story_controller.router,
     content_controller.router,
@@ -475,7 +558,7 @@ app_admin = _build_app([
     KpiAdminController(kpi_service).router,
     MatchExportAdminController(match_export_service, settings.match_export_max_bytes).router,
     MatchOwnerAdminController(match_owner_service).router,
-    UserAdminController(match_owner_service).router,
+    UserAdminController(match_owner_service, user_admin_service).router,
     dev_controller.router,
 ])
 
@@ -486,7 +569,14 @@ async def _serve():
     import uvicorn
 
     check_secrets()
+    # v1.2.0 personal data (email, names, picture) never reaches a log line
+    from app.core.services.security import log_sanitizer
+    log_sanitizer.install()
+    log_sanitizer.install("uvicorn")
     start_guest_cleanup(guest_admin_service, settings)
+    from app.adapters.scheduler.account_jobs_scheduler import start_account_jobs
+    start_account_jobs(account_service, settings, user_admin_service=user_admin_service,
+                       session_service=session_service)
     public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
     admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
     await asyncio.gather(public.serve(), admin.serve())

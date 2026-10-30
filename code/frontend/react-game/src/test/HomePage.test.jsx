@@ -27,10 +27,11 @@ const mockOpenGuestModal = vi.fn()
 const mockUser = { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok' }
 // v0.37.6 — the guest identity the page sees; tests swap it to simulate a session
 // still being created (no token yet) or one that failed.
-const guest = vi.hoisted(() => ({ user: null, error: null }))
+const guest = vi.hoisted(() => ({ user: null, error: null, sessionIdle: false, ensureGuest: null }))
 
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: guest.user, error: guest.error, openGuestModal: mockOpenGuestModal }),
+  useGuestUser: () => ({ user: guest.user, error: guest.error, openGuestModal: mockOpenGuestModal,
+    sessionIdle: guest.sessionIdle, ensureGuest: guest.ensureGuest }),
 }))
 
 // The flags come from .env*, which a build (or a developer) flips: pin them here so this
@@ -94,8 +95,18 @@ describe('HomePage — story click with active match check', () => {
     ts.behavior = 'success'
     guest.user = mockUser
     guest.error = null
+    guest.sessionIdle = false
+    guest.ensureGuest = null
     document.cookie = 'pathsgames.turnstilePass=; max-age=0; path=/' // forget prior pass
     getStories.mockResolvedValue([STORY_A, STORY_B])
+  })
+
+  it('v1.8.0 — no "Sign in with Google to find your matches" button', async () => {
+    listMatches.mockResolvedValue([])
+    wrap(<HomePage />)
+    await screen.findByText('home.heroTitle')
+    expect(screen.queryByTestId('known-account-hint')).toBeNull()
+    expect(screen.queryByText('home.knownAccount')).toBeNull()
   })
 
   it('opens StartBookModal when no active match for that story', async () => {
@@ -398,3 +409,35 @@ describe('HomePage — unmounted before the catalog fetch settles', () => {
     expect(screen.queryByText('Forest Path')).not.toBeInTheDocument()
   })
 })
+
+describe('HomePage v1.2.0 — after a Google logout with no guest to resume', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.behavior = 'success'
+    document.cookie = 'pathsgames.turnstilePass=; max-age=0; path=/'
+    getStories.mockResolvedValue([STORY_A])
+    guest.user = null
+    guest.error = null
+    guest.sessionIdle = true
+  })
+
+  it('lists nothing and the first Play creates the guest', async () => {
+    guest.ensureGuest = vi.fn().mockResolvedValue(mockUser)
+    wrap(<HomePage />)
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
+    fireEvent.click(await screen.findByText('Forest Path'))
+    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    expect(guest.ensureGuest).toHaveBeenCalled()
+    expect(listMatches).not.toHaveBeenCalled()
+  })
+
+  it('a guest that cannot be created turns the footer to error', async () => {
+    guest.ensureGuest = vi.fn().mockRejectedValue(new Error('429'))
+    wrap(<HomePage />)
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
+    fireEvent.click(await screen.findByText('Forest Path'))
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
+    expect(screen.queryByTestId('start-book-modal')).toBeNull()
+  })
+})
+

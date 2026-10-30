@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.controller.match;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.rest.dto.MatchLogsResponse;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.TurnCyclePort;
@@ -42,7 +43,7 @@ public class MatchLogsController {
     @GetMapping("/api/matches/{uuidMatch}/logs")
     public ResponseEntity<Object> getMatchLogs(@PathVariable String uuidMatch,
                                                @RequestParam(required = false) String lang,
-                                               @RequestParam(required = false) Integer limit,
+                                               @RequestParam(required = false) String limit,
                                                @RequestParam(required = false) String cursor,
                                                @RequestParam(required = false) String order,
                                                HttpServletRequest request) {
@@ -55,7 +56,7 @@ public class MatchLogsController {
         }
         try {
             return ResponseEntity.ok(MatchLogsResponse.fromModel(
-                    matchLogsPort.getMatchLogs(uuidMatch, userUuid, lang, limit, cursor, order)));
+                    matchLogsPort.getMatchLogs(uuidMatch, userUuid, lang, QueryLimits.parse(limit), cursor, order)));
         } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }

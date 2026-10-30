@@ -231,7 +231,19 @@ class CookieHelperTest {
     void constants_haveExpectedValues() {
         assertEquals("pathsgames.refreshToken", CookieHelper.REFRESH_TOKEN_COOKIE);
         assertEquals("pathsgames.guestcookie",  CookieHelper.GUEST_COOKIE_TOKEN);
-        assertEquals(180 * 24 * 60 * 60, CookieHelper.REFRESH_MAX_AGE_SECONDS);
+        assertEquals(250 * 24 * 60 * 60, CookieHelper.REFRESH_MAX_AGE_SECONDS);
         assertEquals(180 * 24 * 60 * 60, CookieHelper.GUEST_COOKIE_MAX_AGE_SECONDS);
+    }
+
+    @Test
+    @DisplayName("v1.7.0 the refresh cookie lives 250 days, the guest cookie 180")
+    void refreshCookieMaxAgeIs250Days() {
+        org.springframework.mock.web.MockHttpServletResponse response =
+                new org.springframework.mock.web.MockHttpServletResponse();
+        CookieHelper.setRefreshTokenCookie(response, "r");
+        CookieHelper.setGuestCookieToken(response, "g");
+        java.util.List<String> headers = response.getHeaders("Set-Cookie");
+        assertTrue(headers.get(0).contains("Max-Age=21600000"), headers.get(0));
+        assertTrue(headers.get(1).contains("Max-Age=15552000"), headers.get(1));
     }
 }

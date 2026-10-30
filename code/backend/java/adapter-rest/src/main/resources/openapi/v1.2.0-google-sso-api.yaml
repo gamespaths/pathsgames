@@ -1,0 +1,395 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — V1 steps 2-5 Google SSO (1.2.0)
+  description: |
+    Google sign-in with a Google Identity Services ID token (popup, no client secret), the identity
+    model (`users_identities`, only verified `@gmail.com` emails; the email identifies the user and
+    never changes), hardened sessions and the account deletion. Same contract on Java, Python and AWS.
+
+    **Tokens.** Access and refresh tokens are HS256 JWTs with the claims `sub`, `username`, `role`,
+    `type`, `jti`, `iat`, `exp` plus `iss` (stage + backend, e.g. `pathsgames-production-java`) and
+    `aud` (`paths-games`), both verified on every request; a token of another stage or backend, or a
+    token issued before 1.2.0, answers 401. The user of a token must exist: role and state are read
+    from the database (Java/Python cache them 60 seconds; a state change evicts the user), never from
+    the token. Users in state 3 (blocked), 4 (banned) or 7 (deleting) are refused with 403
+    `ACCOUNT_DISABLED` / `ACCOUNT_DELETION_IN_PROGRESS`.
+
+    **Refresh.** `POST /api/auth/refresh` revokes only the refresh token it uses (the cap of 5
+    sessions per user stays); the just-rotated token is still accepted for 30 seconds (two tabs
+    refreshing together). A revoked refresh token (logout, another device, deletion) answers 401
+    `SESSION_REVOKED`. Refresh and guest cookie tokens are stored as SHA-256 hash; a value stored in
+    clear before 1.2.0 is found once and rewritten as hash (fallback removed after 180 days).
+
+    **Guest merge.** The current guest of the request (Bearer access token of a guest, else the
+    `pathsgames.guestcookie` cookie) is merged into the Google user at login: its matches move to the
+    user; per story the STARTED (CREATED/RUNNING/PAUSED) match with the latest `ts_update` wins and
+    the others become `CANCELLED`; ended matches are all kept; the empty guest and its tokens are
+    deleted and the guest cookie is cleared.
+
+    **Identity rules.** `EMAIL_NOT_VERIFIED` (403) when `email_verified` is not true;
+    `EMAIL_DOMAIN_NOT_ALLOWED` (403) for any domain other than `gmail.com` (`googlemail.com` too);
+    `IDENTITY_MISMATCH` (409) when the email belongs to a user with another Google subject (contact
+    support); a renamed email (same subject, new email) is a new user. On these errors nothing is
+    written and the email is never logged. A new user gets `username = google_<8 uuid chars>` and
+    `nickname` = the email local part without `+tag` (`#2`, `#3` on a clash), set only at creation.
+
+    **Match export/import.** Every exported user carries `identities` (provider, subject, email,
+    profile); the import maps a Google user by its identity email with the subject check (another
+    subject is the error `IDENTITY_MISMATCH` of the plan), an old export by `emailAddress`, a guest
+    by uuid/username, and recreates the identities of a created user (warning `NICKNAME_RENAMED` when
+    its nickname is taken). Match status `CANCELLED` is terminal.
+  version: 1.2.0
+
+servers:
+  - url: http://localhost:8042
+    description: Public API (Java/Python dev)
+
+paths:
+  /api/auth/google:
+    post:
+      summary: Sign in with a Google ID token
+      description: |
+        Public. Optional `Authorization: Bearer <guest access token>` and the guest cookie: that guest
+        is merged. Rate limited per IP (`google-per-ip`, default 30 per window). The refresh token is
+        set as the HttpOnly cookie `pathsgames.refreshToken` (path /api/auth).
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoogleLoginResponse'
+        '400':
+          description: INVALID_REQUEST (missing idToken or nonce)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '401':
+          description: INVALID_TOKEN (signature, aud, iss, exp), INVALID_NONCE, TOKEN_REPLAYED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '403':
+          description: EMAIL_NOT_VERIFIED, EMAIL_DOMAIN_NOT_ALLOWED, ACCOUNT_DISABLED, ACCOUNT_DELETION_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '409':
+          description: IDENTITY_MISMATCH (the email belongs to another Google account), NICKNAME_TAKEN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: RATE_LIMITED (Retry-After header)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '503':
+          description: PROVIDER_UNAVAILABLE (Google keys not reachable), GOOGLE_DISABLED (google-enabled false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+
+  /api/auth/refresh:
+    post:
+      summary: Rotate the refresh token (cookie)
+      tags: [Auth]
+      responses:
+        '200':
+          description: New access token; the new refresh token in the cookie
+        '400':
+          description: MISSING_REFRESH_TOKEN
+        '401':
+          description: INVALID_REFRESH_TOKEN, SESSION_REVOKED (closed from another device, logout, deletion)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '403':
+          description: ACCOUNT_DISABLED, ACCOUNT_DELETION_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+
+  /api/auth/me:
+    get:
+      summary: The current user (profile from the database)
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Missing, invalid or foreign token, or unknown user
+    delete:
+      summary: Delete the account (Google users)
+      description: |
+        Needs a Google ID token of the same account issued less than 5 minutes ago (`iat`), checked
+        like the login (aud, iss, exp, nonce when given, replay). The user goes to state 7
+        (deleting), every session is revoked and a chunked, idempotent job removes the user, its
+        identities, tokens, matches, characters, logs and snapshots. Meanwhile a login answers
+        `ACCOUNT_DELETION_IN_PROGRESS`; afterwards the same email creates a new user. No UI before
+        roadmap step 7.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '202':
+          description: Deletion accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [DELETING]
+                  message:
+                    type: string
+                  timestamp:
+                    type: integer
+                    format: int64
+        '401':
+          description: FRESH_TOKEN_REQUIRED, INVALID_TOKEN, INVALID_NONCE, TOKEN_REPLAYED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '403':
+          description: NOT_A_GOOGLE_ACCOUNT, ACCOUNT_DELETION_IN_PROGRESS
+        '409':
+          description: IDENTITY_MISMATCH (the token is of another Google account)
+
+  /api/echo/status:
+    get:
+      summary: Server status with the Google sign-in switch and client id
+      tags: [Echo]
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: integer
+                    format: int64
+                  properties:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  googleEnabled:
+                    type: boolean
+                    description: false only on test for trials; react-game then hides the sign-in button
+                  googleClientId:
+                    type: string
+                    description: OAuth client id of this stage, read by react-game at runtime
+
+  /api/dev/admin-token:
+    post:
+      summary: Robot admin (test endpoints only)
+      description: |
+        Creates (or finds again by nickname) a real admin user and returns its token, through the
+        same service as the admin bootstrap tool. 403 DEV_ENDPOINTS_DISABLED when the test endpoints
+        are off (prod profile, AWS without TEST_ENDPOINTS_ENABLED).
+      tags: [Dev]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                  default: robot_admin
+      responses:
+        '201':
+          description: Admin and token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userUuid:
+                    type: string
+                  username:
+                    type: string
+                  nickname:
+                    type: string
+                  role:
+                    type: string
+                  created:
+                    type: boolean
+                  accessToken:
+                    type: string
+                  expiresAt:
+                    type: integer
+                    format: int64
+        '403':
+          description: DEV_ENDPOINTS_DISABLED
+
+  /api/dev/google-token:
+    post:
+      summary: Fake Google ID token (test endpoints only)
+      description: |
+        Mints an ID token of the test-only fake Google provider (HS256, kid `paths-games-fake-google`,
+        key derived from the stage JWT secret), accepted by `POST /api/auth/google` only while the
+        test endpoints are enabled. Claims not given default to `iss` https://accounts.google.com,
+        `aud` the client id, `email_verified` true, `exp` now + 1 h; `expOffsetSeconds` and
+        `iatOffsetSeconds` move them.
+      tags: [Dev]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: The token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idToken:
+                    type: string
+        '403':
+          description: DEV_ENDPOINTS_DISABLED
+
+  /api/dev/jobs/account-deletion:
+    post:
+      summary: Run the account deletion job now (test endpoints only)
+      tags: [Dev]
+      responses:
+        '200':
+          description: Users removed by this run
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedUsers:
+                    type: integer
+        '403':
+          description: DEV_ENDPOINTS_DISABLED
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: The GIS ID token (credential)
+        nonce:
+          type: string
+          description: Random value of the frontend (sessionStorage), required at login, checked against the token
+        language:
+          type: string
+          enum: [en, it]
+          description: Language of a new user (device preference); else the Google locale, else en
+
+    UserProfile:
+      type: object
+      properties:
+        userUuid:
+          type: string
+        username:
+          type: string
+        nickname:
+          type: string
+        displayName:
+          type: string
+          description: '"given_name family_name" when present, else name, else nickname'
+        pictureUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [PLAYER, ADMIN]
+        accountType:
+          type: string
+          enum: [GUEST, GOOGLE, INTERNAL]
+        language:
+          type: string
+        csrfToken:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+
+    GoogleLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/UserProfile'
+        - type: object
+          properties:
+            accessToken:
+              type: string
+            accessTokenExpiresAt:
+              type: integer
+              format: int64
+            refreshTokenExpiresAt:
+              type: integer
+              format: int64
+            newUser:
+              type: boolean
+            mergedGuest:
+              type: boolean
+            cancelledMatches:
+              type: integer
+
+    MatchStatus:
+      type: string
+      enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
+      description: CANCELLED is terminal, set by the guest merge to a STARTED match that lost to a newer one
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [INVALID_REQUEST, INVALID_TOKEN, INVALID_NONCE, TOKEN_REPLAYED, SESSION_REVOKED,
+                 FRESH_TOKEN_REQUIRED, EMAIL_NOT_VERIFIED, EMAIL_DOMAIN_NOT_ALLOWED, ACCOUNT_DISABLED,
+                 ACCOUNT_DELETION_IN_PROGRESS, NOT_A_GOOGLE_ACCOUNT, IDENTITY_MISMATCH, NICKNAME_TAKEN,
+                 PROVIDER_UNAVAILABLE, GOOGLE_DISABLED, RATE_LIMITED, INVALID_REFRESH_TOKEN]
+        message:
+          type: string
+        timestamp:
+          type: integer
+          format: int64

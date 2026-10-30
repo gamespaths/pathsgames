@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.port.match.RegistryStorePort;
@@ -25,6 +26,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("RegistryService (Step 36)")
 class RegistryServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private RegistryStorePort store;
     private RegistryService service;
 
@@ -32,6 +36,7 @@ class RegistryServiceTest {
     void setUp() {
         store = mock(RegistryStorePort.class);
         service = new RegistryService(store);
+        service.setMatchStamp(stamp);
     }
 
     private static RegistryRow row(String key, String s, Integer i) {
@@ -687,6 +692,7 @@ class RegistryServiceTest {
         void upsertUnknownMatch() {
             when(store.findMatchAndStoryIdByUuid("nope")).thenReturn(Optional.empty());
             assertNull(service.upsertByMatchUuid("nope", "clue", "ledger"));
+            verifyNoInteractions(stamp);
         }
 
         @Test
@@ -696,6 +702,7 @@ class RegistryServiceTest {
             when(store.findByMatchAndKey(7L, "clue")).thenReturn(List.of());
 
             assertEquals(List.of("ledger"), service.upsertByMatchUuid("m-1", "clue", "ledger"));
+            verify(stamp).touchAdmin("m-1");
             verify(store).upsert(eq(7L), eq("clue"), eq("ledger"), isNull(), isNull(), isNull(), isNull(), isNull());
         }
 
@@ -714,6 +721,7 @@ class RegistryServiceTest {
                     .thenReturn(List.of(multiRow("clues", "ledger", null), multiRow("clues", "letter", null)));
 
             assertEquals(List.of("letter"), service.removeByMatchUuid("m-1", "clues", "ledger"));
+            verify(stamp).touchAdmin("m-1");
         }
 
         @Test

@@ -1,5 +1,7 @@
 package games.paths.launcher.filter;
 
+import games.paths.adapters.rest.filter.RequestPaths;
+
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -59,7 +61,8 @@ public class AdminPortFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        String uri = httpRequest.getRequestURI();
+        // v1.10.0 the routed path (decoded, no ;parameters), never the raw URI: /api/%61dmin is /api/admin
+        String uri = RequestPaths.routed(httpRequest);
         boolean onAdminPort = httpRequest.getLocalPort() == adminPort;
         // Admin-only = /api/admin/** and the dev maintenance endpoints /api/dev/**.
         boolean adminOnly = isAdminPath(uri) || isDevPath(uri);

@@ -76,6 +76,22 @@ class AdminPortFilterTest {
     }
 
     @Test
+    @DisplayName("v1.10.0 public port + encoded or ;-padded admin path → 404 (the routed path decides)")
+    void publicPort_encodedAdminPath_blocked() throws Exception {
+        for (String uri : new String[] {"/api/%61dmin/users", "/api;x/admin/users", "/api/%64ev/admin-token"}) {
+            reset(response, chain);
+            when(response.getWriter()).thenReturn(new PrintWriter(responseBody));
+            when(request.getLocalPort()).thenReturn(PUBLIC_PORT);
+            when(request.getRequestURI()).thenReturn(uri);
+
+            filter.doFilter(request, response, chain);
+
+            verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+            verify(chain, never()).doFilter(any(), any());
+        }
+    }
+
+    @Test
     @DisplayName("Admin port + /api/echo/status (health) → passes through")
     void adminPort_healthPath_passes() throws Exception {
         when(request.getLocalPort()).thenReturn(ADMIN_PORT);

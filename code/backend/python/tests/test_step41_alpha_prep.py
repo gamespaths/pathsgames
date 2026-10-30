@@ -34,6 +34,7 @@ from app.core.services.auth.guest_admin_service import DEFAULT_MAX_PER_RUN, Gues
 from app.core.services.auth.guest_auth_service import GuestAuthService
 from app.core.services.security.env_rule import is_dev_or_test
 from app.core.services.security.rate_limit_service import RateLimitService
+from proxy_peer import behind_proxy
 
 PAST = "2020-01-01T00:00:00+00:00"
 FUTURE = "2999-01-01T00:00:00+00:00"
@@ -77,12 +78,22 @@ def test_new_defaults(monkeypatch):
 
 def test_check_secrets_refuses_the_committed_secret_outside_dev_test():
     check_secrets(Settings(env="development", jwt_secret=DEV_JWT_SECRET))
-    check_secrets(Settings(env="production", jwt_secret="a-private-random-secret-of-32-chars!!"))
+    check_secrets(Settings(env="production", jwt_secret="a-private-random-secret-of-32-chars!!",
+                           banned_subject_pepper="a-private-pepper"))
     for env in ("production", "alpha", "beta"):
         with pytest.raises(RuntimeError, match="JWT_SECRET"):
             check_secrets(Settings(env=env, jwt_secret=DEV_JWT_SECRET))
     with pytest.raises(RuntimeError):
         check_secrets(Settings(env="production", jwt_secret="  "))
+
+
+def test_v1_10_the_committed_secret_is_refused_beyond_loopback_also_in_dev():
+    check_secrets(Settings(env="development", jwt_secret=DEV_JWT_SECRET, host="127.0.0.1"))
+    check_secrets(Settings(env="test", jwt_secret=DEV_JWT_SECRET, host="localhost"))
+    for host in ("0.0.0.0", "10.0.0.5", ""):
+        with pytest.raises(RuntimeError, match="HOST"):
+            check_secrets(Settings(env="test", jwt_secret=DEV_JWT_SECRET, host=host))
+    check_secrets(Settings(env="test", jwt_secret="a-private-random-secret-of-32-chars!!", host="0.0.0.0"))
 
 
 def test_check_secrets_defaults_to_the_module_settings(monkeypatch):
@@ -244,7 +255,10 @@ def test_align_schema_adds_the_cleanup_index_once():
         c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT, email_address TEXT)"))
         c.execute(text("CREATE INDEX idx_users_email ON users (email_address)"))
     applied = database.align_schema(engine)
-    assert applied == ["CREATE INDEX IF NOT EXISTS idx_users_state_last_access ON users (state, last_access)"]
+    assert "CREATE INDEX IF NOT EXISTS idx_users_state_last_access ON users (state, last_access)" in applied
+    # v1.2.0 the unique email index comes with its dedupe of older rows
+    assert applied[-1] == ("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email_address)"
+                           " WHERE email_address IS NOT NULL")
     assert "idx_users_state_last_access" in {i["name"] for i in inspect(engine).get_indexes("users")}
     assert database.align_schema(engine) == []
 
@@ -255,9 +269,10 @@ def test_align_schema_adds_the_email_column_and_index_once():
         c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT)"))
     applied = database.align_schema(engine)
     assert "ALTER TABLE users ADD COLUMN email_address TEXT" in applied
-    assert "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email_address)" in applied
+    assert ("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email_address)"
+            " WHERE email_address IS NOT NULL") in applied
     assert "email_address" in {c["name"] for c in inspect(engine).get_columns("users")}
-    assert "idx_users_email" in {i["name"] for i in inspect(engine).get_indexes("users")}
+    assert "uq_users_email" in {i["name"] for i in inspect(engine).get_indexes("users")}
     assert database.align_schema(engine) == []
 
 
@@ -415,7 +430,7 @@ def _match_client(per_ip, per_guest, limiter):
         request.state.user_uuid = request.headers["x-user"]
         return await call_next(request)
 
-    return TestClient(app), command
+    return TestClient(behind_proxy(app, limiter)), command
 
 
 def _create(client, user, ip):
@@ -485,7 +500,12 @@ def test_docs_and_cors_params(monkeypatch):
     assert launcher._cors_params()["expose_headers"] == ["Retry-After"]
     monkeypatch.setattr(launcher, "settings", Settings(env="production", cors_allowed_origins="*"))
     assert launcher._docs_params() == {"docs_url": None, "redoc_url": None, "openapi_url": None}
-    assert launcher._cors_params()["expose_headers"] == ["Retry-After"]
+    params = launcher._cors_params()
+    assert params["expose_headers"] == ["Retry-After"]
+    # v1.10.0 "*" never reflects an origin with credentials
+    assert params["allow_origins"] == ["*"] and params["allow_credentials"] is False
+    assert "allow_origin_regex" not in params
+    assert "null" not in Settings(_env_file=None).cors_origins_list
 
 
 # ── the scheduler and _serve ──────────────────────────────────────────────────

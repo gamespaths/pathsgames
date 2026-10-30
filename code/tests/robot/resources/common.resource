@@ -6,6 +6,7 @@ Library    RequestsLibrary
 Library    Collections
 Library    String
 Library    ../resources/JwtHelper.py
+Library    ../resources/HttpRetryHelper.py
 
 
 *** Variables ***
@@ -16,15 +17,29 @@ Library    ../resources/JwtHelper.py
 # matches get the name prefix "robottest_" (see matches.resource).
 ${TEST_MARKER}    robottest
 
+# HTTP timeouts (s): GET is the session default, POST/PUT/PATCH/DELETE pass the longer one.
+${HTTP_GET_TIMEOUT}       30
+${HTTP_POST_TIMEOUT}      40
+# Retries of Create Http Session: DNS/connection errors, read timeouts (every method, POST too); never on a status.
+${HTTP_MAX_RETRIES}       5
+${HTTP_READ_RETRIES}      3
+${HTTP_BACKOFF_FACTOR}    1
+
 
 *** Keywords ***
+
+Create Http Session
+    [Documentation]    Create Session with the shared GET timeout and the retries of HttpRetryHelper.py.
+    [Arguments]    ${alias}    ${url}    &{options}
+    Create Session    ${alias}    ${url}    timeout=${HTTP_GET_TIMEOUT}    &{options}
+    Mount Http Retry    ${alias}    ${HTTP_MAX_RETRIES}    ${HTTP_READ_RETRIES}    ${HTTP_BACKOFF_FACTOR}
 
 Create Public Session
     [Documentation]    Opens a RequestsLibrary HTTP session with no auth headers.
     ...                The X-Test-Marker header tags guests created during the
     ...                run as test data (removed afterwards by /api/dev/cleanup).
     ${headers}=    Create Dictionary    X-Test-Marker=${TEST_MARKER}
-    Create Session    public_session    ${BASE_URL}    headers=${headers}    verify=false
+    Create Http Session    public_session    ${BASE_URL}    headers=${headers}    verify=false
 
 Create Admin Session
     [Documentation]    Opens a RequestsLibrary HTTP session against the admin endpoint
@@ -33,13 +48,13 @@ Create Admin Session
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}    Content-Type=application/json
-    Create Session    admin_session    ${ADMIN_BASE_URL}    headers=${headers}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    headers=${headers}    verify=false
 
 Create Auth Session
     [Documentation]    Opens a RequestsLibrary HTTP session with the given Bearer token.
     [Arguments]    ${token}
     &{headers}=    Create Dictionary    Authorization=Bearer ${token}    Content-Type=application/json
-    Create Session    auth_session    ${BASE_URL}    headers=${headers}    verify=false
+    Create Http Session    auth_session    ${BASE_URL}    headers=${headers}    verify=false
 
 Status Should Be
     [Documentation]    Asserts that a response has the expected HTTP status code.

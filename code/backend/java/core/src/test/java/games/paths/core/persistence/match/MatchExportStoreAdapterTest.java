@@ -30,7 +30,8 @@ class MatchExportStoreAdapterTest {
                 + " email_address TEXT)");
         jdbc.update("INSERT INTO users (id, uuid, username, password_hash, email_address)"
                 + " VALUES (1, 'u-1', 'a', 'secret', 'Boss@Example.org')");
-        jdbc.execute("CREATE TABLE gaming_match (id INTEGER PRIMARY KEY, uuid TEXT)");
+        jdbc.execute("CREATE TABLE gaming_match (id INTEGER PRIMARY KEY, uuid TEXT, play_ms INTEGER)");
+        jdbc.update("INSERT INTO gaming_match (id, uuid, play_ms) VALUES (5, 'm-5', 4200), (6, 'm-6', NULL)");
         adapter = new MatchExportStoreAdapter(jdbc, t -> 1L);
     }
 
@@ -80,5 +81,12 @@ class MatchExportStoreAdapterTest {
         when(broken.execute(any(org.springframework.jdbc.core.ConnectionCallback.class)))
                 .thenThrow(new IllegalStateException("down"));
         assertEquals("sqlite", new MatchExportStoreAdapter(broken, t -> 1L).dialect());
+    }
+
+    @Test
+    void v170ThePlayTimeOfAMatch() {
+        assertEquals(4200L, adapter.playMs("m-5"));
+        assertEquals(0L, adapter.playMs("m-6"));
+        assertEquals(0L, adapter.playMs("none"));
     }
 }

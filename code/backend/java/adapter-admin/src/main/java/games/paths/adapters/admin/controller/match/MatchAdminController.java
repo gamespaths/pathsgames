@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.match;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.rest.dto.ClockResponse;
 import games.paths.adapters.rest.dto.MatchInfoResponse;
 import games.paths.adapters.rest.dto.MatchLocationsResponse;
@@ -95,14 +96,14 @@ public class MatchAdminController {
      */
     @GetMapping
     public ResponseEntity<Object> listAllMatches(
-            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String userUuid,
             @RequestParam(required = false) String storyUuid,
             @RequestParam(required = false) Integer sinceDays) {
         MatchSummaryPage page = matchQueryPort.listMatchesPage(
-                new MatchListFilter(status, userUuid, storyUuid, sinceDays, cursor, limit));
+                new MatchListFilter(status, userUuid, storyUuid, sinceDays, cursor, QueryLimits.parse(limit)));
         List<MatchSummaryResponse> items = page.items().stream()
                 .map(MatchSummaryResponse::fromModel)
                 .collect(Collectors.toList());
@@ -244,7 +245,7 @@ public class MatchAdminController {
     @GetMapping("/{uuidMatch}/logs")
     public ResponseEntity<Object> getAdminMatchLogs(@PathVariable String uuidMatch,
                                                     @RequestParam(required = false) String lang,
-                                                    @RequestParam(required = false) Integer limit,
+                                                    @RequestParam(required = false) String limit,
                                                     @RequestParam(required = false) String cursor,
                                                     @RequestParam(required = false) String order) {
         if (isBlank(uuidMatch)) {
@@ -252,7 +253,7 @@ public class MatchAdminController {
         }
         try {
             return ResponseEntity.ok(MatchLogsResponse.fromModel(
-                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, limit, cursor, order)));
+                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, QueryLimits.parse(limit), cursor, order)));
         } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }

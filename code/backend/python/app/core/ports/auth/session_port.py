@@ -18,3 +18,11 @@ class SessionPort(ABC):
     @abstractmethod
     def validate_access_token(self, access_token: str) -> TokenInfo:
         pass
+
+    def active_sessions(self, user_uuid: str) -> int:
+        """v1.7.0 the sessions refreshed in the last 30 days (GET /api/auth/me activeSessions)."""
+        return 0
+
+    def purge_revoked_tokens(self) -> int:
+        """v1.7.0 daily job: deletes the ROTATED and LOGOUT rows older than 7 days."""
+        return 0

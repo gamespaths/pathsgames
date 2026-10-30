@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -23,6 +27,30 @@ Parameters:
   AdminAuthorizerId:
     Type: String
     Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
+  # v1.2.0 — exposed by GET /api/echo/status, read by react-game at runtime
+  GoogleClientId:
+    Type: String
+    Default: "paths-games-dev.apps.googleusercontent.com"
+  GoogleEnabled:
+    Type: String
+    Default: "true"
+  # v1.7.0 — the profile choices shown by /api/echo/status
+  SupportedLanguages:
+    Type: String
+    Default: "en,it"
+  SupportedThemes:
+    Type: String
+    Default: "default,high-contrast"
+  # v1.7.0 step 8 — the page-return refetch of a match
+  MatchRefetchBrowsers:
+    Type: String
+    Default: "webkit"
+  MatchRefetchMinHiddenSeconds:
+    Type: String
+    Default: "30"
+
+Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
 
 Resources:
   EchoLogGroup:
@@ -51,6 +79,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: EchoLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-EchoFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -74,6 +103,12 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_ENABLED: !Ref GoogleEnabled
+          SUPPORTED_LANGUAGES: !Ref SupportedLanguages
+          SUPPORTED_THEMES: !Ref SupportedThemes
+          MATCH_REFETCH_BROWSERS: !Ref MatchRefetchBrowsers
+          MATCH_REFETCH_MIN_HIDDEN_SECONDS: !Ref MatchRefetchMinHiddenSeconds
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

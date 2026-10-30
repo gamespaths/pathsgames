@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# v0.42.0 — REPLACES the admin allow-list of the dev/test stack with this machine's public IP, every other parameter kept.
-# Usage: aws_set_admin_ip.sh [dev|test] [--ip A.B.C.D] [--stack NAME] [--region REGION] [--dry-run]; defaults from .env (test).
+# v0.42.0 — REPLACES the admin allow-list of the dev/test stack, every other parameter kept; v1.8.0: the IPs AWS and Cloudflare see.
+# Usage: aws_set_admin_ip.sh [dev|test] [--ip A.B.C.D[,..]] [--stack NAME] [--region REGION] [--dry-run]; defaults from .env (test).
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
@@ -21,7 +21,7 @@ DRY_RUN=false
 while [ $# -gt 0 ]; do
 	case "$1" in
 		dev|test) STACK="pathsgames-$1"; shift ;;
-		--ip) IP="${2:-}"; shift 2 ;;
+		--ip) IP="$(admin_ip_merge "$IP" "${2:-}")"; shift 2 ;;
 		--stack) STACK="${2:-}"; shift 2 ;;
 		--region) REGION="${2:-}"; shift 2 ;;
 		--dry-run) DRY_RUN=true; shift ;;
@@ -30,8 +30,14 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
+# No --ip: the public IP AWS sees and the one Cloudflare sees, both when they differ (a VPN may split them).
 if [ -z "$IP" ]; then
-	IP="$(admin_ip_detect)"
+	AWS_IP="$(admin_ip_detect)"
+	CF_IP="$(admin_ip_detect_cloudflare)"
+	echo "Public IP seen by AWS: ${AWS_IP:-not read}; by Cloudflare: ${CF_IP:-not read}"
+	IP="$(admin_ip_merge "$AWS_IP" "$CF_IP")"
 fi
+# The .env list is kept too, as aws_backend_deploy.sh does.
+IP="$(admin_ip_merge "${ADMIN_IP_WHITELIST:-}" "$IP")"
 echo "Note: the next aws_backend_deploy.sh rewrites the list (ADMIN_IP_WHITELIST from .env + the caller IP)."
 admin_ip_set_on_stack "$STACK" "$REGION" "$IP" "$DRY_RUN"

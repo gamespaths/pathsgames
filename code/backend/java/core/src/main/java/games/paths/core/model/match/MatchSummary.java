@@ -22,6 +22,10 @@ public class MatchSummary {
     private Integer expCost;
     private String userCreatorUuid;
     private String tsInsert;
+    /** v1.7.0 step 8 - the opaque match version (ts_update), sent back in If-Match. */
+    private String matchVersion;
+    /** v1.7.0 step 9 - last played: ts_update as ISO-8601 UTC. */
+    private String tsUpdate;
     private Integer singlePlayer;
     private String characterTemplateUuid;
     private String classUuid;
@@ -56,6 +60,12 @@ public class MatchSummary {
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }
+
+    public String getMatchVersion() { return matchVersion; }
+    public void setMatchVersion(String matchVersion) { this.matchVersion = matchVersion; }
+
+    public String getTsUpdate() { return tsUpdate; }
+    public void setTsUpdate(String tsUpdate) { this.tsUpdate = tsUpdate; }
 
     public Integer getSinglePlayer() { return singlePlayer; }
     public void setSinglePlayer(Integer singlePlayer) { this.singlePlayer = singlePlayer; }

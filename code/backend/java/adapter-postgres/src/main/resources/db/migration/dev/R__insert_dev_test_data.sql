@@ -44,18 +44,18 @@ DELETE FROM users WHERE username LIKE 'test_%';
 -- =============================================
 -- Test Users
 -- =============================================
--- Password hash is BCrypt of 'password123'
-INSERT INTO users (id, username, password_hash, email_address, role, state, nickname, language)
-VALUES (1, 'test_admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin@test.local', 'ADMIN', 2, 'TestAdmin', 'en');
+-- v1.2.0 no passwords: the seed users keep only their e-mail
+INSERT INTO users (id, username, email_address, role, state, nickname, language)
+VALUES (1, 'test_admin', 'admin@test.local', 'ADMIN', 2, 'TestAdmin', 'en');
 
-INSERT INTO users (id, username, password_hash, email_address, role, state, nickname, language)
-VALUES (2, 'test_player1', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'player1@test.local', 'PLAYER', 2, 'Alice', 'en');
+INSERT INTO users (id, username, email_address, role, state, nickname, language)
+VALUES (2, 'test_player1', 'player1@test.local', 'PLAYER', 2, 'Alice', 'en');
 
-INSERT INTO users (id, username, password_hash, email_address, role, state, nickname, language)
-VALUES (3, 'test_player2', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'player2@test.local', 'PLAYER', 2, 'Bob', 'en');
+INSERT INTO users (id, username, email_address, role, state, nickname, language)
+VALUES (3, 'test_player2', 'player2@test.local', 'PLAYER', 2, 'Bob', 'en');
 
-INSERT INTO users (id, username, password_hash, email_address, role, state, nickname, language)
-VALUES (4, 'test_player3', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'player3@test.local', 'PLAYER', 2, 'Charlie', 'it');
+INSERT INTO users (id, username, email_address, role, state, nickname, language)
+VALUES (4, 'test_player3', 'player3@test.local', 'PLAYER', 2, 'Charlie', 'it');
 
 -- Reset sequence after explicit ID inserts
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));

@@ -4,21 +4,21 @@ import games.paths.adapters.auth.entity.UserEntity;
 import games.paths.adapters.auth.entity.UserTokenEntity;
 import games.paths.adapters.auth.repository.UserRepository;
 import games.paths.adapters.auth.repository.UserTokenRepository;
+import games.paths.core.model.auth.RevokeReasons;
+import games.paths.core.model.auth.StoredRefreshToken;
+import games.paths.core.model.auth.UserStatus;
 import games.paths.core.port.auth.TokenPersistencePort;
-
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * TokenPersistenceAdapter - Database adapter for token persistence operations.
- * Implements the TokenPersistencePort using Spring Data JPA repositories.
- * Handles token validation, revocation, and user lookup for session management.
+ * TokenPersistenceAdapter - Database adapter for refresh tokens (users_tokens) with Spring Data JPA.
+ * v1.2.0 the column holds the SHA-256 hash; a clear value still found is rewritten as hash.
+ * v1.7.0 every revocation stores its reason; ts_update is the revocation time of the 7-day purge.
  */
 @Repository
 @Transactional
@@ -33,86 +33,79 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public boolean isRefreshTokenValid(String refreshToken) {
-        Optional<UserTokenEntity> opt = userTokenRepository.findByRefreshTokenAndRevokedFalse(refreshToken);
-        if (opt.isEmpty()) {
-            return false;
-        }
+    public Optional<StoredRefreshToken> findRefreshToken(String tokenHash, String legacyClearToken) {
+        return findEntity(tokenHash, legacyClearToken).map(t -> new StoredRefreshToken(t.getId(), t.getIdUser(),
+                Boolean.TRUE.equals(t.getRevoked()), t.getExpiresAt(), t.getTsRotated(), t.getRevokedReason()));
+    }
 
-        UserTokenEntity token = opt.get();
-        // Check if token has not expired
-        String expiresAt = token.getExpiresAt();
-        if (expiresAt != null) {
-            try {
-                Instant expiry = Instant.parse(expiresAt);
-                return !Instant.now().isAfter(expiry);
-            } catch (Exception e) {
-                return false;
-            }
+    /** By hash, else by the clear value of a token stored before v1.2.0 (then rewritten as hash). */
+    private Optional<UserTokenEntity> findEntity(String tokenHash, String legacyClearToken) {
+        if (tokenHash == null) {
+            return Optional.empty();
         }
-        return true;
+        Optional<UserTokenEntity> byHash = userTokenRepository.findByRefreshToken(tokenHash);
+        if (byHash.isPresent() || legacyClearToken == null) {
+            return byHash;
+        }
+        Optional<UserTokenEntity> byClear = userTokenRepository.findByRefreshToken(legacyClearToken);
+        byClear.ifPresent(t -> {
+            t.setRefreshToken(tokenHash);
+            userTokenRepository.save(t);
+        });
+        return byClear;
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Map<String, Object> findUserByRefreshToken(String refreshToken) {
-        Optional<UserTokenEntity> tokenOpt = userTokenRepository.findByRefreshTokenAndRevokedFalse(refreshToken);
-        if (tokenOpt.isEmpty()) {
-            return null;
-        }
-
-        UserTokenEntity tokenEntity = tokenOpt.get();
-        Optional<UserEntity> userOpt = userRepository.findById(tokenEntity.getIdUser());
-        if (userOpt.isEmpty()) {
-            return null;
-        }
-
-        UserEntity user = userOpt.get();
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("id", user.getId());
-        result.put("uuid", user.getUuid());
-        result.put("username", user.getUsername());
-        result.put("role", user.getRole());
-        result.put("state", user.getState());
-        return result;
+    public void markRotated(long tokenId, String now) {
+        userTokenRepository.findById(tokenId).ifPresent(t -> {
+            t.setRevoked(true);
+            t.setTsRotated(now);
+            t.setRevokedReason(RevokeReasons.ROTATED);
+            userTokenRepository.save(t);
+        });
     }
 
     @Override
-    public boolean revokeRefreshToken(String refreshToken) {
-        Optional<UserTokenEntity> opt = userTokenRepository.findByRefreshToken(refreshToken);
-        if (opt.isEmpty()) {
+    public boolean revokeRefreshToken(String tokenHash, String legacyClearToken) {
+        Optional<UserTokenEntity> opt = findEntity(tokenHash, legacyClearToken);
+        if (opt.isEmpty() || Boolean.TRUE.equals(opt.get().getRevoked())) {
             return false;
         }
-
         UserTokenEntity token = opt.get();
-        if (Boolean.TRUE.equals(token.getRevoked())) {
-            return false; // Already revoked
-        }
-
         token.setRevoked(true);
+        token.setRevokedReason(RevokeReasons.LOGOUT);
         userTokenRepository.save(token);
         return true;
     }
 
+    /** v1.8.0 declared here: the port's default method ran outside the class-level transaction. */
     @Override
     public int revokeAllUserTokens(long userId) {
-        String now = Instant.now().toString();
-        return userTokenRepository.revokeAllByUserId(userId, now);
+        return revokeAllUserTokens(userId, RevokeReasons.LOGOUT_ALL);
+    }
+
+    @Override
+    public int revokeAllUserTokens(long userId, String reason) {
+        return userTokenRepository.revokeAllByUserId(userId, Instant.now().toString(), reason);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveTokensIssuedAfter(long userId, String issuedAfter) {
+        return userTokenRepository.countActiveTokensIssuedAfter(userId, Instant.now().toString(), issuedAfter);
     }
 
     @Override
     @Transactional(readOnly = true)
     public int countActiveTokensByUserId(long userId) {
-        String now = Instant.now().toString();
-        return userTokenRepository.countActiveTokensByUserId(userId, now);
+        return userTokenRepository.countActiveTokensByUserId(userId, Instant.now().toString());
     }
 
     @Override
-    public void storeRefreshToken(long userId, String refreshToken, String expiresAt) {
+    public void storeRefreshToken(long userId, String tokenHash, String expiresAt) {
         UserTokenEntity token = new UserTokenEntity();
         token.setIdUser(userId);
-        token.setRefreshToken(refreshToken);
+        token.setRefreshToken(tokenHash);
         token.setExpiresAt(expiresAt);
         userTokenRepository.save(token);
     }
@@ -120,20 +113,42 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
     @Override
     @Transactional(readOnly = true)
     public long findUserIdByUuid(String userUuid) {
-        Optional<UserEntity> opt = userRepository.findByUuid(userUuid);
-        return opt.map(UserEntity::getId).orElse(-1L);
+        return userRepository.findByUuid(userUuid).map(UserEntity::getId).orElse(-1L);
     }
 
     @Override
     public void revokeOldestTokensIfLimitExceeded(long userId, int maxTokens) {
         List<UserTokenEntity> activeTokens = userTokenRepository.findActiveTokensByUserIdOrderByTsInsertAsc(userId);
         int excess = activeTokens.size() - maxTokens;
-        if (excess > 0) {
-            for (int i = 0; i < excess; i++) {
-                UserTokenEntity oldest = activeTokens.get(i);
-                oldest.setRevoked(true);
-                userTokenRepository.save(oldest);
-            }
+        for (int i = 0; i < excess; i++) {
+            UserTokenEntity oldest = activeTokens.get(i);
+            oldest.setRevoked(true);
+            oldest.setRevokedReason(RevokeReasons.LIMIT);
+            userTokenRepository.save(oldest);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UserStatus> findUserById(long userId) {
+        return userRepository.findById(userId).map(IdentityPersistenceAdapter::toStatus);
+    }
+
+    @Override
+    public void updateLastAccess(long userId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.setTsLastAccess(Instant.now().toString());
+            userRepository.save(user);
+        });
+    }
+
+    @Override
+    public void setSessionsValidAfter(long userId, String validAfter) {
+        userRepository.updateSessionsValidAfter(userId, validAfter);
+    }
+
+    @Override
+    public int deleteShortLivedRevokedTokens(String revokedBefore) {
+        return userTokenRepository.deleteShortLivedRevoked(revokedBefore);
     }
 }

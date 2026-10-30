@@ -1,15 +1,22 @@
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { useHomeStatus } from '@/context/HomeStatusContext'
 import EnvBadge from './EnvBadge'
 import { rateLimitMessage } from '@/utils/rateLimit'
+import { authErrorText } from '@/features/guest-user/UserAccountPanel'
+import { SESSION_ALERT_CODES, SESSION_LIMIT } from '@/auth/sessionAlerts'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const { user: guestUser, loading: guestLoading, openGuestModal, errorRetryAfter } = useGuestUser()
+  const { user: guestUser, loading: guestLoading, openGuestModal, errorRetryAfter, isGoogleUser, googleEnabled,
+    authError, clearAuthError } = useGuestUser()
+  // v1.2.0 — a Google picture that fails to load falls back to the usual icon
+  const [pictureFailed, setPictureFailed] = useState(false)
+  const showPicture = isGoogleUser && guestUser?.pictureUrl && !pictureFailed
   // v0.37.6 — a failed home load (antibot / matches / stories) shows here with a refresh.
   const { error: homeError } = useHomeStatus()
   // v0.41.0 — the rate-limit sentence carries the wait the backend sent.
@@ -21,7 +28,14 @@ export default function Navbar() {
 
   const guestLabel = guestLoading
     ? '…'
-    : /*(guestUser?.username ?? */ t('nav.guest') //)
+    : isGoogleUser ? (guestUser?.nickname ?? guestUser?.username) : t('nav.guest')
+  // v1.2.0 — a session closed elsewhere (or a refused account) is said once, here
+  const authAlert = SESSION_ALERT_CODES.includes(authError) ? authErrorText(t, authError) : null
+  // v1.7.0 step 12 — too many devices: the alert opens the sign-in
+  const signInAgain = () => {
+    clearAuthError()
+    openGuestModal()
+  }
 
   // v0.35.7 — same socials as the landing page; CSS hides them when the bar runs out of room.
   const socials = [
@@ -48,6 +62,17 @@ export default function Navbar() {
         </div>
       )}
 
+      {authAlert && (
+        <div className="navbar-error" role="alert">
+          <i className="fas fa-user-lock me-1" />
+          <span className="navbar-error__text">{authAlert}</span>
+          {authError === SESSION_LIMIT && googleEnabled && (
+            <button className="navbar-error__btn" onClick={signInAgain}>{t('auth.google.signInAgain')}</button>
+          )}
+          <button className="navbar-error__btn" onClick={clearAuthError}>{t('modals.close')}</button>
+        </div>
+      )}
+
       <div className="navbar-right">
         {isGamePage && (
           <button className="btn-secondary-pg navbar-home-btn" onClick={() => navigate('/')}>
@@ -70,12 +95,21 @@ export default function Navbar() {
           ))}
         </div>
 
+        {!isGoogleUser && googleEnabled && !guestLoading && (
+          <button className="btn-secondary-pg nav-signin-btn" onClick={() => openGuestModal()}
+            title={t('auth.google.signIn')}>
+            <i className="fab fa-google me-1" /><span className="nav-signin-btn__label">{t('auth.google.signInShort')}</span>
+          </button>
+        )}
         <button
-          className="nav-user-btn"
-          title={guestUser?.username ?? t('nav.login')}
-          onClick={openGuestModal}
+          className={`nav-user-btn${isGoogleUser ? ' nav-user-btn--google' : ''}`}
+          title={guestUser?.displayName ?? guestUser?.username ?? t('nav.login')}
+          onClick={() => openGuestModal()}
         >
-          <i className="fas fa-user-circle" />
+          {showPicture
+            ? <img className="nav-user-avatar" src={guestUser.pictureUrl} alt="" width="32" height="32"
+                referrerPolicy="no-referrer" onError={() => setPictureFailed(true)} />
+            : <i className="fas fa-user-circle" />}
           <span className="nav-user-btn__label">{guestLabel}</span>
         </button>
       </div>

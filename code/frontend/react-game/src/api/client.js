@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { beginRequest, endRequest } from './inFlight'
 
 const STORAGE_KEY = 'pg_game_server'
 
@@ -34,9 +35,37 @@ function getServer() {
   return defaultServer()
 }
 
+/** v1.2.0 called on a 401: refreshes (or resumes the guest) and answers the new bearer, or null. */
+let unauthorizedHandler = null
+
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler
+}
+
+/** v1.2.0 a 401 outside /api/auth tries one refresh, then repeats the request with the new token. */
+export async function retryOn401(instance, error) {
+  const config = error?.config
+  const url = String(config?.url ?? '')
+  if (error?.response?.status !== 401 || !unauthorizedHandler || !config || config._pgRetried
+      || url.includes('/api/auth/')) {
+    throw error
+  }
+  const token = await unauthorizedHandler()
+  if (!token) throw error
+  config._pgRetried = true
+  config.headers = { ...(config.headers ?? {}), Authorization: `Bearer ${token}` }
+  return instance.request(config)
+}
+
 export function apiClient() {
   const server = getServer()
-  return axios.create({ baseURL: server, timeout: 5000 })
+  const instance = axios.create({ baseURL: server, timeout: 5000 })
+  // v1.7.0 counts the requests in flight (a retried request counts again)
+  instance?.interceptors?.request?.use((config) => { beginRequest(); return config })
+  instance?.interceptors?.response?.use((response) => { endRequest(); return response },
+    (error) => { endRequest(); return Promise.reject(error) })
+  instance?.interceptors?.response?.use((response) => response, (error) => retryOn401(instance, error))
+  return instance
 }
 
 /** GET `url` against the configured server and return the JSON body. Throws on error. */

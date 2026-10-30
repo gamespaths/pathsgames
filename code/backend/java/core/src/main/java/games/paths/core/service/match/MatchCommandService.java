@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.story.ClassEntity;
@@ -32,6 +33,14 @@ import java.util.Optional;
  * <p>Step 19 — see {@code wiki/documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
  */
 public class MatchCommandService implements MatchCommandPort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     private static final java.security.SecureRandom SECURE_RNG = new java.security.SecureRandom();
 
@@ -207,6 +216,7 @@ public class MatchCommandService implements MatchCommandPort {
             String detail = adminAction != null ? MatchLogWriterPort.admin(adminAction)
                     : status != null ? MatchLogWriterPort.adminStatus(status) : null;
             logMatchRow(uuidMatch, detail);
+            MatchStampPort.admin(stamp, uuidMatch);
         }
         return found ? UpdateOutcome.UPDATED : UpdateOutcome.NOT_FOUND;
     }
@@ -292,6 +302,7 @@ public class MatchCommandService implements MatchCommandPort {
         if (!endGameEventId.equals(eventOpt.get().getId())) {
             return EndMatchOutcome.NOT_ACCEPTABLE;
         }
+        MatchStampPort.claim(stamp, uuidMatch);
 
         boolean alreadyOver = MatchStatuses.isTerminal(match.getStatus());
         persistencePort.updateMatchFields(uuidMatch, MatchStatuses.ENDED, null);
@@ -342,6 +353,8 @@ public class MatchCommandService implements MatchCommandPort {
         s.setExpCost(match.getExpCost());
         s.setUserCreatorUuid(userUuid);
         s.setTsInsert(match.getTsInsert());
+        s.setMatchVersion(match.getTsUpdate());
+        s.setTsUpdate(MatchStampService.isoUtc(match.getTsUpdate()));
         s.setSinglePlayer(match.getSinglePlayer());
         s.setCharacterTemplateUuid(match.getCharacterTemplateUuid());
         s.setClassUuid(match.getClassUuid());

@@ -250,3 +250,47 @@ def test_store_edges(env):
     assert env.store.count_matches_of_story(9) == 1
     assert env.store.username_taken("robottest_other") is True
     assert safe_user({"id": 1, "uuid": "u", "guest_cookie_token": "t"}) == {"id": 1, "uuid": "u"}
+
+
+# ── v1.2.0 Google users move with their identity ────────────────────────────
+
+def _google_copy(env, suffix, email, subject):
+    with env.engine.begin() as conn:
+        conn.execute(text("UPDATE users SET email_address = 'c@gmail.com', nickname = 'robonick' WHERE id = 42"))
+        conn.execute(text("INSERT INTO users_identities (uuid, id_user, provider, provider_subject, email, given_name)"
+                          " VALUES ('i-42', 42, 'GOOGLE', 'sub-42', 'c@gmail.com', 'Mario')"))
+    doc = _export(env)
+    return _copy(doc, f"0a0a0a0a-0000-4000-8000-0000000000{suffix}", f"c4c4c4c4-0000-4000-8000-0000000000{suffix}",
+                 f"c4c4c4c4-0000-4000-8000-00000000f0{suffix}",
+                 ((U42, f"abcdef12-0000-4000-8000-0000000000{suffix}"), ("c@gmail.com", email), ("sub-42", subject)))
+
+
+def _codes(body, key):
+    return [i["code"] for i in body.get(key) or []]
+
+
+def test_v120_export_carries_the_identity_and_a_new_stage_recreates_it(env):
+    copy = _google_copy(env, "f1", "mover@gmail.com", "sub-42")
+    assert copy["users"][0]["identities"][0]["provider"] == "GOOGLE"
+    result = env.importer.import_match({"export": copy})
+    assert result["usersCreated"] == 1
+    row = env.q("SELECT id, email_address, nickname FROM users WHERE uuid = 'abcdef12-0000-4000-8000-0000000000f1'")[0]
+    assert row[1] == "mover@gmail.com" and row[2] == "robonick#2"
+    identity = env.q(f"SELECT provider_subject, given_name FROM users_identities WHERE id_user = {row[0]}")[0]
+    assert tuple(identity) == ("sub-42", "Mario")
+    assert "NICKNAME_RENAMED" in _codes(result, "warnings")
+
+
+def test_v120_same_email_and_subject_is_mapped_onto_the_google_user(env):
+    copy = _google_copy(env, "f2", "c@gmail.com", "sub-42")
+    result = env.importer.import_match({"export": copy})
+    assert env.q("SELECT id_user_creator FROM gaming_match WHERE uuid = '0a0a0a0a-0000-4000-8000-0000000000f2'")[0][0] == 42
+    assert "USER_MAPPED_BY_EMAIL" in _codes(result, "warnings")
+    assert env.store.identity_by_email("GOOGLE", " ") is None
+    assert env.store.identity_by_email("GOOGLE", "nobody@gmail.com") is None
+
+
+def test_v120_same_email_other_subject_is_a_conflict(env):
+    copy = _google_copy(env, "f3", "c@gmail.com", "sub-other")
+    check = env.importer.check({"export": copy})
+    assert check["valid"] is False and "IDENTITY_MISMATCH" in _codes(check, "errors")

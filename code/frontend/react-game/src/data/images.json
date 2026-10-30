@@ -224,6 +224,15 @@
     "styleImageLarge": ""
   },
   {
+    "id": "refresh",
+    "linkCopyright": "https://unsplash.com/illustrations/pixel-art-computer-screen-on-fire-displaying-error-message-NwNJAI-CZlw",
+    "urlImage": "https://plus.unsplash.com/premium_vector-1757350902981-14debbd9e548?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Dadi Prayoga",
+    "description": "by Dadi Prayoga on Unsplash",
+    "awesomeIcon": "fas fa-exclamation-triangle",
+    "styleImageLarge": ""
+  },
+  {
     "id": "backpack",
     "linkCopyright": "https://unsplash.com/photos/brown-leather-satchel-bag-on-gray-concrete-surface-near-green-plant-at-daytime-pFLNV4gkXsc",
     "urlImage": "https://images.unsplash.com/photo-1473188588951-666fce8e7c68?q=80&w=1274&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",

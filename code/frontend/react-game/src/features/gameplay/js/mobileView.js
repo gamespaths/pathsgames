@@ -2,7 +2,8 @@
  * mobileView.js — mobile is a single stacked column (left on top, right below) that scrolls
  * as a whole inside `.book-overlay`; on desktop the `.book-mobile-*` wrappers are display:none.
  */
-export const MOBILE_MQ = '(max-width: 767px)'
+// Narrow screens, plus medium ones wider than tall and at most 500px high: a phone turned sideways.
+export const MOBILE_MQ = '(max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px)'
 
 /** True on the stacked mobile layout — the one place the media query is spelled out. */
 export function isMobileViewport() {

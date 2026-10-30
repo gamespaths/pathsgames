@@ -1,7 +1,10 @@
 package games.paths.adapters.rest.filter;
 
 import games.paths.core.model.auth.TokenInfo;
+import games.paths.core.model.auth.UserStates;
+import games.paths.core.model.auth.UserStatus;
 import games.paths.core.port.auth.SessionPort;
+import games.paths.core.port.auth.UserStatePort;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,6 +19,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * JwtAuthenticationFilter - Servlet filter that validates JWT access tokens
@@ -34,8 +38,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final List<String> publicPaths;
     private final String adminPathPrefix;
     private final ObjectMapper objectMapper;
+    private final UserStatePort userStatePort;
 
     public JwtAuthenticationFilter(SessionPort sessionPort, List<String> publicPaths, String adminPathPrefix) {
+        this(sessionPort, publicPaths, adminPathPrefix, null);
+    }
+
+    /** v1.2.0 the user must exist; role and state come from the DB (60 s cache), never from the token. */
+    public JwtAuthenticationFilter(SessionPort sessionPort, List<String> publicPaths, String adminPathPrefix,
+                                   UserStatePort userStatePort) {
+        this.userStatePort = userStatePort;
         this.sessionPort = sessionPort;
         this.publicPaths = publicPaths != null ? publicPaths : List.of();
         this.adminPathPrefix = adminPathPrefix != null ? adminPathPrefix : "/api/admin/";
@@ -46,7 +58,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                      FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
+        // v1.10.0 the routed path (decoded, no ;parameters): public and admin checks see what Spring MVC routes
+        String path = RequestPaths.routed(request);
         String method = request.getMethod();
 
         // Allow OPTIONS requests (CORS preflight) without authentication
@@ -79,6 +92,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (tokenInfo == null) {
             sendUnauthorized(response, "INVALID_TOKEN", "Access token is invalid, expired, or malformed");
             return;
+        }
+
+        if (userStatePort != null) {
+            Optional<UserStatus> user = userStatePort.current(tokenInfo.userUuid());
+            if (user.isEmpty()) {
+                sendUnauthorized(response, "INVALID_TOKEN", "The user of this token does not exist");
+                return;
+            }
+            int state = user.get().state();
+            if (state == UserStates.BLOCKED || state == UserStates.BANNED) {
+                sendForbidden(response, "ACCOUNT_DISABLED", "The account is disabled");
+                return;
+            }
+            if (state == UserStates.DELETING) {
+                sendForbidden(response, "ACCOUNT_DELETION_IN_PROGRESS", "The account is being deleted");
+                return;
+            }
+            // v1.7.0 issued before "log out of all devices", a ban or a suspension (seconds, 60 s cache)
+            if (!user.get().acceptsTokenIssuedAt(tokenInfo.issuedAt() / 1000)) {
+                sendUnauthorized(response, "SESSION_REVOKED", "The session was closed from another device");
+                return;
+            }
+            tokenInfo = new TokenInfo(tokenInfo.userUuid(), user.get().username(), user.get().role(),
+                    tokenInfo.type(), tokenInfo.tokenId(), tokenInfo.issuedAt(), tokenInfo.expiresAt());
         }
 
         // Check admin authorization for admin paths

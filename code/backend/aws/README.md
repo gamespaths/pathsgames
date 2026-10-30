@@ -98,8 +98,8 @@ No orphaned objects remain in the AWS account.
 
 The Lambdas support two authentication modes:
 
-1. **Real JWTs (HS256)**: Tokens issued by the Java backend, verified with the same secret key. Claims: `sub` (UUID), `username`, `role`, `type`, `exp`.
-2. **Mock tokens**: `MOCK_ACCESS_{uuid}` tokens for local development and testing with users created via seed.
+1. **Real JWTs (HS256)**: issued by the `auth` Lambda (guest and Google login), signed with the stage `JWT_SECRET`. Claims: `sub` (UUID), `username`, `role` (re-read from the DB), `type`, `iss`, `aud`, `exp`. The user must exist and its state is checked on every request (no synthetic user since 1.2.0).
+2. **Mock tokens**: `MOCK_ACCESS_{uuid}` tokens, only when `AllowMockAccess=true` (code default `false`).
 
 Verification is centralized in `lambda/common/jwt_utils.py` (pure Python stdlib, no external dependencies).
 
@@ -264,6 +264,21 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v1.7.0 — V1 steps 6-12: profile, multi-device, user admin
+
+- **Recreate every AWS table**: GSI1 and GSI2 are redefined (one `summary` map per row, GSI1 also `ts_update`/`playMs`); existing tables cannot be altered, so each environment is destroyed and recreated (data lost, accepted). `wiki/DataModel.md` §8 has the new keys (`USERSTATE#<n>`, `GOOGLE_USER_LIST`, `BANSUB#`, `BANEMAIL#`, `ADMINLOG#YYYY-MM`).
+- **Match**: one `ts_update` per request (`db_utils.set_request_stamp`), `playMs`, `matchVersion` (epoch ms) with `If-Match` / 409 `STALE_MATCH` (`claim_version`), writes in `TransactWriteItems` chunks (500 `WRITE_FAILED` if a chunk keeps failing; plain values, the resource client serializes); `GET /api/matches` answers `{items, nextCursor, limit}`; a stale `If-Match` wins over a domain 404 with a code (`_stale_wins`), weather and join are owner-only, tokens without `exp` are refused.
+- **Auth**: `GET`/`PATCH /api/auth/me` (`common/profile.py`), session cap 12 (`SESSION_LIMIT`), `revoked_reason`, grace 120 s, refresh 250 days (guest 180), `sessions_valid_after`, `activeSessions`, cookie `SameSite` parameter.
+- **Admin users** (`common/user_admin.py`, `account_guard.py`, `admin_log.py`): `GET /api/admin/users`, `GET /api/admin/users/{identifier}`, `POST /api/admin/users/{identifier}/ban|suspend|unblock|relink-subject|deletion`; `GET /api/admin/stories` answers the cursor envelope.
+- **SAM parameters**: `MaxSessionsPerUser` (12), `CookieSameSite` (`Lax`; `None` on `test`), `PlayTimeCapSeconds` (300), `SupportedLanguages`, `SupportedThemes`, `MatchRefetchBrowsers`, `MatchRefetchMinHiddenSeconds`, `BannedSubjectPepper` (required outside dev/test; stage key `AWS_<STAGE>_LAMBDA_BANNED_SUBJECT_PEPPER`, GitHub secret `AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER`; `aws_backend_deploy.sh` does not pass an empty value, the stack keeps its previous one). Docs: `wiki/documentation_v1/Step06_UserProfileBackend.md` to `Step12_...`.
+
+### v1.2.0 — V1 steps 2-5: Google SSO
+
+- **Auth**: `POST /api/auth/google` (GIS ID token via `PyJWKClient`, nonce, replay item `GOOGLEJTI#`), `GET`/`DELETE /api/auth/me` (delete: 202, fresh ID token), `google-enabled` and client id in `GET /api/echo/status`. Refresh/guest tokens stored as SHA-256 (`REFRESH#{hash}`), 30 s grace, cap 5, `SESSION_REVOKED`; log sanitizer in `common/log_utils.py`.
+- **Items**: `IDENTITY#GOOGLE#{sub}`, `EMAIL#{email}`, `NICK#{base}` (suffix counter), `NICKNAME#{nickname}` (conditional claim), `ADMIN#{nickname}`; see `wiki/DataModel.md` §8. Guests merge into the Google user at login (`CANCELLED` match status).
+- **Functions**: `AdminBootstrapFunction` (manual, no API route; `code/scripts/prod/aws_create_admin.sh <stage> <nick>`) and `AccountJobsFunction` (account deletion, 24-month retention). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. V1.10.0: dev-only `POST /api/dev/users/{uuid}/expire-suspension` (admin API, `seed` Lambda); SAM parameter `PermissionsBoundaryArn` (empty = none); a `TransactWriteItems` condition failure answers 409 `STALE_MATCH`.
+- **SAM parameters**: `GoogleClientId`, `GoogleEnabled`, `RateLimitGooglePerIp`; per stage `AWS_<STAGE>_LAMBDA_GOOGLE_CLIENT_ID` is required by `aws_backend_deploy_stage.sh`. Docs: `wiki/documentation_v1/Step03_GoogleSsoBackendFlow.md`.
 
 ### v1.1.0 — V1 step 1: daily smoke test
 

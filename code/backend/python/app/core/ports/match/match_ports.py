@@ -51,6 +51,11 @@ class MatchQueryPort(ABC):
         ...
 
     @abstractmethod
+    def list_user_matches_page(self, user_uuid: str, limit: Optional[int] = None,
+                               cursor: Optional[str] = None) -> MatchSummaryPage:
+        """v1.7.0 step 9 — one page of the user's matches: active first, then last played (in memory)."""
+
+    @abstractmethod
     def list_all_matches(self) -> List[MatchSummary]:
         """Return every match in the platform, newest first (admin view)."""
 
@@ -134,6 +139,14 @@ class MatchPersistencePort(ABC):
 
     def count_matches_by_user_creator(self, id_user: int) -> int:
         """v0.41.6 — every match the user created, whatever the status."""
+        raise NotImplementedError
+
+    def find_match_uuids_by_user_creator(self, id_user: int, statuses) -> list:
+        """v1.7.0 uuids of the matches the user created in one of the statuses (the admin ban)."""
+        raise NotImplementedError
+
+    def totals_by_status(self, id_user: int, statuses) -> list:
+        """v1.7.0 per status, the matches the user created in one of the statuses (MatchStatusTotals)."""
         raise NotImplementedError
 
     @abstractmethod

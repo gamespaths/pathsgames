@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { MOBILE_MQ } from '@/features/gameplay/js/mobileView'
 
 // Controllable Turnstile mock: fires onSuccess (human) by default, onError when
 // `ts.behavior` is 'bot'. The antibot gate now lives in start-match.
@@ -271,7 +272,7 @@ describe('StartMatchPage', () => {
     const infoBtns = screen.getAllByRole('button', { name: 'card.info' })
     fireEvent.click(infoBtns[0])
     // On mobile, handleSelectionPreview tries to open cardPreviewModal via Bootstrap
-    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)')
+    expect(window.matchMedia).toHaveBeenCalledWith(MOBILE_MQ)
 
     delete window.matchMedia
     delete window.bootstrap

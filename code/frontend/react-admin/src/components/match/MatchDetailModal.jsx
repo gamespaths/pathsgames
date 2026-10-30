@@ -9,6 +9,8 @@ export const STATUS_BADGE = {
   PAUSED:   'pg-badge-gold',
   ENDED:    'pg-badge-gold',
   GAMEOVER: 'pg-badge-danger',
+  CANCELLED: 'pg-badge-resolved', // v1.2.0 lost the guest merge
+  BANNED:   'pg-badge-resolved', // v1.7.0 an active match of a banned user, like CANCELLED
 }
 
 export function fmtDate(iso) {

@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
@@ -39,6 +40,14 @@ import java.util.Optional;
  * <p>See {@code wiki/documentation_v0/Step21_CharacterSelection.md}.</p>
  */
 public class CharacterCommandService implements CharacterCommandPort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     private final StoryReadPort storyReadPort;
     private final MatchReadPort matchReadPort;
@@ -80,7 +89,6 @@ public class CharacterCommandService implements CharacterCommandPort {
             throw new CharacterJoinException(CharacterJoinException.Code.MATCH_NOT_JOINABLE,
                     "Match is in a terminal status and cannot be joined");
         }
-
         UserAccessPort.UserView user = userAccessPort.findByUuid(command.getUserUuid())
                 .orElseThrow(() -> new CharacterJoinException(
                         CharacterJoinException.Code.USER_NOT_FOUND, "User does not exist"));
@@ -88,6 +96,12 @@ public class CharacterCommandService implements CharacterCommandPort {
             throw new CharacterJoinException(CharacterJoinException.Code.USER_BANNED,
                     "User is not allowed to join matches");
         }
+        // v1.11.0 one human player per match until V4: only the creator joins, a stranger gets the same 404
+        if (!java.util.Objects.equals(match.getIdUserCreator(), user.id())) {
+            throw new CharacterJoinException(CharacterJoinException.Code.MATCH_NOT_FOUND,
+                    "Match not found: " + command.getMatchUuid());
+        }
+        MatchStampPort.check(stamp, command.getMatchUuid());
 
         if (persistencePort.findCharacterByMatchIdAndUserId(match.getId(), user.id()).isPresent()) {
             throw new CharacterJoinException(CharacterJoinException.Code.ALREADY_JOINED,
@@ -133,6 +147,7 @@ public class CharacterCommandService implements CharacterCommandPort {
         long nextId = persistencePort.countCharactersByMatchId(match.getId()) + 1L;
         GamingCharacterInstanceEntity instance =
                 buildInstance(match, user, story, template, clazz, difficulty, traits, classBonuses, nextId);
+        MatchStampPort.claim(stamp, command.getMatchUuid());
         GamingCharacterInstanceEntity saved = persistencePort.saveCharacter(instance);
 
         GamingBackpackResourcesEntity backpack = new GamingBackpackResourcesEntity();
@@ -399,6 +414,7 @@ public class CharacterCommandService implements CharacterCommandPort {
             logWriter.write(match.getId(), character.getId(), null,
                     match.getCurrentClock() == null ? 0 : match.getCurrentClock(), stats);
         }
+        MatchStampPort.admin(stamp, matchUuid);
         return ChangeStatsOutcome.UPDATED;
     }
 

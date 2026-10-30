@@ -26,4 +26,11 @@ describe('Sidebar', () => {
     fireEvent.click(screen.getByText('Guest Users'))
     expect(onNavigate).toHaveBeenCalledWith('/guests')
   })
+
+  it('links the Users page (v1.7.0)', () => {
+    const onNavigate = vi.fn()
+    render(<MemoryRouter><Sidebar onNavigate={onNavigate} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('link', { name: /^Users$/ }))
+    expect(onNavigate).toHaveBeenCalledWith('/users')
+  })
 })

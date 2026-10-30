@@ -285,7 +285,7 @@ components:
       properties:
         value:
           type: string
-          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
           example: ENDED
         terminal:
           type: boolean
@@ -296,7 +296,7 @@ components:
       properties:
         status:
           type: string
-          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
           description: New status; omit to leave unchanged
         name:
           type: string

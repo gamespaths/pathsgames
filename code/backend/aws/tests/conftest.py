@@ -46,7 +46,13 @@ def _row_sink(monkeypatch):
     from common import db_utils
     helpers.SINK.rows.clear()
     helpers.REAL_BATCH_PUT = db_utils.batch_put_items
+    helpers.REAL_CLAIM = db_utils.claim_version
+    helpers.REAL_TRANSACT_PUT = db_utils.transact_put_items
     monkeypatch.setattr(db_utils, 'batch_put_items', helpers.SINK.batch_put_items)
+    # v1.7.0 step 8 — the claim wins and the transactional flush lands where the batch would
+    monkeypatch.setattr(db_utils, 'claim_version', lambda *a, **k: True)
+    monkeypatch.setattr(db_utils, 'transact_put_items', lambda items, conditions=None, **k:
+                        db_utils.batch_put_items(items))
 
 
 @pytest.fixture(autouse=True)
@@ -77,3 +83,11 @@ def _csrf_off_by_default(monkeypatch):
     monkeypatch.setenv('RATE_LIMIT_MATCH_PER_GUEST', '0')
     # v0.41.0 — an empty allow-list now means nobody; those suites predate it and mean everybody
     monkeypatch.setenv('ADMIN_IP_EMPTY_MEANS', 'everybody')
+
+
+@pytest.fixture(autouse=True)
+def _mock_tokens_for_the_older_suites(monkeypatch):
+    """v1.2.0 — ALLOW_MOCK_ACCESS defaults to false now; the suites written before use MOCK_ACCESS_
+    tokens as the dev stack did, so they run with it on (test_v1_google_sso checks the default)."""
+    from common import jwt_utils
+    monkeypatch.setattr(jwt_utils, 'ALLOW_MOCK_ACCESS', True)

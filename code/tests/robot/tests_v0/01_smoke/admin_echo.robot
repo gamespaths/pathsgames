@@ -19,7 +19,7 @@ Suite Setup    Initialize Echo Sessions
 Initialize Echo Sessions
     [Documentation]    Open a public session (BASE_URL) and an admin session (ADMIN_BASE_URL).
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
 
 
 *** Test Cases ***

@@ -47,20 +47,20 @@ Refresh Without Cookie Is Rejected
     ...                differ on the exact status (Java 400 missing-cookie, Python/AWS 401
     ...                unauthorized) — both are accepted.
     [Tags]    auth    session    step13
-    Create Session    cookieless_refresh    ${BASE_URL}    verify=false
-    ${response}=    POST On Session    cookieless_refresh    /api/auth/refresh    expected_status=any
+    Create Http Session    cookieless_refresh    ${BASE_URL}    verify=false
+    ${response}=    POST On Session    cookieless_refresh    /api/auth/refresh    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be True    ${response.status_code} == 400 or ${response.status_code} == 401
 
-Refresh Rotation Revokes The Old Cookie
-    [Documentation]    A successful refresh rotates the pair and revokes the old refresh
-    ...                token: replaying the original cookie afterwards returns 401.
-    [Tags]    auth    session    step13
+Refresh Rotation Keeps The Old Cookie Only For The Grace Window
+    [Documentation]    v1.2.0 — a successful refresh rotates (revokes) only the used token; a
+    ...                second tab replaying it within 30 seconds still gets a new pair (grace).
+    [Tags]    auth    session    step13    v1_step03
     ${login}=    Login Fresh Guest
     ${old_cookie}=    Get Refresh Cookie    ${login}
     ${first}=    Refresh With Cookie    ${old_cookie}
     Status Should Be    ${first}    200
     ${replay}=    Refresh With Cookie    ${old_cookie}
-    Status Should Be    ${replay}    401
+    Status Should Be    ${replay}    200
 
 Logout Revokes The Session
     [Documentation]    POST /api/auth/logout (with the refresh cookie) succeeds (200/204) and
@@ -72,10 +72,12 @@ Logout Revokes The Session
     ${headers}=    Get Auth Headers    ${token}
     Set To Dictionary    ${headers}    Cookie=${cookie}
     ${logout}=    POST On Session    public_session    /api/auth/logout
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be True    ${logout.status_code} == 200 or ${logout.status_code} == 204
     ${after}=    Refresh With Cookie    ${cookie}
     Status Should Be    ${after}    401
+    # v1.2.0 — a revoked session has its own code (the frontend says "closed from another device")
+    Should Be Equal    ${after.json()}[error]    SESSION_REVOKED
 
 Me With Malformed Bearer Returns 401
     [Documentation]    GET /api/auth/me with a non-JWT Bearer token → 401. The error-code
@@ -105,7 +107,7 @@ Login Fresh Guest
     [Documentation]    Opens a fresh public_session and logs in a new guest. Returns the
     ...                full 201 response (its .cookies carry the Set-Cookie refresh token).
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     RETURN    ${response}
 
@@ -124,5 +126,5 @@ Refresh With Cookie
     [Arguments]    ${cookie_pair}
     ${headers}=    Create Dictionary    Cookie=${cookie_pair}
     ${response}=    POST On Session    public_session    /api/auth/refresh
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}

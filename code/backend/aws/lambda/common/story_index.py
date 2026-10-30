@@ -62,6 +62,10 @@ def lift(row):
     meta = (row.get('summary') or {}).get('meta') or {}
     for name, value in meta.items():
         row.setdefault(name, value)
+    # v1.7.0 GSI2 projects only ``summary``: the uuid comes from the index key STORY#<uuid>
+    key = str(row.get('GSI2_SK') or '')
+    if row.get('uuid') is None and key.startswith('STORY#'):
+        row['uuid'] = key[len('STORY#'):]
     return row
 
 

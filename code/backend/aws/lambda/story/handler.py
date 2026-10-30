@@ -36,6 +36,7 @@ import uuid as uuid_lib
 from common import db_utils
 from common import log_utils
 from common import jwt_utils
+from common import sso
 from common import story_cache
 from common import story_index
 from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS, finalize as _finalize
@@ -70,37 +71,16 @@ def _validation_400(errors):
 def _require_admin(event):
     """Return (user_dict, None) or (None, error_response).
 
-    Accepts real HS256 JWT tokens and MOCK_ACCESS_ tokens.
     IP is checked first against ADMIN_IP_WHITELIST env var (before JWT validation).
+    v1.2.0 — the user must exist; the ADMIN role is read from the item, never from the token.
     """
     ip_err = _check_admin_ip(event)
     if ip_err:
         return None, ip_err
-    token = _bearer_token(event)
-    claims = jwt_utils.verify_access_token(token)
-    if not claims or not claims.get('uuid'):
-        return None, _err(401, 'UNAUTHORIZED', 'Valid access token required')
-
-    user_uuid = claims['uuid']
-
-    if claims['source'] == 'jwt':
-        # Trust JWT claims
-        if claims.get('role') != 'ADMIN':
-            return None, _err(403, 'FORBIDDEN', 'ADMIN role required')
-        user = db_utils.get_item(f'USER#{user_uuid}')
-        if user:
-            return user, None
-        # User exists only in the Java backend
-        return {
-            'uuid':     user_uuid,
-            'username': claims.get('username'),
-            'role':     'ADMIN',
-        }, None
-
-    # mock token — DB lookup
-    user = db_utils.get_item(f'USER#{user_uuid}')
-    if not user:
-        return None, _err(401, 'UNAUTHORIZED', 'User not found')
+    user, refusal = sso.resolve_user(_bearer_token(event))
+    if refusal:
+        status, code, message = refusal
+        return None, _err(status, 'UNAUTHORIZED' if status == 401 and code != 'SESSION_REVOKED' else code, message)
     if user.get('role') != 'ADMIN':
         return None, _err(403, 'FORBIDDEN', 'ADMIN role required')
     return user, None
@@ -1071,14 +1051,36 @@ def export_catalog(event):
     return _ok({'status': 'WRITTEN', 'target': f's3://{bucket}', 'files': files})
 
 
+_ADMIN_STORIES_DEFAULT_LIMIT = 50
+_ADMIN_STORIES_MAX_LIMIT = 200
+
+
+def _page_bounds(params):
+    """v1.7.0 (limit, offset) of GET /api/admin/stories: limit default 50 (1..200), cursor = next position."""
+    try:
+        limit = int(params.get('limit'))
+    except (TypeError, ValueError):
+        limit = _ADMIN_STORIES_DEFAULT_LIMIT
+    try:
+        offset = max(0, int(str(params.get('cursor')).strip()))
+    except (TypeError, ValueError):
+        offset = 0
+    return max(1, min(limit, _ADMIN_STORIES_MAX_LIMIT)), offset
+
+
 def list_all_stories(event):
+    """v1.7.0 the {items, nextCursor, limit} envelope over the STORY_LIST index (sorted in memory)."""
     _, err = _require_admin(event)
     if err:
         return err
     lang  = _get_lang(event)
+    limit, offset = _page_bounds(event.get('queryStringParameters') or {})
     items = _story_list()
     items.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
-    return _ok([_story_summary(i, lang) for i in items])
+    start = min(offset, len(items))
+    end = min(start + limit, len(items))
+    return _ok({'items': [_story_summary(i, lang) for i in items[start:end]],
+                'nextCursor': str(end) if end < len(items) else None, 'limit': limit})
 
 
 def get_admin_story(event, story_uuid):

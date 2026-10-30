@@ -3,7 +3,7 @@ import uuid as uuid_lib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_
 
 from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity,
@@ -28,7 +28,9 @@ from app.adapters.persistence.match.models import (
 _MATCH_SCOPED = (GamingInventoryItemsEntity, GamingTurnQueueEntity, LogItemUsageEntity,
                  LogWeatherEntity, LogClockHistoryEntity, LogChoicesExecutedEntity,
                  GamingStoryProgressEntity)
+from app.core.models.auth.profile import MatchStatusTotals
 from app.core.ports.match.match_ports import MatchPersistencePort
+from app.core.services.match.match_stamp import request_now
 
 
 def _now_iso() -> str:
@@ -224,7 +226,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             return deleted_count
 
     def change_owner(self, id_match: int, id_user: int) -> int:
-        now = _now_iso()
+        now = request_now()
         with self.session_factory() as session:
             session.query(GamingMatchEntity).filter(GamingMatchEntity.id == id_match).update(
                 {GamingMatchEntity.id_user_creator: id_user, GamingMatchEntity.ts_update: now},
@@ -239,6 +241,27 @@ class MatchPersistenceAdapter(MatchPersistencePort):
     def count_matches_by_user_creator(self, id_user: int) -> int:
         with self.session_factory() as session:
             return session.query(GamingMatchEntity).filter(GamingMatchEntity.id_user_creator == id_user).count()
+
+    def find_match_uuids_by_user_creator(self, id_user: int, statuses) -> List[str]:
+        if not statuses:
+            return []
+        with self.session_factory() as session:
+            rows = (session.query(GamingMatchEntity.uuid)
+                    .filter(GamingMatchEntity.id_user_creator == id_user,
+                            GamingMatchEntity.status.in_(list(statuses)))
+                    .order_by(GamingMatchEntity.ts_insert.desc()).all())
+            return [r[0] for r in rows]
+
+    def totals_by_status(self, id_user: int, statuses) -> List[MatchStatusTotals]:
+        if not statuses:
+            return []
+        with self.session_factory() as session:
+            rows = (session.query(GamingMatchEntity.status, func.count(GamingMatchEntity.id),
+                                  func.coalesce(func.sum(GamingMatchEntity.play_ms), 0),
+                                  func.coalesce(func.sum(GamingMatchEntity.current_clock), 0))
+                    .filter(GamingMatchEntity.id_user_creator == id_user, GamingMatchEntity.status.in_(list(statuses)))
+                    .group_by(GamingMatchEntity.status).all())
+            return [MatchStatusTotals(str(r[0]), int(r[1] or 0), int(r[2] or 0), int(r[3] or 0)) for r in rows]
 
     def count_matches_by_user_creator_ids(self, user_ids) -> int:
         if not user_ids:
@@ -278,7 +301,6 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                 entity.status = status
             if name is not None:
                 entity.name = name
-            entity.ts_update = _now_iso()
             session.commit()
             return True
 

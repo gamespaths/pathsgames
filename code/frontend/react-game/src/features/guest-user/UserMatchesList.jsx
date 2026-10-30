@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { listMatches } from '@/api/matches'
@@ -6,12 +6,15 @@ import { getStory } from '@/api/stories'
 import MatchCard from '@/features/matches/MatchCard'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { sortMatchesForList } from '@/utils/matchStatus'
+import { useGuestUser } from './GuestUserContext'
+import UserStatsCard from './UserStatsCard'
 import { toEpochMs } from '@/utils/dates'
 
 /**
  * UserMatchesList — fetches the current user's matches and story cards,
  * then renders a scrollable grid of MatchCard items.
- * Step 40 — active first, then paused, then finished, newest first in each group.
+ * v1.7.0 step 9 — active first, then last played; the matches the last login cancelled are highlighted once.
+ * v1.8.0 — the user's statistics card opens the grid; cancelled and banned matches are always listed.
  */
 export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory, onClose }) {
   const { t, lang } = useTranslation()
@@ -20,6 +23,14 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
   const [storyMap, setStoryMap] = useState({}) // storyUuid → story
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState(null)
+  const { highlightedMatchUuids, consumeHighlightedMatches } = useGuestUser() ?? {}
+  // Read once at mount: a later open of the list shows no highlight.
+  const highlightRef = useRef(null)
+  if (highlightRef.current === null) highlightRef.current = new Set(highlightedMatchUuids ?? [])
+
+  useEffect(() => {
+    if (highlightRef.current.size > 0) consumeHighlightedMatches?.()
+  }, [consumeHighlightedMatches])
 
   useEffect(() => {
     let cancelled = false
@@ -61,28 +72,30 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
     </div>
   )
 
+  // v1.8.0 — cancelled and banned matches always listed, no "show cancelled" toggle
+  const visible = matches
+
   return (
     <div className="matches-list-wrap">
       <h3 className="matches-list-title">
         <i className="fas fa-scroll me-2" />{t('matches.title')}
       </h3>
 
-      {matches.length === 0 ? (
-        <p className="matches-list-empty">{t('matches.noMatches')}</p>
-      ) : (
-        <div className=" selection-list">
-          {matches.map(match => (
+      {/* v1.8.0 — the user's small card always opens the grid, so an empty list needs no text */}
+      <div className=" selection-list">
+          <UserStatsCard />
+          {visible.map(match => (
             <MatchCard
               key={match.uuid}
               match={match}
               story={storyMap[match.storyUuid] ?? null}
+              highlighted={highlightRef.current.has(match.uuid)}
               onResume={() => { onClose?.(); navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } }) }}
               onPreviewCard={onPreviewCard}
               onHistory={onOpenHistory}
             />
           ))}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

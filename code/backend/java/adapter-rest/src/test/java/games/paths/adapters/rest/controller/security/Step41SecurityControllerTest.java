@@ -93,9 +93,11 @@ class Step41SecurityControllerTest {
                     .andExpect(header().exists("Retry-After"))
                     .andExpect(jsonPath("$.error").value("RATE_LIMITED"))
                     .andExpect(jsonPath("$.retryAfterSeconds").isNumber());
-            // another address is not affected, and the forwarded hop is what counts
+            // v1.10.0 a forged X-Forwarded-For is ignored (no trusted proxy); another socket address passes
             mvc.perform(post("/api/auth/guest").with(r -> { r.setRemoteAddr("1.1.1.1"); return r; })
                             .header("X-Forwarded-For", "2.2.2.2, 1.1.1.1"))
+                    .andExpect(status().isTooManyRequests());
+            mvc.perform(post("/api/auth/guest").with(r -> { r.setRemoteAddr("3.3.3.3"); return r; }))
                     .andExpect(status().isCreated());
             verify(guestAuthPort, times(3)).createGuestSession(any());
         }

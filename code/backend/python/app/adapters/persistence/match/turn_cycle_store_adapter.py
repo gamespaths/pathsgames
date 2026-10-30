@@ -133,7 +133,6 @@ class TurnCycleStoreAdapter(TurnCycleStorePort):
                 return
             m.status = status
             m.id_character_current_turn = id_character_current_turn
-            m.ts_update = _now_iso()
             session.commit()
 
     def stamp_match_start(self, id_match: int) -> None:

@@ -61,6 +61,12 @@ adapter-mongo/      Document registries     adapter-kafka/   Async messaging
   (`system_kpi_daily`) written from match start/end, coma, choice resolution, first location
   visit and mission transitions; a write failure is logged, never fails the action.
   `KpiAdminController` (`adapter-admin`) answers `GET /api/admin/reports/kpi`.
+- V1.7.0 (multi-device and user admin): `RequestStampFilter` (`ms-launcher`) opens one `ts_update`
+  stamp per request, `MatchStampService`/`MatchStampPort` apply it (`play_ms`, `If-Match` compare,
+  `StaleMatchException` to 409 by the `advice/` handlers of `adapter-rest`); `UserAdminService`
+  (list, detail, ban, suspend, unblock, re-link, deletion), `AccountGuardService` (banned `sub`/email
+  check at login, `SubjectHasher` HMAC) and `AdminInterventionPort` in `core`; `RevokedTokenCleanupScheduler`
+  (`adapter-auth`) purges old rotated/logged-out refresh tokens daily.
 
 ## 3. Python backend (mirror)
 
@@ -79,6 +85,8 @@ Java release by release; where a naming drift exists between the two (e.g. `is_s
 - `log_writer_ports`/`match_log_writer_adapter.py` and `snapshot_service.py` (v0.41.1) mirror
   Java's match timeline writer and LIGHT-snapshot service; the snapshot payload has no
   active-choices section, since Python never persists a dedicated table for them.
+- V1.7.0 mirror of the Java pieces above: `request_stamp_middleware.py`, `match_stamp.py`,
+  `account_guard_service.py`, `subject_hasher.py`, `user_admin_service.py`, `match_list_order.py`.
 
 ## 4. AWS serverless backend (mirror)
 
@@ -109,6 +117,11 @@ serves the admin list/check/restore routes; restore cuts `LOG#`/`AUDIT#` rows by
 `logSeq`, not the composite `logSk`, since a request can get an earlier timestamp than one
 already written under clock skew.
 
+V1.7.0 `common/` modules: `profile.py` (`/me` preferences and statistics), `match_summary.py` (the
+`summary` map of the redefined GSIs), `user_admin.py` (admin users), `account_guard.py` (ban hashes),
+`admin_log.py` (intervention log), plus the request stamp, `claim_version` and chunked
+`TransactWriteItems` in `db_utils.py`.
+
 `common/kpi.py` (v0.41.2) accumulates KPI deltas per request and flushes them with one
 `UpdateItem ADD` on a `KPI#<storyUuid>`/`DAY#YYYY-MM-DD` item, best effort; "all stories"
 reports sum one Query per `STORY_LIST` entry, so a deleted story's counters drop out (Java and
@@ -127,7 +140,7 @@ only on public stages through the `IsPublicStage` condition). Environments are `
 Both frontends are React 18 + Vite 5, Tailwind + Bootstrap 5, Axios, React Router 6.
 
 - **react-admin** (`code/frontend/react-admin/`): admin console for stories/cards/matches
-  management. Dev proxy sends `/api/admin/**` to `http://localhost:8044` (the admin port
+  management; since V1.7.0 also a Users list and a User detail page (search, ban, suspend, unblock, re-link, deletion, always with a reason). Dev proxy sends `/api/admin/**` to `http://localhost:8044` (the admin port
   only — it never talks to the public port). A JWT admin token is pasted at login.
 - **react-game** (`code/frontend/react-game/`): the player-facing game. Dev proxy sends
   `/api/**` to `http://localhost:8042` (the public port). Falls back to mocked data when no
@@ -175,7 +188,7 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
 [ApiConventions §5](./ApiConventions.md) and CLAUDE.md's "When you change code" section.
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -185,8 +198,9 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
   | 0.41.2 | KPI service and AWS KPI accumulator added | September 29, 2026 |
   | 0.42.0 | Two alpha deploy workflows replace the website one | October 6, 2026 |
   | 1.1.0 | Daily smoke test function added | October 13, 2026 |
+  | 1.7.0 | Request stamp, user admin and ban modules added | October 23, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.1.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

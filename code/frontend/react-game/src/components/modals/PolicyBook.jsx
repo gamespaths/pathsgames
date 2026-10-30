@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { safeExternalUrl } from '@/utils/safeUrl'
 import { useTranslation } from '@/i18n/context'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import { openCookiePreferences } from '@/consent/cookieConsent'
@@ -8,6 +9,7 @@ import { buildImageCard } from '@/utils/loadoutCards'
 import { creditsEntries } from '@/utils/credits'
 import { getStoriesCatalog } from '@/api/stories'
 import roadmap from '@/data/roadmap.json'
+import policies from '@/data/policies.json'
 import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
 import { STORY_LICENSE, STORY_LICENSE_URL } from '@/utils/cardCredits'
 
@@ -17,33 +19,10 @@ import { STORY_LICENSE, STORY_LICENSE_URL } from '@/utils/cardCredits'
  * or (credits) the grid of story and image cards, or (roadmap) the version cards.
  */
 const POLICIES = {
-  privacy: {
-    imgId: 'home-privacy-policy', ns: 'modals.privacy', copyright: '© 2026',
-    sections: [
-      ['controllerTitle', 'controllerBody'], ['dataTitle', 'dataBody'], ['purposesTitle', 'purposesBody'],
-      ['cookiesTitle', 'cookiesBody'], ['sharingTitle', 'sharingBody'], ['transfersTitle', 'transfersBody'],
-      ['retentionTitle', 'retentionBody'], ['rightsTitle', 'rightsBody'], ['childrenTitle', 'childrenBody'],
-      ['securityTitle', 'securityBody'], ['changesTitle', 'changesBody'],
-    ],
-  },
-  terms: {
-    imgId: 'home-terms-conditions', ns: 'modals.terms', copyright: '© paths.games',
-    sections: [
-      ['acceptanceTitle', 'acceptanceBody'], ['serviceTitle', 'serviceBody'], ['guestTitle', 'guestBody'],
-      ['useTitle', 'useBody'], ['ipTitle', 'ipBody'], ['ipCodeTitle', 'ipCodeBody'],
-      ['ipUnsplashTitle', 'ipUnsplashBody'], ['disclaimerTitle', 'disclaimerBody'],
-      ['liabilityTitle', 'liabilityBody'], ['availabilityTitle', 'availabilityBody'],
-      ['thirdPartyTitle', 'thirdPartyBody'], ['privacyRefTitle', 'privacyRefBody'],
-      ['lawTitle', 'lawBody'], ['changesTitle', 'changesBody'],
-    ],
-  },
-  cookies: {
-    imgId: 'home-cookies-policy', ns: 'modals.cookies', copyright: null,
-    sections: [
-      ['necessaryTitle', 'necessaryBody'], ['analyticsTitle', 'analyticsBody'], ['legalTitle', 'legalBody'],
-      ['manageTitle', 'manageBody'], ['thirdPartyTitle', 'thirdPartyBody'], ['rightsTitle', 'rightsBody'],
-    ],
-  },
+  // v1.2.0 — texts structure shared with the static pages generator (src/data/policies.json).
+  privacy: { imgId: 'home-privacy-policy', ...policies.privacy },
+  terms: { imgId: 'home-terms-conditions', ...policies.terms },
+  cookies: { imgId: 'home-cookies-policy', ...policies.cookies },
   credits: { imgId: 'home-credits', ns: 'modals.credits' },
   // Step 40 — the Devlog: project intro on the left, one small card per version on the right.
   roadmap: { imgId: 'home', ns: 'modals.roadmap' },
@@ -96,8 +75,8 @@ function CreditsCards({ entries, t }) {
                 {card.copyrightText && badge('credit-copy', card.copyrightText, card.copyrightText)}
               </div>
             }
-            onAction={card.linkCopyright
-              ? () => window.open(card.linkCopyright, '_blank', 'noopener,noreferrer') : undefined}
+            onAction={safeExternalUrl(card.linkCopyright)
+              ? () => window.open(safeExternalUrl(card.linkCopyright), '_blank', 'noopener,noreferrer') : undefined}
             actionLabel={t('modals.credits.openCredit')} actionIcon="fa-external-link-alt" />
         ))}
       </div>

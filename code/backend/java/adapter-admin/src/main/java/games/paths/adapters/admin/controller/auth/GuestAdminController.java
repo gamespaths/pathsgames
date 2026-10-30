@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.auth;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.auth.GuestInfoResponse;
 import games.paths.adapters.admin.dto.auth.GuestStatsResponse;
@@ -52,11 +53,11 @@ public class GuestAdminController {
      */
     @GetMapping
     public ResponseEntity<Object> listAllGuests(
-            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer olderThanDays) {
         GuestInfoPage page = guestAdminPort.listGuestsPage(
-                new GuestListFilter(olderThanDays, cursor, limit));
+                new GuestListFilter(olderThanDays, cursor, QueryLimits.parse(limit)));
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("items", page.items().stream().map(this::toResponse).collect(Collectors.toList()));
         body.put("nextCursor", page.nextCursor());

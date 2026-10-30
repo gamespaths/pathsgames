@@ -99,14 +99,63 @@ class RateLimitServiceTest {
     }
 
     @Test
-    @DisplayName("The client address is the first forwarded hop, else the socket peer")
+    @DisplayName("v1.10.0 without trusted proxies the client is the socket peer, X-Forwarded-For ignored")
     void clientIp() {
-        assertEquals("9.9.9.9", RateLimitService.clientIp("9.9.9.9, 10.0.0.1", "127.0.0.1"));
-        assertEquals("9.9.9.9", RateLimitService.clientIp(" 9.9.9.9 ", "127.0.0.1"));
-        assertEquals("127.0.0.1", RateLimitService.clientIp(null, "127.0.0.1"));
-        assertEquals("127.0.0.1", RateLimitService.clientIp("  ", " 127.0.0.1 "));
-        assertEquals("127.0.0.1", RateLimitService.clientIp(" , 10.0.0.1", "127.0.0.1"));
-        assertEquals("", RateLimitService.clientIp(null, null));
+        assertEquals("127.0.0.1", RateLimitService.clientIp("9.9.9.9, 10.0.0.1", "127.0.0.1"));
+        assertEquals("127.0.0.1", RateLimitService.clientIp(null, " 127.0.0.1 "));
+        assertEquals("", RateLimitService.clientIp("9.9.9.9", null));
+        RateLimitService behindProxy = new RateLimitService(60, Clock.systemUTC(), TrustedProxies.parse("10.0.0.0/8"));
+        assertEquals("9.9.9.9", behindProxy.clientIpOf("1.2.3.4, 9.9.9.9, 10.0.0.2", "10.0.0.1"));
+        assertEquals("8.8.8.8", behindProxy.clientIpOf("9.9.9.9", "8.8.8.8"));
+        assertEquals("1.1.1.1", new RateLimitService(60, Clock.systemUTC(), null).clientIpOf("9.9.9.9", "1.1.1.1"));
+    }
+
+    @Test
+    @DisplayName("v1.10.0 a CIDR range compares, hashes and prints the address bytes, not the array reference")
+    void rangeUsesTheArrayContent() {
+        TrustedProxies.Range a = new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 8);
+        TrustedProxies.Range b = new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 8);
+        TrustedProxies.Range same = a;
+        assertEquals(a, same);
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 16));
+        assertNotEquals(a, new TrustedProxies.Range(new byte[] {11, 0, 0, 0}, 8));
+        assertNotEquals(a, null);
+        Object text = "10.0.0.0/8";
+        assertNotEquals(a, text);
+        assertEquals("Range{network=[10, 0, 0, 0], bits=8}", a.toString());
+    }
+
+    @Test
+    @DisplayName("v1.10.0 trusted proxies: CIDRs and single addresses, IPv4 and IPv6, junk skipped, no DNS")
+    void trustedProxies() {
+        TrustedProxies p = TrustedProxies.parse(" 10.0.0.0/8 , 192.168.1.7, fd00::/8, junk, 1.2.3.4/33, 1.2.3.4/x,"
+                + " 300.1.1.1, host.example.com, ");
+        assertFalse(p.isEmpty());
+        assertTrue(p.contains("10.255.0.1"));
+        assertTrue(p.contains("192.168.1.7"));
+        assertFalse(p.contains("192.168.1.8"));
+        assertTrue(p.contains("fd12::1"));
+        assertTrue(p.contains("[fd12::1]"));
+        assertFalse(p.contains("fe80::1"));
+        assertFalse(p.contains("10.0.0.1x"));
+        assertFalse(p.contains("1.2.3.4"));
+        assertFalse(p.contains(null));
+        assertFalse(p.contains("zz:zz"));
+        assertTrue(TrustedProxies.parse(null).isEmpty());
+        assertTrue(TrustedProxies.parse(" , junk").isEmpty());
+        assertSame(TrustedProxies.none(), TrustedProxies.parse(""));
+        assertTrue(TrustedProxies.parse("172.16.0.0/12").contains("172.31.255.255"));
+        assertFalse(TrustedProxies.parse("172.16.0.0/12").contains("172.32.0.0"));
+        assertTrue(TrustedProxies.parse("0.0.0.0/0").contains("8.8.8.8"));
+        assertTrue(TrustedProxies.parse("1.2.3.4/-1, 1:2:3/8").isEmpty());
+        assertFalse(p.contains("1:2:3"));
+        // every hop a proxy: the peer; a blank list behind a proxy: the peer
+        assertEquals("10.0.0.1", p.clientIp("10.0.0.3, 10.0.0.2", "10.0.0.1"));
+        assertEquals("10.0.0.1", p.clientIp(" , ", "10.0.0.1"));
+        assertEquals("10.0.0.1", p.clientIp(null, "10.0.0.1"));
+        assertEquals("", p.clientIp("9.9.9.9", null));
     }
 
     @Test

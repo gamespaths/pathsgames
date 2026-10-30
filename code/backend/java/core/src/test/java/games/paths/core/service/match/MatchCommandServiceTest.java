@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.story.ClassEntity;
@@ -47,6 +48,9 @@ import static org.mockito.Mockito.*;
  */
 class MatchCommandServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private StoryReadPort storyReadPort;
     private MatchPersistencePort persistencePort;
     private UserAccessPort userAccessPort;
@@ -66,6 +70,7 @@ class MatchCommandServiceTest {
         registryService = new RegistryService(registryStorePort);
         service = new MatchCommandService(storyReadPort, persistencePort, userAccessPort,
                 systemModePort, registryService);
+        service.setMatchStamp(stamp);
     }
 
     private MatchCreateCommand cmd(String userUuid, String storyUuid, String diffUuid) {
@@ -749,6 +754,8 @@ class MatchCommandServiceTest {
             when(persistencePort.updateMatchFields("m1", "ENDED", "n")).thenReturn(true);
             assertEquals(MatchCommandPort.UpdateOutcome.UPDATED,
                     service.updateMatch("m1", "ENDED", "n"));
+            verify(stamp).touchAdmin("m1");
+            verify(stamp, never()).claimGameplay(any());
         }
 
         @Test
@@ -757,6 +764,7 @@ class MatchCommandServiceTest {
             assertEquals(MatchCommandPort.UpdateOutcome.INVALID_STATUS,
                     service.updateMatch("m1", "BOGUS", null));
             verify(persistencePort, never()).updateMatchFields(any(), any(), any());
+            verify(stamp, never()).claimGameplay(any());
         }
 
         @Test
@@ -956,6 +964,7 @@ class MatchCommandServiceTest {
             assertEquals(MatchCommandPort.EndMatchOutcome.COMPLETED,
                     service.endMatch("m1", "ev", "u"));
             verify(persistencePort).updateMatchFields("m1", "ENDED", null);
+            verify(stamp).claimGameplay("m1");
         }
 
         @Test

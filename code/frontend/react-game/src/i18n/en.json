@@ -39,6 +39,7 @@
     "error": "Verification didn't go through."
   },
   "book": {
+    "updateMatch": "Match update",
     "configureAdventure": "Start your Adventure",
     "character": "Character",
     "class": "Class",
@@ -55,7 +56,8 @@
     "competitive": "Competitive",
     "guest": "Guest user",
     "guestLock": "Locked",
-    "guestDesc": "Play as a guest and dive into our captivating stories without the need for an account. Experience the thrill of adventure with just a click.<br /><br /> <p align='center'>Login coming soon for a personalized experience!</p>",
+    "logged": "Logged",
+    "guestDesc": "Play as a guest and dive into our captivating stories without the need for an account. Experience the thrill of adventure with just a click.<br /><br /> <p align='center'>Sign in with Google to keep your matches on every device and keep your progress for the future.</p>",
     "register": "Register",
     "comingSoon": "Coming Soon",
     "locked": "Locked",
@@ -160,14 +162,14 @@
       "running": "Running",
       "created": "Loading"
     },
-    "home": "Back to home"
+    "home": "Back to home",
+    "accountHint": "You can keep playing as a guest, signing in to keep your progress for the future."
   },
   "matches": {
     "title": "Your Matches",
     "loading": "Loading matches…",
-    "noMatches": "No matches yet. Start an adventure!",
     "unknownStory": "Unknown story",
-    "resume": "Resume",
+    "resume": "Play",
     "statusLabel": "Status",
     "created": "Started",
     "clock": "Clock",
@@ -176,12 +178,15 @@
       "RUNNING": "In progress",
       "PAUSED": "Paused",
       "ENDED": "Completed",
-      "GAMEOVER": "Defeat"
+      "GAMEOVER": "Defeat",
+      "CANCELLED": "Cancelled",
+      "BANNED": "Banned"
     },
     "history": "Match History",
     "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
     "historyOpen": "History",
-    "logOpen": "Log"
+    "logOpen": "Log",
+    "cancelledKept": "The match of your account was kept."
   },
   "matchLog": {
     "title": "Match history",
@@ -248,6 +253,13 @@
     "openLink": "open link"
   },
   "game": {
+    "updateMatch": {
+      "title": "Refreshing",
+      "description": "The page was refreshed because your account made a move on another device. You now see the match exactly as it is, so you can continue from there."
+    },
+    "matchUpdating": "Match is being updated",
+    "matchUpdatedLog": "Open the match history",
+    "matchUpdatedDismiss": "Close",
     "currentLocation": "Current Location",
     "explore": "Explore",
     "moveTo": "Move to…",
@@ -542,7 +554,11 @@
       "missingLess": "The registry does not hold a value less than {value} for the key {key}, which unlocks {target}.",
       "hiddenForbidden": "The registry holds a value that blocks {target}.",
       "hiddenMissing": "The registry is missing a value to unlock {target}.",
-      "target": { "action": "this event", "movement": "this movement", "choice": "this choice" },
+      "target": {
+        "action": "this event",
+        "movement": "this movement",
+        "choice": "this choice"
+      },
       "info": "Which registry key blocks this"
     },
     "map": {
@@ -620,40 +636,44 @@
     "close": "Close",
     "privacy": {
       "title": "Privacy Policy",
-      "intro": "This Privacy Policy explains how Paths Games ('we', 'us') collects and processes personal data when you use the game, and the rights you have under the EU General Data Protection Regulation (GDPR) and the California Consumer Privacy Act (CCPA/CPRA). Paths Games is designed to need as little personal data as possible: you play anonymously, with no registration, name or email required.",
+      "intro": "This Privacy Policy explains how Paths Games ('we', 'us') collects and processes personal data when you use the game, and the rights you have under the EU General Data Protection Regulation (GDPR) and the California Consumer Privacy Act (CCPA/CPRA). Paths Games is designed to need as little personal data as possible: you can play anonymously as a guest, with no registration; signing in with a Google account is optional.",
       "controllerTitle": "1. Who we are",
       "controllerBody": "The data controller is Paths Games. We aim to comply with applicable EU and US data-protection law. For any privacy request or question, contact us at paths.games@proton.me.",
       "dataTitle": "2. Data we collect",
-      "dataBody": "We do not ask for your name, email or payment details. We process an anonymous guest identifier (a random UUID and an auto-generated username), session and refresh tokens that keep you signed in, your in-game progress linked to that anonymous identifier, and — only if you consent — anonymous usage statistics via Google Analytics. Our hosting and content-delivery providers also process technical data such as your IP address and device or browser type transiently to deliver and secure the service.",
+      "dataBody": "As a guest we do not ask for your name, email or payment details. We process an anonymous guest identifier (a random UUID and an auto-generated username), session and refresh tokens that keep you signed in (stored on our servers only as SHA-256 hashes), your in-game progress linked to that identifier, and — only if you consent — anonymous usage statistics via Google Analytics. If you sign in with Google we also process the account data described in section 2.1. Our hosting and content-delivery providers also process technical data such as your IP address and device or browser type transiently to deliver and secure the service.",
+      "accountTitle": "2.1 Signing in with Google",
+      "accountBody": "If you choose to sign in with Google, Google Identity Services gives us a signed token with your Google account identifier (the provider subject), your email address (only verified Gmail addresses are accepted), your name and surname, the address of your profile picture and your locale. Your account is identified by the email and the provider subject together. We use the email only to identify your account and for support: it is never used for commercial communications without your separate consent, and it is never written to our logs. Your nickname is created once from the part of the email before '@' and is shown in the game; name, surname, picture and locale are refreshed at every sign-in. Your profile picture is loaded directly from googleusercontent.com, so your browser sends your IP address to Google when the picture is shown. When you sign in, the matches of the guest session you were using on that device are linked to your account.",
       "purposesTitle": "3. Why we process it and the legal basis",
       "purposesBody": "We process strictly necessary data to provide the game you request (performance of a contract and our legitimate interest in running the service), to keep it secure and prevent abuse (legitimate interest), and to measure usage through analytics (your consent, Art. 6(1)(a) GDPR). You can withdraw analytics consent at any time.",
       "cookiesTitle": "4. Cookies",
       "cookiesBody": "We use strictly necessary cookies and, with your consent, analytics cookies. Full details, including names and durations, are in our Cookies Policy, which you can reopen at any time via 'Cookie settings'.",
       "sharingTitle": "5. Who we share data with",
-      "sharingBody": "We use Google (Google Analytics and Tag Manager) for optional analytics and Amazon Web Services / CloudFront for hosting and content delivery; they act as our processors. We do not sell or 'share' your personal information as those terms are defined under the CCPA/CPRA, and we do not use it for cross-context behavioural advertising.",
+      "sharingBody": "We use Google (Google Analytics and Tag Manager) for optional analytics and Amazon Web Services / CloudFront for hosting and content delivery; they act as our processors. When you choose to sign in with Google, Google acts as the identity provider under its own privacy policy, and your profile picture is served by Google. We do not sell or 'share' your personal information as those terms are defined under the CCPA/CPRA, and we do not use it for cross-context behavioural advertising. When the game moves to a new stage, the administrator may export matches together with the account data of their players (email, names) to import them into the new stage: such export files are downloaded only by the administrator, deleted after the import and never published.",
       "transfersTitle": "6. International data transfers",
       "transfersBody": "Some providers (such as Google) may process data outside the European Economic Area, including in the United States. Such transfers are protected by the European Commission's Standard Contractual Clauses or an equivalent safeguard.",
       "retentionTitle": "7. Data retention",
-      "retentionBody": "Session cookies last up to 7 days (refresh token) and 30 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. An anonymous guest profile that has played at least one match is kept, so you can resume your adventures; a guest profile that never started a match is deleted after 60 days without access. Our server logs are kept for 14 days, and the anti-abuse counters linked to your IP address are deleted automatically after a short time.",
+      "retentionBody": "Session cookies last up to 250 days (refresh token, renewed at every visit; 180 days for a guest) and 180 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. An anonymous guest profile that has played at least one match is kept, so you can resume your adventures; a guest profile that never started a match is deleted after 60 days without access. A Google account is kept until you ask for its deletion or until 24 months pass without any access; then the account, its Google data (email, names, picture address, locale), its sessions, matches, characters and logs are deleted. Aggregated daily statistics contain no personal data and are kept. Our server logs are kept for 14 days, and the anti-abuse counters linked to your IP address are deleted automatically after a short time.",
       "rightsTitle": "8. Your rights",
-      "rightsBody": "If you are in the EU/EEA you may access, rectify, erase, restrict or port your data, object to processing, and withdraw consent at any time, and you may lodge a complaint with your local data protection authority. If you are a California resident you have the right to know, delete and correct your data and to opt out of sale or sharing (we do not sell or share), free from discrimination for exercising your rights. Because play is anonymous, we may be unable to identify your data without additional information from you.",
+      "rightsBody": "If you are in the EU/EEA you may access, rectify, erase, restrict or port your data, object to processing, and withdraw consent at any time, and you may lodge a complaint with your local data protection authority. If you are a California resident you have the right to know, delete and correct your data and to opt out of sale or sharing (we do not sell or share), free from discrimination for exercising your rights. You can ask for the deletion of your Google account at paths.games@proton.me (an in-game option will come with the profile page); deletion removes all your data except the aggregated statistics. If an account is banned for breaking the Terms, we keep only a keyed hash (HMAC-SHA256 with a secret pepper) of its Google subject and of its email, so that the same person cannot open a new account; the hash cannot be turned back into your data. Because guest play is anonymous, we may be unable to identify a guest's data without additional information from you.",
       "childrenTitle": "9. Children",
-      "childrenBody": "Paths Games is not directed to children under 16, and we do not knowingly collect personal data from them. If you believe a child has provided us data, contact us at paths.games@proton.me and we will delete it.",
+      "childrenBody": "Paths Games is not directed to children under 14 in Italy or under 16 in the rest of the European Union, and we do not knowingly collect personal data from them; you must be at least that age to sign in with Google. If you believe a child has provided us data, contact us at paths.games@proton.me and we will delete it.",
       "securityTitle": "10. Security",
       "securityBody": "We use measures such as HTTPS/TLS, HttpOnly session cookies and access controls to protect data. No method of transmission or storage is completely secure, and the game is currently in an alpha development phase.",
       "changesTitle": "11. Changes to this policy",
-      "changesBody": "We may update this policy as the game evolves; material changes will be reflected by the 'last updated' date below and, where required, by a renewed consent request.",
+      "changesBody": "We may update this policy as the game evolves; material changes will be reflected by the 'last updated' date below, shown to signed-in users at their next sign-in and, where required, followed by a renewed consent request.",
       "updated": "Last updated: October 2026"
     },
     "terms": {
       "title": "Terms of Service",
       "intro": "These Terms of Service ('Terms') govern your use of the Paths Games game and website. By accessing or playing Paths Games you agree to these Terms. If you do not agree, please do not use the service.",
       "acceptanceTitle": "1. Eligibility and acceptance",
-      "acceptanceBody": "You must be at least 16 years old to use Paths Games. By using the service you confirm that you meet this requirement and accept these Terms together with our Privacy Policy and Cookies Policy.",
+      "acceptanceBody": "You must be at least 14 years old in Italy, or 16 in the rest of the European Union (or the age of digital consent of your country, if higher), to use Paths Games. By using the service you confirm that you meet this requirement and accept these Terms together with our Privacy Policy and Cookies Policy.",
       "serviceTitle": "2. The service",
       "serviceBody": "Paths Games is a free-to-play gamebook video game with branching, multiplayer stories. It is currently in an alpha development phase and is provided 'as is' and 'as available'; features may change, break or be removed at any time.",
       "guestTitle": "3. Guest sessions",
       "guestBody": "Play is anonymous through an automatically created guest session; no registration is required. You are responsible for activity carried out through your session on your device. We may reset or revoke sessions to protect the service.",
+      "accountTitle": "3.1 Google accounts",
+      "accountBody": "You may sign in with a Google account; only verified Gmail addresses are accepted. Your account is identified by its email and its Google identifier and cannot be moved to another email: a new email is a new account. We cannot restore an account whose Google account you have lost. When you sign in, the progress of the guest session you were using on that device is linked to your account. You may ask for the deletion of your account at any time; the deletion also removes your matches and cannot be undone. We may suspend or ban accounts that break these Terms.",
       "useTitle": "4. Acceptable use",
       "useBody": "You agree not to misuse the service, including by cheating or manipulating game state, attempting unauthorised access, scraping or automated data collection, reverse-engineering beyond what the software licence permits, disrupting the service, or using it for any unlawful purpose.",
       "ipTitle": "5. Intellectual property",
@@ -669,7 +689,7 @@
       "availabilityTitle": "8. Availability, changes and termination",
       "availabilityBody": "We may modify, suspend or discontinue all or part of the service at any time, and may suspend access for users who breach these Terms. Because the game is in development, availability is not guaranteed.",
       "thirdPartyTitle": "9. Third-party services",
-      "thirdPartyBody": "The service links to or relies on third parties such as GitHub and Google; their own terms and privacy policies apply to your use of them.",
+      "thirdPartyBody": "The service links to or relies on third parties such as GitHub and Google (including Google Identity Services for the optional sign-in); their own terms and privacy policies apply to your use of them.",
       "privacyRefTitle": "10. Privacy",
       "privacyRefBody": "Your use of Paths Games is also governed by our Privacy Policy and Cookies Policy, which explain how we handle data and cookies.",
       "lawTitle": "11. Governing law",
@@ -682,7 +702,7 @@
       "title": "Cookies Policy",
       "intro": "This Cookies Policy explains how Paths Games uses cookies and similar technologies in this game. A cookie is a small text file stored on your device. We group cookies into the categories below; you can accept or reject non-essential cookies at any time.",
       "necessaryTitle": "1. Strictly necessary cookies",
-      "necessaryBody": "These keep your anonymous guest session active and remember your cookie choice. They are essential, so they are always on and do not require consent: pathsgames.guestcookie (30 days), pathsgames.refreshToken (7 days) and pathsgames.cookiesConsent (6 months).",
+      "necessaryBody": "These keep your session active and remember your cookie choice. They are essential, so they are always on and do not require consent: pathsgames.guestcookie (180 days), pathsgames.refreshToken (250 days, renewed at every visit; 180 days for a guest), pathsgames.cookiesConsent (6 months) and pathsgames.turnstilePass (up to 50 hours, a recent anti-bot check). The game also keeps a few necessary, non-personal values in your browser storage, never sent as cookies: pathsgames.lang and pathsgames.highContrast (your language and contrast choice), pg_game_server (the game server) and, until the tab is closed, pathsgames.googleNonce (one sign-in attempt) and pg_story:* (story texts already loaded). The Google Identity Services script (accounts.google.com) is loaded only when you click 'Sign in with Google', as a strictly necessary part of the sign-in you ask for; Google may set its own cookies in the sign-in popup, under Google's cookie policy. After a sign-in Google Identity Services also keeps g_state on this site (6 months): it only remembers the state of the sign-in prompt and is strictly necessary for it.",
       "analyticsTitle": "2. Analytics cookies (optional)",
       "analyticsBody": "With your consent we use Google Tag Manager / Google Analytics (_ga, _ga_*, up to 2 years) to measure usage anonymously and improve the game. Thanks to Google Consent Mode v2 these stay disabled until you accept, and no analytics cookie is written before then.",
       "legalTitle": "3. Legal basis",
@@ -690,10 +710,10 @@
       "manageTitle": "4. Managing your preferences",
       "manageBody": "You can change or withdraw your consent at any time using the \"Cookie settings\" button below, with the same ease as giving it. You can also delete or block cookies through your browser settings, though strictly necessary cookies are required for the game to function.",
       "thirdPartyTitle": "5. Third parties and data transfers",
-      "thirdPartyBody": "Analytics cookies are provided by Google. Google may process data outside the European Economic Area; such transfers are covered by the European Commission's Standard Contractual Clauses. We do not sell your personal data.",
+      "thirdPartyBody": "Analytics cookies are provided by Google. Google is also the provider of the optional sign-in, and your profile picture is loaded from googleusercontent.com (your browser sends your IP address to Google when it is shown). Google may process data outside the European Economic Area; such transfers are covered by the European Commission's Standard Contractual Clauses. We do not sell your personal data.",
       "rightsTitle": "6. Your rights",
       "rightsBody": "Under the GDPR you may access, rectify or erase your data, object to or restrict processing, request portability, and withdraw consent at any time. You may also lodge a complaint with your local data protection authority. For requests, contact us at paths.games@proton.me.",
-      "updated": "Last updated: June 2026",
+      "updated": "Last updated: October 2026",
       "manage": "Cookie settings"
     },
     "credits": {
@@ -715,7 +735,8 @@
       "title": "Your Profile",
       "anonymous": "Anonymous traveller",
       "uuidLabel": "Session ID",
-      "body": "<p>You are a guest, ready to play the adventures of this beautiful game.</p><p>No matches yet — start an adventure from the home page and your played stories will appear here.</p><br/><br/><p align='center'><i>Full account, saved progress and friends list coming soon.</i></p>"
+      "body": "<p>You are a guest, ready to play the adventures of this beautiful game.</p><br /><br /><p>No matches yet — start an adventure from the home page and your played stories will appear here.</p>",
+      "bodyGoogle": "<p>You are signed in with Google: your progress is saved on your account.</p><p>You can sign in with the same Google account on more devices — computer, phone or tablet: they all share the same matches, so an adventure started on one can go on from another.</p><p>The guest matches already played on a device join your account the first time you sign in there.</p>"
     },
     "copyright": {
       "title": "Photo Credit",
@@ -767,5 +788,73 @@
       "alpha": "Alpha",
       "beta": "Beta"
     }
+  },
+  "auth": {
+    "google": {
+      "signIn": "Sign in with Google",
+      "signInShort": "Sign in",
+      "loading": "Loading Google sign-in…",
+      "signingIn": "Signing you in…",
+      "signedInAs": "Signed in with Google as",
+      "logout": "Log out",
+      "logoutThisDevice": "Log out of this device",
+      "keepProgress": "Sign in with Google to keep your progress: the matches of this guest come with you.",
+      "ageNotice": "You must be at least 16 years old to sign in: read the {privacy} and the {terms} pages.",
+      "signInAgain": "Sign in again"
+    },
+    "errors": {
+      "EMAIL_NOT_VERIFIED": "Your Google email is not verified: verify it with Google and try again.",
+      "EMAIL_DOMAIN_NOT_ALLOWED": "We accept only Gmail accounts (@gmail.com).",
+      "IDENTITY_MISMATCH": "This email belongs to another Google account: please contact support at paths.games@proton.me.",
+      "SESSION_REVOKED": "Your session was closed from another device: you are playing as a guest again.",
+      "ACCOUNT_DELETION_IN_PROGRESS": "This account is being deleted: you can sign in again when the deletion is complete.",
+      "ACCOUNT_DISABLED": "This account is disabled.",
+      "PROVIDER_UNAVAILABLE": "Google sign-in is not available right now, try again later.",
+      "GOOGLE_DISABLED": "Google sign-in is switched off on this server.",
+      "RATE_LIMITED": "Too many sign-in attempts from this connection, try again later.",
+      "GOOGLE_LOGIN_FAILED": "Google sign-in failed, please try again.",
+      "SESSION_LIMIT": "Too many devices are signed in with this account: sign in again."
+    }
+  },
+  "profile": {
+    "stats": {
+      "matchesPlayed": "Matches",
+      "matchesCompleted": "Complete",
+      "matchesGameOver": "Gameover",
+      "playTime": "Time",
+      "playTimeMinutes": "{m} mins",
+      "playTimeHours": "{h} H",
+      "playTimeDays": "{d} days"
+    },
+    "logoutAll": "Log out of all devices",
+    "logoutAllConfirm": "Every device signed in with this Google account will be logged out, this one included.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "delete": {
+      "button": "Delete my account",
+      "what": "Deleting the account removes your profile, the link to your Google account, your preferences and every match you created. It cannot be undone.",
+      "confirmHint": "To confirm, sign in again with the same Google account.",
+      "confirmWithGoogle": "Confirm with Google",
+      "deleting": "Deleting the account…",
+      "doneTitle": "Account deleted",
+      "done": "Your account and its data are being deleted. Thank you for having played Paths Games.",
+      "close": "Back to the home"
+    },
+    "errors": {
+      "PROFILE_SAVE_FAILED": "The preferences could not be saved, please try again.",
+      "LOGOUT_ALL_FAILED": "The devices could not be logged out, please try again.",
+      "ACCOUNT_DELETION_FAILED": "The account could not be deleted, please try again.",
+      "FRESH_TOKEN_REQUIRED": "The Google confirmation is too old: confirm again with Google.",
+      "TOKEN_REPLAYED": "This Google confirmation was already used: confirm again with Google.",
+      "INVALID_NONCE": "The Google confirmation does not match this page: confirm again with Google.",
+      "INVALID_TOKEN": "The Google confirmation is not valid: confirm again with Google.",
+      "NOT_A_GOOGLE_ACCOUNT": "Only Google accounts can be deleted.",
+      "GOOGLE_ACCOUNT_REQUIRED": "Sign in with Google to save your preferences in your account.",
+      "INVALID_REQUEST": "This choice is not supported by the server.",
+      "CSRF_TOKEN_MISSING": "Your session changed: reload the page and try again.",
+      "CSRF_TOKEN_INVALID": "Your session changed: reload the page and try again.",
+      "generic": "Something went wrong, please try again."
+    },
+    "activeSessions": "Devices used in the last 30 days: {count}"
   }
 }

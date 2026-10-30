@@ -74,6 +74,17 @@ describe('Card', () => {
     fireEvent.click(link) // exercises stopPropagation handler
   })
 
+  it('v1.11.0 never renders a javascript: copyright link', () => {
+    render(
+      <Card
+        card={{ title: 'Art', linkCopyright: 'javascript:alert(1)', description: 'by author' }}
+        showLinkCopyright
+      />,
+    )
+    expect(document.querySelector('a.credits-view-btn')).toBeNull()
+    expect(document.querySelector('a[href^="javascript"]')).toBeNull()
+  })
+
   it('renders the children overlay over the image', () => {
     render(<Card card={{ title: 'Ov' }} childrenIntoImage={<span data-testid="overlay" />} />)
     expect(screen.getByTestId('overlay')).toBeInTheDocument()
@@ -148,5 +159,13 @@ describe('Card', () => {
       const { container } = render(<Card variant="page" card={{ title: 'T' }} />)
       expect(container.querySelector('.book-page-nav--forward')).toBeNull()
     })
+  })
+})
+
+describe('Card — page navigation test ids', () => {
+  it('marks the back and forward arrows of a reading page', () => {
+    render(<Card variant="page" card={{ title: 'T' }} onClose={vi.fn()} onForward={vi.fn()} />)
+    expect(screen.getByTestId('page-back')).toBeInTheDocument()
+    expect(screen.getByTestId('page-forward')).toBeInTheDocument()
   })
 })

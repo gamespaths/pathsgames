@@ -1,10 +1,14 @@
+"""TokenPersistenceAdapter on SQLite: v1.2.0 lookup by hash with the lazy rewrite of a clear token,
+rotation, revoke, the session cap and the user lookups."""
 import pytest
-from datetime import datetime, timezone, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+import app.adapters.persistence.match.models  # noqa: F401  - registers the tables the users FK needs
+import app.adapters.persistence.story.models  # noqa: F401
 from app.adapters.persistence.auth.models import Base, User, UserToken
 from app.adapters.persistence.auth.token_persistence_adapter import TokenPersistenceAdapter
-from app.core.models.auth.token_info import TokenInfo
+
 
 @pytest.fixture
 def session_factory():
@@ -12,103 +16,82 @@ def session_factory():
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)
 
+
 @pytest.fixture
 def adapter(session_factory):
     return TokenPersistenceAdapter(session_factory)
 
+
 @pytest.fixture
-def setup_user(session_factory):
+def user_id(session_factory):
     with session_factory() as session:
-        user = User(
-            uuid="test-user-uuid",
-            username="testuser",
-            state=6,
-            guest_cookie_token="cookie",
-            guest_expires_at="2025-01-01T00:00:00"
-        )
+        user = User(uuid="test-user-uuid", username="testuser", nickname="testuser", state=2, role="PLAYER")
         session.add(user)
         session.commit()
-        session.refresh(user)
-        return user
+        return user.id
 
-def test_find_user_id_by_uuid(adapter, setup_user):
-    assert adapter.find_user_id_by_uuid("test-user-uuid") == setup_user.id
+
+def _token(session_factory, user_id, value, revoked=False):
+    with session_factory() as session:
+        t = UserToken(id_user=user_id, refresh_token=value, revoked=revoked, expires_at="2999-01-01T00:00:00+00:00")
+        session.add(t)
+        session.commit()
+        return t.id
+
+
+def test_find_user_id_by_uuid(adapter, user_id):
+    assert adapter.find_user_id_by_uuid("test-user-uuid") == user_id
     assert adapter.find_user_id_by_uuid("missing") is None
 
-def test_save_refresh_token(adapter, setup_user, session_factory):
-    exp = (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
-    info = TokenInfo(sub="test-user-uuid", iss="iss", aud="aud", exp=int(exp), nbf=0, iat=0, jti="jti123", roles=[], username="u", type="refresh")
-    adapter.save_refresh_token("test-user-uuid", "refresh_tok", info)
-    
+
+def test_store_and_find_by_hash(adapter, user_id):
+    adapter.store_refresh_token(user_id, "hash-1", "2999-01-01T00:00:00+00:00")
+    found = adapter.find_refresh_token("hash-1", None)
+    assert found.user_id == user_id and found.revoked is False and found.ts_rotated is None
+    assert adapter.find_refresh_token(None, "x") is None
+    assert adapter.find_refresh_token("missing", None) is None
+
+
+def test_legacy_clear_token_is_rewritten_as_hash(adapter, user_id, session_factory):
+    _token(session_factory, user_id, "clear-token")
+    assert adapter.find_refresh_token("hash-2", "clear-token") is not None
     with session_factory() as session:
-        token = session.query(UserToken).filter_by(refresh_token="refresh_tok").first()
-        assert token is not None
-        assert token.jti == "jti123"
-        assert not token.revoked
+        assert session.query(UserToken).filter(UserToken.refresh_token == "hash-2").count() == 1
 
-    # Invalid user
-    with pytest.raises(ValueError):
-        adapter.save_refresh_token("invalid", "tok", info)
 
-def test_revoke_token(adapter, setup_user, session_factory):
-    exp = (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
-    info = TokenInfo(sub="test-user-uuid", iss="iss", aud="aud", exp=int(exp), nbf=0, iat=0, jti="jti1", roles=[], username="u", type="refresh")
-    adapter.save_refresh_token("test-user-uuid", "refresh_tok", info)
-    
-    adapter.revoke_token("refresh_tok")
-    
-    with session_factory() as session:
-        token = session.query(UserToken).filter_by(refresh_token="refresh_tok").first()
-        assert token.revoked
+def test_rotation_and_revoke(adapter, user_id, session_factory):
+    token_id = _token(session_factory, user_id, "h")
+    adapter.mark_rotated(token_id, "2026-10-19T00:00:00+00:00")
+    found = adapter.find_refresh_token("h", None)
+    assert found.revoked is True and found.ts_rotated == "2026-10-19T00:00:00+00:00"
+    assert adapter.revoke_refresh_token("h", None) is False
+    _token(session_factory, user_id, "h2")
+    assert adapter.revoke_refresh_token("h2", None) is True
+    assert adapter.revoke_refresh_token("missing", None) is False
 
-def test_revoke_all_by_user_uuid(adapter, setup_user, session_factory):
-    exp = (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
-    info = TokenInfo(sub="test-user-uuid", iss="iss", aud="aud", exp=int(exp), nbf=0, iat=0, jti="jti", roles=[], username="u", type="refresh")
-    adapter.save_refresh_token("test-user-uuid", "tok1", info)
-    adapter.save_refresh_token("test-user-uuid", "tok2", info)
-    
+
+def test_revoke_all(adapter, user_id, session_factory):
+    _token(session_factory, user_id, "a")
+    _token(session_factory, user_id, "b")
     adapter.revoke_all_by_user_uuid("test-user-uuid")
-    
-    with session_factory() as session:
-        tokens = session.query(UserToken).filter_by(id_user=setup_user.id).all()
-        for t in tokens:
-            assert t.revoked
-
-    # Should not raise
     adapter.revoke_all_by_user_uuid("missing")
-
-def test_is_refresh_token_valid(adapter, setup_user):
-    now = datetime.now(timezone.utc)
-    future = (now + timedelta(days=1)).timestamp()
-    past = (now - timedelta(days=1)).timestamp()
-    
-    info_future = TokenInfo(sub="u", iss="i", aud="a", exp=int(future), nbf=0, iat=0, jti="j1", roles=[], username="u", type="refresh")
-    info_past = TokenInfo(sub="u", iss="i", aud="a", exp=int(past), nbf=0, iat=0, jti="j2", roles=[], username="u", type="refresh")
-    
-    adapter.save_refresh_token("test-user-uuid", "valid_tok", info_future)
-    adapter.save_refresh_token("test-user-uuid", "expired_tok", info_past)
-    
-    assert adapter.is_refresh_token_valid("valid_tok") is True
-    assert adapter.is_refresh_token_valid("expired_tok") is False
-    assert adapter.is_refresh_token_valid("missing") is False
-    
-    adapter.revoke_token("valid_tok")
-    assert adapter.is_refresh_token_valid("valid_tok") is False
-
-def test_enforce_token_limit(adapter, setup_user, session_factory):
-    exp = (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
-    info = TokenInfo(sub="u", iss="i", aud="a", exp=int(exp), nbf=0, iat=0, jti="j", roles=[], username="u", type="refresh")
-    
-    for i in range(5):
-        adapter.save_refresh_token("test-user-uuid", f"tok{i}", info)
-        
-    adapter.enforce_token_limit(setup_user.id, 3)
-    
     with session_factory() as session:
-        tokens = session.query(UserToken).filter_by(id_user=setup_user.id).order_by(UserToken.id.asc()).all()
-        # The oldest 2 should be revoked
-        assert tokens[0].revoked
-        assert tokens[1].revoked
-        assert not tokens[2].revoked
-        assert not tokens[3].revoked
-        assert not tokens[4].revoked
+        assert session.query(UserToken).filter(UserToken.revoked == False).count() == 0  # noqa: E712
+
+
+def test_enforce_token_limit_revokes_the_oldest(adapter, user_id, session_factory):
+    ids = [_token(session_factory, user_id, f"t{i}") for i in range(4)]
+    adapter.enforce_token_limit(user_id, 2)
+    with session_factory() as session:
+        revoked = {t.id for t in session.query(UserToken).filter(UserToken.revoked == True).all()}  # noqa: E712
+    assert revoked == set(ids[:2])
+    adapter.enforce_token_limit(user_id, 5)
+
+
+def test_user_lookup_and_last_access(adapter, user_id, session_factory):
+    status = adapter.find_user_by_id(user_id)
+    assert status.uuid == "test-user-uuid" and status.state == 2 and status.role == "PLAYER"
+    assert adapter.find_user_by_id(999) is None
+    adapter.update_last_access(user_id)
+    with session_factory() as session:
+        assert session.query(User).get(user_id).last_access is not None

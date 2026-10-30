@@ -28,7 +28,7 @@ export default function HomePage() {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, error: guestError, openGuestModal } = useGuestUser()
+  const { user, error: guestError, openGuestModal, sessionIdle, ensureGuest } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
   // v0.32.1 — 'loading' | 'ready' | 'error': an unreadable list must NOT look like
@@ -89,6 +89,11 @@ export default function HomePage() {
     // error (no list can ever come); otherwise stay 'loading' until the token lands.
     if (!user?.accessToken) {
       if (guestError) setMatchesStatus('error')
+      // v1.2.0 — logged out with no guest to resume: nothing to list until the first Play
+      else if (sessionIdle) {
+        setMatches([])
+        setMatchesStatus('ready')
+      }
       return undefined
     }
     let cancelled = false
@@ -110,7 +115,7 @@ export default function HomePage() {
         setMatchesStatus('error')
       })
     return () => { cancelled = true }
-  }, [user?.accessToken, guestError])
+  }, [user?.accessToken, guestError, sessionIdle])
 
   // v0.37.6 — one state for every card footer. The antibot verdict wins over the
   // match list: a failed check blocks the buttons whatever the matches said.
@@ -142,6 +147,18 @@ export default function HomePage() {
     // The footer only shows a button when the gate passed and the matches answered
     // (or are on their way): anything else is a click on a locked card.
     if (pendingStoryUuid || footerState === 'blocked' || footerState === 'error') return
+    // v1.2.0 — after a logout without a guest to resume, the first Play creates the guest
+    if (!user && sessionIdle) {
+      setPendingStoryUuid(story.uuid)
+      try {
+        await ensureGuest()
+      } catch {
+        setMatchesStatus('error')
+        setPendingStoryUuid(null)
+        return
+      }
+      setPendingStoryUuid(null)
+    }
     let list = matches
     if (!Array.isArray(list)) {
       // Nothing in flight yet (guest session still being created): ignore the click.

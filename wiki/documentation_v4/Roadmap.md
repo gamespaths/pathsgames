@@ -85,6 +85,8 @@ Shared references: [Architecture](../Architecture.md),
     - List of matches waiting for players (backend)
     - Match list by user and status (backend)
     - Join endpoint with validations (full, already joined) (backend)
+    - Option "show my real name to the other players" (default to decide), before real names (Google `displayName`) become visible to others (backend, frontend)
+    - Possibility to change the nickname before it becomes visible to others (it reveals the email local part) (backend, frontend)
     - Maximum players from `difficulty.max_character` (backend)
     - Frontend match browser (frontend)
     - Unit tests (tests)

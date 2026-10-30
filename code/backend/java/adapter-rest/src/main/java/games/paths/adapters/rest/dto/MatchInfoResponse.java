@@ -20,6 +20,8 @@ import java.util.List;
 public class MatchInfoResponse {
 
     private MatchSummaryResponse match;
+    /** v1.7.0 step 8 - the match version to send back in If-Match. */
+    private String matchVersion;
     private Long currentLocationId;
     private String currentLocationUuid;
     private List<LocationStateDto> locations = new ArrayList<>();
@@ -40,6 +42,7 @@ public class MatchInfoResponse {
         if (d == null) return null;
         MatchInfoResponse r = new MatchInfoResponse();
         r.match = MatchSummaryResponse.fromModel(d.getMatch());
+        r.matchVersion = r.match != null ? r.match.getMatchVersion() : null;
         r.currentLocationId = d.getCurrentLocationId();
         r.currentLocationUuid = d.getCurrentLocationUuid();
         for (MatchLocationState s : d.getLocations()) {
@@ -66,6 +69,9 @@ public class MatchInfoResponse {
 
     public MatchSummaryResponse getMatch() { return match; }
     public void setMatch(MatchSummaryResponse match) { this.match = match; }
+
+    public String getMatchVersion() { return matchVersion; }
+    public void setMatchVersion(String matchVersion) { this.matchVersion = matchVersion; }
 
     public Long getCurrentLocationId() { return currentLocationId; }
     public void setCurrentLocationId(Long currentLocationId) { this.currentLocationId = currentLocationId; }

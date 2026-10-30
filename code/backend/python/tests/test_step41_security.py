@@ -14,7 +14,9 @@ from app.core.models.auth.refreshed_session import RefreshedSession
 from app.core.models.auth.token_info import TokenInfo
 from app.core.models.match.match_models import MatchSummary
 from app.core.services.security.csrf_token_service import HEADER, CsrfTokenService
-from app.core.services.security.rate_limit_service import RateLimitService, Verdict, client_ip
+from app.core.services.security.rate_limit_service import (RateLimitService, Verdict, client_ip,
+                                                            parse_trusted_proxies)
+from proxy_peer import behind_proxy
 
 SECRET = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"
 ACCESS = "eyJ.access.token"
@@ -92,13 +94,30 @@ def test_rate_limit_sweep_keeps_working_and_window_is_clamped():
     assert svc.try_acquire("guest", "x", 1).allowed
 
 
-def test_client_ip_prefers_first_forwarded_hop():
-    assert client_ip("9.9.9.9, 10.0.0.1", "127.0.0.1") == "9.9.9.9"
-    assert client_ip(" 9.9.9.9 ", "127.0.0.1") == "9.9.9.9"
-    assert client_ip(None, "127.0.0.1") == "127.0.0.1"
-    assert client_ip("  ", " 127.0.0.1 ") == "127.0.0.1"
-    assert client_ip(" , 10.0.0.1", "127.0.0.1") == "127.0.0.1"
-    assert client_ip(None, None) == ""
+def test_v1_10_client_ip_ignores_forwarded_for_without_a_trusted_proxy():
+    assert client_ip("9.9.9.9, 10.0.0.1", "127.0.0.1") == "127.0.0.1"
+    assert client_ip(None, " 127.0.0.1 ") == "127.0.0.1"
+    assert client_ip("9.9.9.9", None) == ""
+    trusted = parse_trusted_proxies(" 10.0.0.0/8 , 192.168.1.7, fd00::/8, junk, 1.2.3.4/33, , host.example.com")
+    assert len(trusted) == 3
+    assert client_ip("1.2.3.4, 9.9.9.9, 10.0.0.2", "10.0.0.1", trusted) == "9.9.9.9"
+    assert client_ip("9.9.9.9", "8.8.8.8", trusted) == "8.8.8.8"
+    assert client_ip("9.9.9.9", "192.168.1.7", trusted) == "9.9.9.9"
+    assert client_ip("2001:db8::1", "[fd12::1]", trusted) == "2001:db8::1"
+    assert client_ip("10.0.0.3, 10.0.0.2", "10.0.0.1", trusted) == "10.0.0.1"  # every hop a proxy
+    assert client_ip(" , ", "10.0.0.1", trusted) == "10.0.0.1"
+    assert client_ip("9.9.9.9", "testclient", trusted) == "testclient"
+    assert RateLimitService(60, trusted_proxies="10.0.0.0/8").client_ip_of("9.9.9.9", "10.0.0.1") == "9.9.9.9"
+    assert RateLimitService(60, trusted_proxies=None).client_ip_of("9.9.9.9", "10.0.0.1") == "10.0.0.1"
+    assert RateLimitService(60).trusted_proxies == ()
+
+
+def test_v1_10_a_forged_forwarded_for_never_opens_a_new_window():
+    limiter = RateLimitService(3600)
+    plain, _ = _guest_app(1, limiter, CsrfTokenService(SECRET))
+    limiter.trusted_proxies = ()  # the peer is not a proxy: the header is ignored
+    assert plain.post("/api/auth/guest", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 201
+    assert plain.post("/api/auth/guest", headers={"X-Forwarded-For": "2.2.2.2"}).status_code == 429
 
 
 # ── core: CsrfTokenService ─────────────────────────────────────────────────────
@@ -144,7 +163,7 @@ def test_csrf_matches_and_blanks():
 
 def _guest_app(guest_per_ip, limiter, csrf):
     guest_port, jwt_port, token_port = MagicMock(), MagicMock(), MagicMock()
-    session = GuestSession(user_uuid="u1", username="user1", access_token="a", refresh_token="r",
+    session = GuestSession(user_uuid="u1", username="user1", access_token=ACCESS, refresh_token="r",
                            access_token_expires_at=1, refresh_token_expires_at=2,
                            guest_cookie_token="cookie")
     guest_port.create_guest_session.return_value = session
@@ -158,7 +177,7 @@ def _guest_app(guest_per_ip, limiter, csrf):
     app = FastAPI()
     app.include_router(GuestAuthController(guest_port, jwt_port, token_port, True,
                                            limiter, guest_per_ip, csrf).router)
-    return TestClient(app), guest_port
+    return TestClient(behind_proxy(app, limiter)), guest_port
 
 
 def test_guest_response_carries_csrf_token_on_create_and_resume():
@@ -180,7 +199,9 @@ def test_guest_creation_is_rate_limited_per_forwarded_address():
     assert refused.headers["Retry-After"]
     body = refused.json()
     assert body["error"] == "RATE_LIMITED" and isinstance(body["retryAfterSeconds"], int)
-    assert client.post("/api/auth/guest", headers={"X-Forwarded-For": "2.2.2.2, 1.1.1.1"}).status_code == 201
+    # v1.10.0 behind the proxy the right-most hop counts: a forged left hop changes nothing
+    assert client.post("/api/auth/guest", headers={"X-Forwarded-For": "2.2.2.2, 1.1.1.1"}).status_code == 429
+    assert client.post("/api/auth/guest", headers={"X-Forwarded-For": "1.1.1.1, 2.2.2.2"}).status_code == 201
     assert guest_port.create_guest_session.call_count == 3
 
 
@@ -248,7 +269,7 @@ def _match_app(match_per_ip, limiter, csrf):
             request.state.user_uuid = request.headers["x-user"]
         return await call_next(request)
 
-    return TestClient(app), command_port
+    return TestClient(behind_proxy(app, limiter)), command_port
 
 
 def _create(client, ip, **extra):

@@ -7,14 +7,17 @@ from app.core.services.security.env_rule import is_dev_or_test
 
 #: The committed dev secret: refused at startup outside dev/test (v0.41.0, decision 5).
 DEV_JWT_SECRET = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"
+#: v1.7.0 the committed banned-subject pepper (same as Java SubjectHasher.DEFAULT_PEPPER): dev/test only.
+DEV_BANNED_SUBJECT_PEPPER = "PathsGamesDevBannedSubjectPepper2026"
 #: v0.41.0 — the Java dev-profile CORS list, the default instead of "*" with credentials.
 DEV_CORS_ORIGINS = ",".join([
     "http://localhost:3000", "http://localhost:8042", "http://127.0.0.1:5500",
     "http://localhost:5500", "http://localhost:5172", "http://localhost:5173",
     "http://localhost:5174", "http://localhost:8080", "https://pathsgames.com",
     "https://www.pathsgames.com", "https://pathsgames.com", "https://www.pathsgames.com",
-    "null",
 ])
+#: v1.10.0 the binds that stay on this machine: the committed JWT secret is accepted only there.
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 # Root project .env (two levels up from code/backend/python/)
 _ROOT_ENV = Path(__file__).resolve().parent.parent.parent.parent.parent / ".env"
@@ -31,7 +34,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "1.1.0"
+    version: str = "1.12.0"
 
 
     # >0.12.5 change version here
@@ -39,7 +42,27 @@ class Settings(BaseSettings):
     # Auth
     jwt_secret: str = DEV_JWT_SECRET
     access_token_minutes: int = 30
-    refresh_token_days: int = 7
+    # v1.7.0 sliding 250 days (renewed at each refresh); a guest's is capped at 180 days in the code
+    refresh_token_days: int = 250
+    # v1.7.0 sessions per user (Google and guest); the least recently refreshed answers SESSION_LIMIT
+    max_tokens_per_user: int = 12
+    # v1.7.0 SameSite of the auth cookies: lax by default, none only when the API is on another site
+    cookie_same_site: str = "lax"
+    # v1.2.0 iss (stage + backend) and aud on access and refresh tokens; empty issuer = from env
+    jwt_issuer: str = ""
+    jwt_audience: str = "paths-games"
+    # v1.2.0 Google sign-in (false only on test for trials); the client id default is for dev only
+    google_enabled: bool = True
+    google_client_id: str = "paths-games-dev.apps.googleusercontent.com"
+    rate_limit_google_per_ip: int = 30
+    # v1.2.0 lifetime of the admin token of the bootstrap tool and of POST /api/dev/admin-token
+    admin_token_days: int = 365
+    # v1.2.0 deletion job of state-7 users (chunked) and the daily 24-month inactivity retirement
+    account_jobs_enabled: bool = True
+    account_deletion_chunk: int = 100
+    account_retention_months: int = 24
+    # v1.7.0 HMAC pepper of the banned Google subjects and emails; outside dev/test the default is refused
+    banned_subject_pepper: str = DEV_BANNED_SUBJECT_PEPPER
 
     # Cloudflare Turnstile secret key. Empty = validation disabled (dev bypass).
     turnstile_secret_key: str = ""
@@ -53,6 +76,8 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 3600
     rate_limit_match_per_guest: int = 10
     rate_limit_match_per_guest_window_seconds: int = 86400
+    # v1.10.0 comma-separated CIDRs of the proxies in front; empty = X-Forwarded-For ignored (spoofable)
+    trusted_proxies: str = ""
 
     # v0.41.0 — the daily job deleting the guests idle for N days that no match references.
     guest_cleanup_enabled: bool = True
@@ -66,6 +91,14 @@ class Settings(BaseSettings):
     snapshot_keep_per_match: int = 10
     # v0.41.4 — size cap of a match export / import file in bytes (413 above it).
     match_export_max_bytes: int = 5000000
+    # v1.7.0 — a gameplay write adds at most this gap to the match play time (play_ms).
+    play_time_cap_seconds: int = 300
+    # v1.7.0 step 8 — react-game refetches a match on page return: "webkit" (Safari, iOS) or "all".
+    match_refetch_browsers: str = "webkit"
+    match_refetch_min_hidden_seconds: int = 30
+    # v1.7.0 — choices of PATCH /api/auth/me, shown by /api/echo/status (config only, no schema change).
+    supported_languages: str = "en,it"
+    supported_themes: str = "default,high-contrast"
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf_enforced: bool = True
@@ -101,6 +134,16 @@ class Settings(BaseSettings):
         return is_dev_or_test(self.env)
 
     @property
+    def jwt_issuer_effective(self) -> str:
+        """v1.2.0 JWT_ISSUER, else pathsgames-<env>-python."""
+        return self.jwt_issuer.strip() or f"pathsgames-{self.env}-python"
+
+    @property
+    def jwt_audience_effective(self) -> str:
+        """v1.2.0 JWT_AUDIENCE, else paths-games (an empty .env key must not empty the audience)."""
+        return (self.jwt_audience or "").strip() or "paths-games"
+
+    @property
     def catalog_langs_list(self) -> List[str]:
         return [l.strip() for l in self.catalog_langs.split(",") if l.strip()]
 
@@ -123,12 +166,23 @@ settings = Settings()
 
 
 def check_secrets(current: Optional[Settings] = None) -> None:
-    """v0.41.0 — outside dev/test, refuse the committed (or blank) JWT secret; called by _serve only."""
+    """v0.41.0 — outside dev/test, refuse the committed (or blank) JWT secret; called by _serve only.
+    v1.10.0 also in dev/test when the servers listen beyond loopback (anyone could forge tokens)."""
     current = current or settings
+    if current.jwt_secret == DEV_JWT_SECRET and (current.host or "").strip() not in LOOPBACK_HOSTS:
+        raise RuntimeError(
+            f"Refusing to start: HOST '{current.host}' is reachable from other machines and JWT_SECRET is the"
+            " committed default. Set JWT_SECRET to a private random value (openssl rand -base64 48).")
     if current.is_dev_or_test:
         return
     if not (current.jwt_secret or "").strip() or current.jwt_secret == DEV_JWT_SECRET:
         raise RuntimeError(
             f"Refusing to start: env '{current.env}' is not dev/test and JWT_SECRET is missing"
             " or the committed default. Set JWT_SECRET to a private random value"
+            " (openssl rand -base64 48).")
+    pepper = (current.banned_subject_pepper or "").strip()
+    if not pepper or pepper == DEV_BANNED_SUBJECT_PEPPER:
+        raise RuntimeError(
+            f"Refusing to start: env '{current.env}' is not dev/test and BANNED_SUBJECT_PEPPER is missing"
+            " or the committed default. Set BANNED_SUBJECT_PEPPER to a private random value"
             " (openssl rand -base64 48).")

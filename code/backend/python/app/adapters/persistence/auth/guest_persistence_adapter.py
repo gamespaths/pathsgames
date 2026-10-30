@@ -29,6 +29,7 @@ class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
             user = User(
                 uuid=user_uuid,
                 username=username,
+                nickname=username,  # v1.2.0 guests keep username = nickname = guest_xxx
                 state=6,  # GUEST state
                 role='PLAYER',
                 guest_cookie_token=guest_cookie_token,
@@ -41,9 +42,19 @@ class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
             session.refresh(user)
             return user.id
 
-    def find_guest_by_cookie_token(self, guest_cookie_token: str) -> Optional[Dict[str, Any]]:
+    def find_guest_by_cookie_token(self, guest_cookie_token_hash: str,
+                                   legacy_clear: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        if not guest_cookie_token_hash:
+            return None
         with self.session_factory() as session:
-            user = session.query(User).filter(User.guest_cookie_token == guest_cookie_token).first()
+            user = session.query(User).filter(User.guest_cookie_token == guest_cookie_token_hash,
+                                              User.state == 6).first()
+            if user is None and legacy_clear:
+                # v1.2.0 lazy migration: a cookie stored in clear before 1.2.0 is rewritten as hash
+                user = session.query(User).filter(User.guest_cookie_token == legacy_clear, User.state == 6).first()
+                if user is not None:
+                    user.guest_cookie_token = guest_cookie_token_hash
+                    session.commit()
             if not user:
                 return None
             return self._user_to_dict(user)

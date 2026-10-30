@@ -24,6 +24,10 @@ CROSS_FAMILY = "CROSS_FAMILY"
 USERNAME_RENAMED = "USERNAME_RENAMED"
 # Decision 54 (revised): a new user matched by e-mail onto an existing one of the target.
 USER_MAPPED_BY_EMAIL = "USER_MAPPED_BY_EMAIL"
+#: v1.2.0 the email of a Google user belongs on the target to another Google subject (error)
+IDENTITY_MISMATCH = "IDENTITY_MISMATCH"
+#: v1.2.0 the nickname is taken on the target: the created user gets the first free suffix
+NICKNAME_RENAMED = "NICKNAME_RENAMED"
 ROLE_DOWNGRADED = "ROLE_DOWNGRADED"
 USER_HAS_ACTIVE_MATCH = "USER_HAS_ACTIVE_MATCH"
 STORY_MATCHES_DELETED = "STORY_MATCHES_DELETED"
@@ -86,6 +90,10 @@ class MatchExportStorePort(ABC):
     def log_rows(self, id_match: int, table: str, mark: int) -> List[Dict[str, Any]]:
         """Rows of one log_* table of the match with id <= mark, in id order."""
 
+    def play_ms(self, match_uuid: str) -> int:
+        """v1.7.0 the live play time of the match (never rolled back by a snapshot), 0 when unknown."""
+        raise NotImplementedError
+
     @abstractmethod
     def users_by_ids(self, ids: Iterable[int]) -> Dict[int, Dict[str, Any]]:
         """users rows by id, never a secret column."""
@@ -101,6 +109,14 @@ class MatchExportStorePort(ABC):
     @abstractmethod
     def username_taken(self, username: str) -> bool:
         """True when another user has the username."""
+
+    def identity_by_email(self, provider: str, email: str) -> Optional[Dict[str, Any]]:
+        """v1.2.0 the identity with this provider and lowercase email: user_uuid, username, provider_subject."""
+        return None
+
+    def nickname_taken(self, nickname: str) -> bool:
+        """v1.2.0 users.nickname is unique: a created user takes the first free nickname."""
+        return False
 
     @abstractmethod
     def story_id_by_uuid(self, story_uuid: str) -> Optional[int]:

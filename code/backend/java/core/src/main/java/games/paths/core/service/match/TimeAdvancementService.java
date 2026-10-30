@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
@@ -34,6 +35,14 @@ import java.util.List;
  * <p>See {@code wiki/documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
  */
 public class TimeAdvancementService implements TimeAdvancementPort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     private static final String DEFAULT_LANG = "en";
 
@@ -123,6 +132,7 @@ public class TimeAdvancementService implements TimeAdvancementPort {
             throw new TurnCycleException(TurnCycleException.Code.MATCH_NOT_RUNNING,
                     "Match is not RUNNING");
         }
+        MatchStampPort.claim(stamp, matchUuid);
 
         // Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
         store.setCharacterSleeping(match.id(), caller.id(), true);

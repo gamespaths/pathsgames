@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.EventExecutionPort;
@@ -59,6 +60,14 @@ import java.util.Set;
  */
 public class MovementService implements MovementPort {
 
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
+
     private static final String DEFAULT_LANG = "en";
 
     private final MovementStorePort store;
@@ -110,6 +119,7 @@ public class MovementService implements MovementPort {
         if (!pre.available() && pre.reason() != MovementException.Code.NOT_A_NEIGHBOR) {
             throw new MovementException(pre.reason(), reasonMessage(pre.reason()));
         }
+        MatchStampPort.check(stamp, matchUuid);
 
         if (caller.idLocation() == null) {
             throw new MovementException(MovementException.Code.NOT_A_NEIGHBOR,
@@ -138,6 +148,7 @@ public class MovementService implements MovementPort {
             throw new MovementException(verdict.reason(), reasonMessage(verdict.reason()));
         }
 
+        MatchStampPort.claim(stamp, matchUuid);
         int newEnergy = caller.energy() - totalCost;
         // v0.35.3 — the checker proved the mover can afford all four, so none can go below 0.
         int newFood = caller.food() - edge.costFood();

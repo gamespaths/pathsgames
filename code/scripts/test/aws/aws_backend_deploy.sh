@@ -103,14 +103,14 @@ fi
 
 sam build
 
-# Cloudflare secret: vuoto = validazione disattivata (bypass server-side).
-_TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
+# Cloudflare secret: vuoto = validazione disattivata. v1.9.0: AWS_TEST_LAMBDA_* vince anche se vuoto, TURNSTILE_SECRET_KEY solo se assente.
+_TURNSTILE_SAM_KEY="${AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY-${TURNSTILE_SECRET_KEY:-}}"
 
 # Bypass token: only dev/test reach this point (see the case above), so prod is never bypassable.
 # Robot manda un token fisso; il sito usa il widget vero e non serve qui.
 _TURNSTILE_BYPASS="${TURNSTILE_BYPASS_TOKEN_ROBOT:-${TURNSTILE_BYPASS_TOKEN_TEST:-}}"
 if [ -z "$_TURNSTILE_SAM_KEY" ]; then
-    echo "  WARNING: TURNSTILE_SECRET_KEY is empty — Turnstile validation is OFF on this stack."
+    echo "  WARNING: AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY is empty — Turnstile validation is OFF on this stack."
 fi
 
 # Admin IP allow-list: ADMIN_IP_WHITELIST from .env plus this machine's public IP (code/scripts/lib/admin_ip.sh).
@@ -118,6 +118,23 @@ fi
 . "$PROJECT_ROOT/code/scripts/lib/admin_ip.sh"
 _ADMIN_IP_EMPTY_MEANS="${AWS_TEST_APIGW_ADMIN_IP_EMPTY_MEANS:-nobody}"
 _ADMIN_IP_WHITELIST="$(admin_ip_whitelist "${ADMIN_IP_WHITELIST:-}" "$_ADMIN_IP_EMPTY_MEANS")"
+
+if [ -z "${AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID:-}" ]; then
+    echo "  WARNING: AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID is empty — Google sign-in keeps the dev placeholder client and fails on test." >&2
+fi
+
+# v1.10.0 MOCK_ACCESS_<uuid> bearers skip every check: off unless asked, never with Google sign-in on.
+_ALLOW_MOCK_ACCESS="${AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS:-false}"
+if [ "$_ALLOW_MOCK_ACCESS" = "true" ] && [ "${AWS_TEST_LAMBDA_GOOGLE_ENABLED:-true}" = "true" ]; then
+    echo "  ERROR: AWS_TEST_LAMBDA_ALLOW_MOCK_ACCESS=true needs AWS_TEST_LAMBDA_GOOGLE_ENABLED=false (public stack)." >&2
+    exit 1
+fi
+
+# sam rejects an empty Key=: an unset pepper is left out, so the stack keeps its previous value (code default on create).
+_PEPPER_OVERRIDE=()
+if [ -n "${AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER:-}" ]; then
+    _PEPPER_OVERRIDE=(BannedSubjectPepper="$AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER")
+fi
 
 # deploy with SAM ($_STACK_TAGS is unquoted on purpose: one Key=Value argument per tag)
 # shellcheck disable=SC2086
@@ -137,7 +154,8 @@ sam deploy \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
         JwtSecret="${JWT_SECRET}" \
-        AllowMockAccess=true \
+        ${_PEPPER_OVERRIDE[@]+"${_PEPPER_OVERRIDE[@]}"} \
+        AllowMockAccess="$_ALLOW_MOCK_ACCESS" \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
         AdminIpEmptyMeans="${_ADMIN_IP_EMPTY_MEANS}" \
         RateLimitGuestPerIp="${AWS_TEST_LAMBDA_RATE_LIMIT_GUEST_PER_IP:-0}" \
@@ -160,6 +178,11 @@ sam deploy \
         LambdaSystemLogLevel="${AWS_TEST_LAMBDA_SYSTEM_LOG_LEVEL:-WARN}" \
         SmokeTestEnabled="${AWS_TEST_LAMBDA_SMOKE_TEST_ENABLED:-true}" \
         SmokeTestWebsiteUrl="${AWS_TEST_LAMBDA_SMOKE_WEBSITE_URL:-}" \
+        GoogleClientId="${AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID:-paths-games-dev.apps.googleusercontent.com}" \
+        GoogleEnabled="${AWS_TEST_LAMBDA_GOOGLE_ENABLED:-true}" \
+        RateLimitGooglePerIp="${AWS_TEST_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP:-0}" \
+        MaxSessionsPerUser="${AWS_TEST_LAMBDA_MAX_SESSIONS_PER_USER:-12}" \
+        CookieSameSite="${AWS_TEST_LAMBDA_COOKIE_SAME_SITE:-None}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 

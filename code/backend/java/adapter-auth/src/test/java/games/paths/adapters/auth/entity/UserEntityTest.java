@@ -83,10 +83,7 @@ class UserEntityTest {
             e.setUsername("hero");
             e.setNickname("legend");
             e.setEmailAddress("test@paths.it");
-            e.setPasswordHash("hash123");
-            e.setGoogleIdSso("google-id");
             e.setThemeSelected("midnight");
-            e.setPasswordHash("1234");
             e.setLanguage("it");
             e.setState(6);
             e.setGuestCookieToken("token-abc");
@@ -99,8 +96,6 @@ class UserEntityTest {
                 () -> assertEquals("hero", e.getUsername()),
                 () -> assertEquals("legend", e.getNickname()),
                 () -> assertEquals("test@paths.it", e.getEmailAddress()),
-                () -> assertEquals("1234", e.getPasswordHash()),
-                () -> assertEquals("google-id", e.getGoogleIdSso()),
                 () -> assertEquals("midnight", e.getThemeSelected()),
                 () -> assertEquals("it", e.getLanguage()),
                 () -> assertEquals(6, e.getState()),

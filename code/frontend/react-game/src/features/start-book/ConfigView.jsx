@@ -51,7 +51,7 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
         <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} story={story} 
           onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) }  hidePreview={true}
           statistics={statisticCard2} flagShowFullStatistics={true} 
-          onAction={onProceed} actionLabel={t('book.start')} actionIcon="fa-play"
+          onAction={onProceed} actionLabel={t('book.start')} actionIcon="fa-play" testId="book-start"
         />
 
 

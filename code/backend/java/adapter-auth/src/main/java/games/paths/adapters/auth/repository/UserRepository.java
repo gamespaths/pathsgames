@@ -128,4 +128,31 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     @Query("SELECT u FROM UserEntity u WHERE LOWER(u.emailAddress) = LOWER(:email) ORDER BY u.id")
     List<UserEntity> findByEmailIgnoreCase(@Param("email") String email);
+
+    // === v1.2.0: Google identities, nicknames, deletion and retention ===
+
+    Optional<UserEntity> findFirstByNickname(String nickname);
+
+    boolean existsByNickname(String nickname);
+
+    Optional<UserEntity> findFirstByEmailAddress(String emailAddress);
+
+    @Query(value = "SELECT u.id FROM users u WHERE u.state = :state ORDER BY u.id LIMIT :limit", nativeQuery = true)
+    List<Number> findIdsByState(@Param("state") Integer state, @Param("limit") int limit);
+
+    /** Users with an identity, not guest nor deleting, last seen (or registered) before the bound. */
+    @Query(value = "SELECT u.id FROM users u WHERE u.state NOT IN (6, 7)"
+            + " AND EXISTS (SELECT 1 FROM users_identities i WHERE i.id_user = u.id)"
+            + " AND COALESCE(u.ts_last_access, u.ts_registration) < :before ORDER BY u.id LIMIT :limit",
+            nativeQuery = true)
+    List<Number> findInactiveIdentityUserIds(@Param("before") String before, @Param("limit") int limit);
+
+    @Query(value = "SELECT u.id FROM users u WHERE u.state <> 6 AND u.nickname LIKE :pattern ORDER BY u.id",
+            nativeQuery = true)
+    List<Number> findNonGuestIdsByNicknameLike(@Param("pattern") String pattern);
+
+    /** v1.7.0 access tokens issued before this ISO-8601 second are refused (log out of all devices, ban). */
+    @Modifying
+    @Query(value = "UPDATE users SET sessions_valid_after = :validAfter WHERE id = :id", nativeQuery = true)
+    int updateSessionsValidAfter(@Param("id") Long id, @Param("validAfter") String validAfter);
 }

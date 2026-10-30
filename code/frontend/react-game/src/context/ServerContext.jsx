@@ -42,6 +42,17 @@ function fetchStatus(url) {
   }
   return statusRequests.get(url)
 }
+/** v1.7.0 step 8 — the page-return refetch of a match: code defaults, replaced by /api/echo/status. */
+export const DEFAULT_MATCH_REFETCH = { browsers: ['webkit'], minHiddenSeconds: 30 }
+
+export function readMatchRefetch(data) {
+  const browsers = Array.isArray(data?.matchRefetchBrowsers) && data.matchRefetchBrowsers.length
+    ? data.matchRefetchBrowsers.map(b => String(b).toLowerCase()) : DEFAULT_MATCH_REFETCH.browsers
+  const raw = data?.matchRefetchMinHiddenSeconds
+  const seconds = raw === null || raw === undefined || raw === '' ? NaN : Number(raw)
+  return { browsers, minHiddenSeconds: Number.isFinite(seconds) && seconds >= 0 ? seconds : DEFAULT_MATCH_REFETCH.minHiddenSeconds }
+}
+
 /** Test hook: forget every cached status request. */
 export function resetStatusRequests() { statusRequests.clear() }
 
@@ -51,6 +62,7 @@ export function ServerProvider({ children }) {
   // 'loading' | 'online' | 'offline' plus the backend version, for the footer.
   const [status, setStatus] = useState('loading')
   const [version, setVersion] = useState('')
+  const [matchRefetch, setMatchRefetch] = useState(DEFAULT_MATCH_REFETCH)
 
   // v0.37.6 — one probe per page load: StrictMode (dev) mounts twice, and the first
   // run's request cannot be recalled, so the second run just lets it finish. `mounted`
@@ -97,6 +109,7 @@ export function ServerProvider({ children }) {
         if (!active) return
         setStatus('online')
         setVersion(data?.properties?.version || '')
+        setMatchRefetch(readMatchRefetch(data))
       })
       .catch(() => { if (active) setStatus('offline') })
     return () => { active = false }
@@ -116,7 +129,7 @@ export function ServerProvider({ children }) {
   }, [])
 
   return (
-    <ServerContext.Provider value={{ server, servers: SERVERS, probing, status, version, changeServer }}>
+    <ServerContext.Provider value={{ server, servers: SERVERS, probing, status, version, changeServer, matchRefetch }}>
       <div key={server}>
         {children}
       </div>

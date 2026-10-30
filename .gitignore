@@ -90,6 +90,7 @@ code/tests/robot/reports-aws-local/
 code/scripts/dev/aws_run_local/logs/
 code/tests/robot/reports-local-java-postgres/
 code/tests/robot/reports-local-java/
+code/tests/robot/reports-website/
 code/tests/robot/reports-local-python/
 code/tests/robot/reports-local-python-limited/
 code/tests/robot/reports-local-java-postgres-limited/
@@ -173,3 +174,6 @@ code/tests/stress/reports/*
 code/tests/robot/tests_v0/41_alpha_prep/fixtures/golden/export_aws.json
 code/tests/robot/tests_v0/41_alpha_prep/fixtures/golden/export_java.json
 code/tests/robot/tests_v0/41_alpha_prep/fixtures/golden/export_python.json
+
+# v1.2.0 match export files carry personal data (email, names): admin download only, never committed
+match-*-clock-*.json

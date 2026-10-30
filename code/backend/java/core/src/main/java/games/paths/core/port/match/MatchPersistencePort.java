@@ -3,6 +3,7 @@ package games.paths.core.port.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.model.match.MatchStatusTotals;
 
 import java.util.List;
 import java.util.Optional;
@@ -75,4 +76,10 @@ public interface MatchPersistencePort {
      * @return {@code false} when no match has the given uuid
      */
     boolean deleteMatchByUuid(String uuid);
+
+    /** v1.7.0 - uuids of the matches the user created in one of the statuses (the admin ban). */
+    List<String> findMatchUuidsByUserCreator(long idUser, java.util.Collection<String> statuses);
+
+    /** v1.7.0 - per status, the matches the user created in one of the statuses (profile statistics). */
+    List<MatchStatusTotals> totalsByStatus(long idUser, List<String> statuses);
 }

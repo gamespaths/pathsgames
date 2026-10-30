@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 1.1.0
+    version: 1.12.0
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -17,17 +17,41 @@ game:
       # v0.41.0 — outside dev/test the committed default is refused at startup (StartupSecretsGuard).
       secret: ${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}
       access-token-minutes: 30
-      refresh-token-days: 7
-    max-tokens-per-user: 5
+      # v1.7.0 sliding 250 days (renewed at each refresh); a guest's is capped at 180 days in the code
+      refresh-token-days: ${REFRESH_TOKEN_DAYS:250}
+      # v1.2.0 iss (stage + backend) and aud on access and refresh tokens, verified on every request
+      issuer: ${JWT_ISSUER:pathsgames-${game.server.env:dev}-java}
+      audience: ${JWT_AUDIENCE:paths-games}
+    # v1.7.0 sessions per user (Google and guest); the least recently refreshed answers SESSION_LIMIT
+    max-tokens-per-user: ${MAX_TOKENS_PER_USER:12}
+    session:
+      # v1.7.0 daily purge of the ROTATED and LOGOUT refresh tokens older than 7 days
+      cleanup-cron: 0 12 1 * * ?
+    # v1.7.0 HMAC pepper of the banned Google subjects and emails; outside dev/test the default is refused
+    banned-subject-pepper: ${BANNED_SUBJECT_PEPPER:PathsGamesDevBannedSubjectPepper2026}
     admin-path-prefix: /api/admin/
-    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions,/api/stories,/api/stories/**,/api/content/**,/api/dev/**
+    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/auth/google,/api/versions,/api/stories,/api/stories/**,/api/content/**,/api/dev/**
+    google:
+      # v1.2.0 Google sign-in (false only on test for trials); the client id default is for dev only
+      enabled: ${GOOGLE_ENABLED:true}
+      client-id: ${GOOGLE_CLIENT_ID:paths-games-dev.apps.googleusercontent.com}
+    account:
+      # v1.2.0 deletion job of state-7 users (chunked) and the daily 24-month inactivity retirement
+      jobs-enabled: ${ACCOUNT_JOBS_ENABLED:true}
+      deletion-cron: 0 */10 * * * ?
+      retention-cron: 0 52 0 * * ?
+      chunk: ${ACCOUNT_DELETION_CHUNK:100}
+      retention-months: ${ACCOUNT_RETENTION_MONTHS:24}
     cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
-      same-site: Lax
+      # v1.7.0 None only when the API is not on the same site as the page (README: where it is needed)
+      same-site: ${COOKIE_SAME_SITE:Lax}
   admin:
     # Dedicated admin connector port. All /api/admin/** endpoints are served here
     # (and ONLY here); the public connector (server.port) returns 404 for admin paths.
     # Lock this port to the owner IP at the network layer (firewall / security group).
     port: ${ADMIN_PORT:8044}
+    # v1.2.0 lifetime of the admin token issued by --paths.admin.create and POST /api/dev/admin-token
+    token-days: ${ADMIN_TOKEN_DAYS:365}
     auth:
       guest:
         cleanup:
@@ -58,6 +82,10 @@ game:
       window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:3600}
       match-per-guest: ${RATE_LIMIT_MATCH_PER_GUEST:10}
       match-per-guest-window-seconds: ${RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS:86400}
+      # v1.2.0 POST /api/auth/google attempts per source address and window
+      google-per-ip: ${RATE_LIMIT_GOOGLE_PER_IP:30}
+    # v1.10.0 comma-separated CIDRs of the proxies in front; empty = X-Forwarded-For ignored (spoofable)
+    trusted-proxies: ${TRUSTED_PROXIES:}
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf:
@@ -73,6 +101,15 @@ game:
     export:
       # v0.41.4 — size cap of a match export / import file in bytes (413 above it).
       max-bytes: ${MATCH_EXPORT_MAX_BYTES:5000000}
+    # v1.7.0 — a gameplay write adds at most this gap to the match play time (play_ms).
+    play-time-cap-seconds: ${PLAY_TIME_CAP_SECONDS:300}
+    # v1.7.0 step 8 — react-game refetches a match on page return: "webkit" (Safari, iOS) or "all".
+    refetch-browsers: ${MATCH_REFETCH_BROWSERS:webkit}
+    refetch-min-hidden-seconds: ${MATCH_REFETCH_MIN_HIDDEN_SECONDS:30}
+  profile:
+    # v1.7.0 — choices of PATCH /api/auth/me, shown by /api/echo/status (config only, no schema change).
+    supported-languages: ${SUPPORTED_LANGUAGES:en,it}
+    supported-themes: ${SUPPORTED_THEMES:default,high-contrast}
   dev:
     # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.

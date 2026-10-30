@@ -327,11 +327,11 @@ Errors And Auth
     ${headers}=    Get Auth Headers    ${TOKEN}
     &{empty}=      Create Dictionary
     ${r400}=    POST On Session    public_session    /api/gameplay/${MATCH_UUID}/action/execute-event
-    ...    headers=${headers}    json=${empty}    expected_status=400
+    ...    headers=${headers}    json=${empty}    expected_status=400    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal    ${r400.json()}[error]    MISSING_EVENT
 
     ${r401}=    POST On Session    public_session    /api/gameplay/${MATCH_UUID}/action/execute-event
-    ...    json=${empty}    expected_status=401
+    ...    json=${empty}    expected_status=401    timeout=${HTTP_POST_TIMEOUT}
 
 Cards Are Localized By The Lang Parameter
     [Documentation]    ?lang= must reach the card resolution of the event and of every effect.
@@ -386,7 +386,7 @@ Suite Setup Events
     Create Admin Session
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
     Set Suite Variable    ${STORY_UUID}        ${story}
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
 
@@ -577,7 +577,7 @@ New Teleport Match
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
     Should Be Equal    ${story}    ${STORY_UUID}
     ...    msg=the loadout must resolve to the suite's story, whose seeds hold the teleporter
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TELEPORT_TOKEN}    ${guest.json()}[accessToken]
     ${match}=    Create Match    ${TELEPORT_TOKEN}    ${story}    ${difficulty}    robottest_step29_teleport

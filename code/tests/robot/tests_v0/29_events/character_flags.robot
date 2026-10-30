@@ -88,7 +88,7 @@ Suite Setup Character Flags
     ...                location, where the seeded Step 29 events live.
     Create Admin Session
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
 
@@ -119,7 +119,7 @@ Set Character Flags
     END
     ${resp}=    POST On Session    admin_session
     ...    /api/admin/matches/${MATCH_UUID}/player/${CHARACTER_MATCH_UUID}/changeStatistics
-    ...    json=${body}    expected_status=200
+    ...    json=${body}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal    ${resp.json()}[status]    UPDATED
 
 Location Events

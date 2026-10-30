@@ -70,6 +70,18 @@ describe('apiClient', () => {
     await expect(errorHandler(mockError)).rejects.toThrow('Custom error message')
   })
 
+  it('interceptor keeps the API error code and the HTTP status (v1.7.0)', async () => {
+    const client = apiClient()
+    const errorHandler = client.interceptors.response.handlers[0].rejected
+    const err = await errorHandler({ response: { status: 409, data: { error: 'INVALID_STATE_TRANSITION', message: 'No' } } })
+      .catch(e => e)
+    expect(err.message).toBe('No')
+    expect(err.code).toBe('INVALID_STATE_TRANSITION')
+    expect(err.status).toBe(409)
+    const plain = await errorHandler({ response: { status: 500, data: { error: { x: 1 } } }, message: 'boom' }).catch(e => e)
+    expect(plain.code).toBeUndefined()
+  })
+
   it('interceptor handles error with fallback to err.message', async () => {
     const client = apiClient()
     const mockError = {

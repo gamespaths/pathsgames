@@ -50,6 +50,30 @@ class FakeTable:
         self.store.pop((pk, sk), None)
         return True
 
+    def claim_version(self, pk, old, new, play_ms_delta=0, sk='METADATA'):
+        """v1.7.0 step 8 — the conditional UpdateItem of the claim."""
+        row = self.store.get((pk, sk))
+        stored = None if row is None or row.get('ts_update') is None else int(row.get('ts_update'))
+        if row is None or stored != (None if old is None else int(old)):
+            return False
+        row['ts_update'] = int(new)
+        row['playMs'] = int(row.get('playMs') or 0) + int(play_ms_delta)
+        return True
+
+    def transact_put_items(self, items, conditions=None, **_kwargs):
+        """v1.7.0 step 8 — the chunks land like a batch once the conditions hold."""
+        for (pk, sk), version in (conditions or {}).items():
+            row = self.store.get((pk, sk))
+            if row is None or int(row.get('ts_update') or 0) != int(version):
+                from common import db_utils
+                raise db_utils.TransactConditionFailed(0, 'ConditionalCheckFailed')
+        from common import db_utils
+        now = db_utils.stamp_ms()
+        for item in items:
+            item.setdefault('ts_insert', now)
+            item['ts_update'] = now
+        return self.batch_put_items(items)
+
     def delete_all_by_pk(self, pk):
         keys = [k for k in self.store if k[0] == pk]
         for k in keys:
@@ -117,6 +141,7 @@ class FakeTable:
 
 
 DB_FUNCTIONS = ('get_item', 'put_item', 'batch_put_items', 'delete_item', 'delete_all_by_pk',
+                'claim_version', 'transact_put_items',
                 'query_by_pk', 'query_sk_prefix', 'query_sk_prefix_page', 'query_sk_prefix_keys',
                 'find_user_by_email', 'find_users_by_email', 'find_users_by_username', 'count_gsi')
 
@@ -175,6 +200,8 @@ class RowSink:
 
 SINK = RowSink()
 REAL_BATCH_PUT = None   # the unpatched db_utils.batch_put_items, set by conftest
+REAL_CLAIM = None       # v1.7.0 step 8 the unpatched db_utils.claim_version
+REAL_TRANSACT_PUT = None  # v1.7.0 step 8 the unpatched db_utils.transact_put_items
 
 
 def written_rows():

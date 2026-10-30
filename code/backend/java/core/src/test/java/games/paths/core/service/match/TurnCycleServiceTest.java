@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.port.match.MatchLogWriterPort;
@@ -27,6 +28,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("TurnCycleService")
 class TurnCycleServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private TurnCycleStorePort store;
     private UserAccessPort userAccessPort;
     private TurnCycleService service;
@@ -40,6 +44,7 @@ class TurnCycleServiceTest {
         store = mock(TurnCycleStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
         service = new TurnCycleService(store, userAccessPort);
+        service.setMatchStamp(stamp);
         when(userAccessPort.findByUuid(USER)).thenReturn(
                 Optional.of(new UserAccessPort.UserView(USER_ID, USER, "u", "PLAYER", 2)));
     }
@@ -66,6 +71,7 @@ class TurnCycleServiceTest {
 
             TurnCyclePort.TurnSequenceResult result = service.startMatch(MATCH, USER);
 
+            verify(stamp).claimGameplay(MATCH);
             assertEquals(MatchStatuses.RUNNING, result.status());
             assertEquals("char-strong", result.activeCharacterUuid());
             assertEquals("char-strong", result.queue().get(0).characterUuid());
@@ -165,6 +171,7 @@ class TurnCycleServiceTest {
 
             TurnCyclePort.PassResult result = service.passTurn(MATCH, USER);
 
+            verify(stamp).claimGameplay(MATCH);
             assertEquals("char-a", result.passedCharacterUuid());
             assertEquals("char-b", result.nextActiveCharacterUuid());
             assertEquals(MatchStatuses.RUNNING, result.status());
@@ -259,5 +266,15 @@ class TurnCycleServiceTest {
     private static void assertCode(TurnCycleException.Code expected, Runnable action) {
         TurnCycleException ex = assertThrows(TurnCycleException.class, action::run);
         assertEquals(expected, ex.getCode());
+    }
+
+    @Test
+    @DisplayName("v1.7.0 - a refused start or pass leaves the match stamp alone")
+    void refusalsDoNotStamp() {
+        when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, null)));
+        assertCode(TurnCycleException.Code.MATCH_NOT_STARTABLE, () -> service.startMatch(MATCH, USER));
+        when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.PAUSED, null)));
+        assertCode(TurnCycleException.Code.MATCH_NOT_RUNNING, () -> service.passTurn(MATCH, USER));
+        verify(stamp, never()).claimGameplay(any());
     }
 }

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from typing import List, Any, Optional
 from app.core.ports.auth.guest_admin_port import GuestAdminPort
+from app.adapters.rest.query_limits import parse_limit
 
 class GuestAdminController:
     def __init__(self, guest_admin_port: GuestAdminPort):
@@ -17,7 +18,7 @@ class GuestAdminController:
         self.router.add_api_route("/{uuid}", self.get_guest_by_uuid, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.delete_guest, methods=["DELETE"])
 
-    def list_all_guests(self, limit: Optional[int] = None, cursor: Optional[str] = None,
+    def list_all_guests(self, limit: Optional[str] = None, cursor: Optional[str] = None,
                         olderThanDays: Optional[int] = None):
         """GET /api/admin/guests — v0.36.2, one page at a time, most recently seen first.
 
@@ -25,7 +26,7 @@ class GuestAdminController:
         Before this the endpoint returned the whole table, which on the AWS backend is a
         full-table scan and timed out at 15s.
         """
-        page = self.guest_admin_port.list_guests_page(olderThanDays, cursor, limit)
+        page = self.guest_admin_port.list_guests_page(olderThanDays, cursor, parse_limit(limit))
         return {
             "items": [g.model_dump(by_alias=True) for g in page["items"]],
             "nextCursor": page["next_cursor"],

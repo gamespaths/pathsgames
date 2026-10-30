@@ -36,7 +36,7 @@ def test_check_admin_ip_whitelist_branches():
         assert err is not None and err['statusCode'] == 403
 
 
-def test_require_auth_jwt_source_uses_db_then_synthetic():
+def test_require_auth_jwt_source_uses_db_and_never_a_synthetic_user():
     from auth import handler
     ev = make_event('GET', '/x', headers={'Authorization': 'Bearer realjwt'})
     claims = {'uuid': 'u-jwt', 'source': 'jwt', 'username': 'bob', 'role': 'ADMIN'}
@@ -45,11 +45,11 @@ def test_require_auth_jwt_source_uses_db_then_synthetic():
         user, err = handler._require_auth(ev)
     assert err is None and user['uuid'] == 'u-jwt'
 
-    # not in DB → synthetic dict built from claims
+    # v1.2.0 not in DB → 401, the synthetic user is gone
     with patch('auth.handler.jwt_utils.verify_access_token', return_value=claims), \
          patch('auth.handler.db_utils.get_item', return_value=None):
         user2, err2 = handler._require_auth(ev)
-    assert err2 is None and user2['username'] == 'bob' and user2['role'] == 'ADMIN'
+    assert user2 is None and err2['statusCode'] == 401
 
 
 def test_require_auth_mock_token_user_not_found():

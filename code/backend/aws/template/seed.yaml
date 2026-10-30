@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: "v1.10.0 ARN of the IAM permissions boundary of the roles (empty = none)."
   Environment:
     Type: String
   EnvironmentTag:
@@ -33,6 +37,13 @@ Parameters:
   AllowMockAccess:
     Type: String
     Default: "false"
+  # v1.2.0 — the audience of the fake Google tokens (test endpoints only)
+  GoogleClientId:
+    Type: String
+    Default: "paths-games-dev.apps.googleusercontent.com"
+
+Conditions:
+  HasPermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundaryArn, ""]]
 
 Resources:
   SeedLogGroup:
@@ -61,6 +72,7 @@ Resources:
     Type: AWS::Serverless::Function
     DependsOn: SeedLogGroup
     Properties:
+      PermissionsBoundary: !If [HasPermissionsBoundary, !Ref PermissionsBoundaryArn, !Ref AWS::NoValue]
       FunctionName: !Sub "pathsgames-${Environment}-SeedFunction"
       Runtime: python3.13
       Architectures: [arm64]
@@ -87,6 +99,7 @@ Resources:
           SEED_BCRYPT_HASH: !Ref SeedBcryptHash
           JWT_SECRET: !Ref JwtSecret
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -116,6 +129,44 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "POST /api/dev/cleanup"
+      Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v1.2.0 — the test-only endpoints of Robot: admin token, fake Google token, deletion job.
+  DevAdminTokenRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/dev/admin-token"
+      Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  DevGoogleTokenRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/dev/google-token"
+      Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  DevAccountDeletionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/dev/jobs/account-deletion"
+      Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v1.10.0 — Robot ends a suspension now to test the automatic unblock.
+  DevExpireSuspensionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/dev/users/{userUuid}/expire-suspension"
       Target: !Sub "integrations/${SeedIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

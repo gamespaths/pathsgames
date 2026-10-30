@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.port.match.ExperiencePort.ExperienceException;
 import games.paths.core.port.match.ExperiencePort.ExperienceException.Code;
 import games.paths.core.port.match.ExperiencePort.UseExpResult;
@@ -26,14 +27,19 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /** ExperienceService (Step 38) — the gates, the price and the purchase of use-exp. */
 @DisplayName("ExperienceService (Step 38)")
 class ExperienceServiceTest {
+
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
 
     private static final String USER = "user-uuid";
     private static final long USER_ID = 100L;
@@ -51,6 +57,7 @@ class ExperienceServiceTest {
         when(users.findByUuid(USER)).thenReturn(Optional.of(new UserAccessPort.UserView(USER_ID, USER, "guest", "GUEST", 6)));
         when(users.findByUuid("ghost")).thenReturn(Optional.empty());
         service = new ExperienceService(store, users);
+        service.setMatchStamp(stamp);
     }
 
     private static MatchExpView match(String status, Long turn) {
@@ -69,7 +76,10 @@ class ExperienceServiceTest {
     }
 
     private Code codeOf(String stat) {
-        return assertThrows(ExperienceException.class, () -> service.useExp("m1", USER, stat)).getCode();
+        clearInvocations(stamp);
+        Code code = assertThrows(ExperienceException.class, () -> service.useExp("m1", USER, stat)).getCode();
+        verify(stamp, never()).claimGameplay(any());
+        return code;
     }
 
     @Nested
@@ -147,6 +157,8 @@ class ExperienceServiceTest {
             wire(match("RUNNING", CHAR_ID), actor(10, 40, false, false, 7L), 1, new DifficultyExpView(2, 3, 12));
 
             UseExpResult r = service.useExp("m1", USER, " DEX ");
+
+            verify(stamp).claimGameplay("m1");
 
             verify(store).updateCharacter(MATCH_ID, CHAR_ID, 11, 12, 4, 17);
             verify(store).logExpUse(MATCH_ID, CHAR_ID, 3, "EXP_USE dex 10->11 cost 23");

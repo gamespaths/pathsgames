@@ -24,10 +24,10 @@ if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then
 		--variable RATE_LIMIT_MATCH_PER_GUEST:3 --outputdir reports-local-python-limited/)
 elif [ "${ROBOT_GOLDEN:-0}" = "1" ]; then
 	# v0.41.4 - ROBOT_GOLDEN=1 (export_golden_files.sh): writes this backend's golden export, imports every golden.
-	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0 RATE_LIMIT_GOOGLE_PER_IP=0
 	ROBOT_SCOPE=(--include golden --variable WRITE_GOLDEN:1 --outputdir reports-local-python-golden/)
 else
-	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0 RATE_LIMIT_GOOGLE_PER_IP=0
 	ROBOT_SCOPE=(--outputdir reports-local-python/)
 fi
 

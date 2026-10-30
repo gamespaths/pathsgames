@@ -30,7 +30,7 @@ public class CookiePolicyInitializer {
     //@Value("${game.auth.cookie.secure:false}")
     //private boolean secure;
 
-    @Value("${game.auth.cookie.same-site:None}")
+    @Value("${game.auth.cookie.same-site:Lax}")
     private String sameSite;
 
     @PostConstruct

@@ -1,11 +1,14 @@
 package games.paths.adapters.rest.controller.match;
 
+import games.paths.adapters.rest.controller.QueryLimits;
 import games.paths.adapters.rest.dto.MatchCreateRequest;
 import games.paths.adapters.rest.dto.MatchInfoResponse;
 import games.paths.adapters.rest.dto.MatchSummaryResponse;
+import games.paths.adapters.rest.dto.PagedMatchesResponse;
 import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.service.security.CsrfTokenService;
@@ -99,7 +102,7 @@ public class MatchController {
         }
         // Step 41 — at most match-per-ip new matches per source address and window
         if (rateLimitService != null && matchPerIp > 0) {
-            String ip = RateLimitService.clientIp(request.getHeader("X-Forwarded-For"),
+            String ip = rateLimitService.clientIpOf(request.getHeader("X-Forwarded-For"),
                     request.getRemoteAddr());
             RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, matchPerIp);
             if (!verdict.allowed()) {
@@ -141,18 +144,21 @@ public class MatchController {
         }
     }
 
+    /** v1.7.0 step 9 - the envelope {items, nextCursor, limit}: active first, then last played. */
     @GetMapping("/api/matches")
-    public ResponseEntity<Object> listMatches(HttpServletRequest request) {
+    public ResponseEntity<Object> listMatches(HttpServletRequest request,
+                                              @RequestParam(required = false) String limit,
+                                              @RequestParam(required = false) String cursor) {
         String userUuid = (String) request.getAttribute("userUuid");
         if (userUuid == null || userUuid.isBlank()) {
             return error(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED",
                     "User identity is missing from the request");
         }
-        List<MatchSummary> models = matchQueryPort.listUserMatches(userUuid);
-        List<MatchSummaryResponse> result = models.stream()
+        MatchSummaryPage page = matchQueryPort.listUserMatchesPage(userUuid, QueryLimits.parse(limit), cursor);
+        List<MatchSummaryResponse> items = page.items().stream()
                 .map(MatchSummaryResponse::fromModel)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(new PagedMatchesResponse(items, page.nextCursor(), page.limit()));
     }
 
     @GetMapping("/api/match/{uuidMatch}/info")

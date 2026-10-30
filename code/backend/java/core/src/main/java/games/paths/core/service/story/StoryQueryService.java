@@ -52,6 +52,18 @@ public class StoryQueryService implements StoryQueryPort {
     }
 
     @Override
+    public games.paths.core.model.story.StorySummaryPage listAllStoriesPage(String lang, Integer limit,
+                                                                            String cursor) {
+        List<StoryEntity> stories = readPort.findAllStories();
+        int size = games.paths.core.service.match.MatchListOrder.clampLimit(limit);
+        int from = Math.min(games.paths.core.service.match.MatchListOrder.offsetOf(cursor), stories.size());
+        int to = Math.min(from + size, stories.size());
+        String next = to < stories.size() ? String.valueOf(to) : null;
+        return new games.paths.core.model.story.StorySummaryPage(
+                mapToSummaries(new ArrayList<>(stories.subList(from, to)), lang), next, size);
+    }
+
+    @Override
     public StoryDetail getStoryByUuid(String uuid, String lang) {
         if (uuid == null || uuid.isBlank()) {
             return null;

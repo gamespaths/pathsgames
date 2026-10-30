@@ -336,6 +336,26 @@ class JwtAuthenticationFilterTest {
         }
 
         @Test
+        @DisplayName("v1.10.0 an encoded or ;-padded admin path still needs the ADMIN role")
+        void encodedAdminPathStillNeedsTheAdminRole() throws Exception {
+            for (String uri : new String[] {"/api/%61dmin/users", "/api;x/admin/users", "/api//admin/users"}) {
+                reset(request, response, filterChain);
+                when(request.getMethod()).thenReturn("GET");
+                when(request.getRequestURI()).thenReturn(uri);
+                when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt");
+                when(sessionPort.validateAccessToken("valid-jwt")).thenReturn(
+                        new TokenInfo("u-1", "guest_1", "PLAYER", "access", null, 0L, 0L));
+                StringWriter sw = new StringWriter();
+                when(response.getWriter()).thenReturn(new PrintWriter(sw));
+
+                filter.doFilterInternal(request, response, filterChain);
+
+                verify(response).setStatus(403);
+                verify(filterChain, never()).doFilter(request, response);
+            }
+        }
+
+        @Test
         @DisplayName("Should allow admin to access admin path")
         void adminAccessAdminPath() throws Exception {
             when(request.getMethod()).thenReturn("GET");
@@ -365,6 +385,112 @@ class JwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
+            verify(filterChain).doFilter(request, response);
+        }
+    }
+
+    @Nested
+    @DisplayName("v1.2.0 the user must exist; role and state from the DB")
+    class UserStateTests {
+
+        private games.paths.core.port.auth.UserStatePort states;
+        private JwtAuthenticationFilter stateFilter;
+
+        @BeforeEach
+        void setUp() {
+            states = mock(games.paths.core.port.auth.UserStatePort.class);
+            stateFilter = new JwtAuthenticationFilter(sessionPort, List.of("/api/echo/**"), "/api/admin/", states);
+            when(request.getMethod()).thenReturn("GET");
+            when(request.getHeader("Authorization")).thenReturn("Bearer tok");
+            when(sessionPort.validateAccessToken("tok")).thenReturn(new games.paths.core.model.auth.TokenInfo(
+                    "u-1", "claimed", "ADMIN", "access", "j", 1L, 2L));
+        }
+
+        private void user(int state, String role) {
+            when(states.current("u-1")).thenReturn(java.util.Optional.of(
+                    new games.paths.core.model.auth.UserStatus(1L, "u-1", "db_name", "n", role, state, "en")));
+        }
+
+        private int refusedWith(String path) throws Exception {
+            when(request.getRequestURI()).thenReturn(path);
+            StringWriter sw = new StringWriter();
+            when(response.getWriter()).thenReturn(new PrintWriter(sw));
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(filterChain, never()).doFilter(request, response);
+            org.mockito.ArgumentCaptor<Integer> status = org.mockito.ArgumentCaptor.forClass(Integer.class);
+            verify(response).setStatus(status.capture());
+            return status.getValue();
+        }
+
+        @Test
+        void unknownUserIsRefused() throws Exception {
+            when(states.current("u-1")).thenReturn(java.util.Optional.empty());
+            assertEquals(401, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void bannedBlockedAndDeletingUsersAreRefused() throws Exception {
+            user(4, "PLAYER");
+            assertEquals(403, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void blockedUserIsRefused() throws Exception {
+            user(3, "PLAYER");
+            assertEquals(403, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void deletingUserIsRefused() throws Exception {
+            user(7, "PLAYER");
+            assertEquals(403, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void theRoleClaimIsNotTrusted() throws Exception {
+            user(2, "PLAYER");
+            assertEquals(403, refusedWith("/api/admin/matches"));
+        }
+
+        @Test
+        void activeUserPassesWithTheDatabaseIdentity() throws Exception {
+            user(2, "ADMIN");
+            when(request.getRequestURI()).thenReturn("/api/admin/matches");
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(filterChain).doFilter(request, response);
+            verify(request).setAttribute("username", "db_name");
+            verify(request).setAttribute("role", "ADMIN");
+        }
+
+        private void userValidAfter(long epochSeconds) {
+            when(states.current("u-1")).thenReturn(java.util.Optional.of(new games.paths.core.model.auth.UserStatus(
+                    1L, "u-1", "db_name", "n", "PLAYER", 2, "en", epochSeconds)));
+        }
+
+        private void tokenIssuedAtMillis(long iatMillis) {
+            when(sessionPort.validateAccessToken("tok")).thenReturn(new games.paths.core.model.auth.TokenInfo(
+                    "u-1", "claimed", "PLAYER", "access", "j", iatMillis, iatMillis + 1_800_000L));
+        }
+
+        @Test
+        void v170TokenIssuedBeforeSessionsValidAfterIsSessionRevoked() throws Exception {
+            userValidAfter(1_792_663_200L);
+            tokenIssuedAtMillis(1_792_663_199_999L);
+            when(request.getRequestURI()).thenReturn("/api/matches");
+            StringWriter sw = new StringWriter();
+            when(response.getWriter()).thenReturn(new PrintWriter(sw));
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(response).setStatus(401);
+            assertTrue(sw.toString().contains("SESSION_REVOKED"));
+            verify(filterChain, never()).doFilter(request, response);
+        }
+
+        @Test
+        void v170TokenOfTheBoundarySecondOrLaterPasses() throws Exception {
+            userValidAfter(1_792_663_200L);
+            tokenIssuedAtMillis(1_792_663_200_000L);
+            when(request.getRequestURI()).thenReturn("/api/matches");
+            stateFilter.doFilterInternal(request, response, filterChain);
             verify(filterChain).doFilter(request, response);
         }
     }

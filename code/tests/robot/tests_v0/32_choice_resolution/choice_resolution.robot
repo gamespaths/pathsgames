@@ -246,7 +246,7 @@ Fresh Resolution Match
     [Documentation]    A fresh running single-player match. Every case needs one: opening a
     ...                choice-event latches the EVENT_EXECUTED marker, resolving it latches the
     ...                CHOICE_SELECTED one, and both are per-match.
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     ${token}=    Set Variable    ${guest.json()}[accessToken]
     ${match}=    Create Match    ${token}    ${STORY_UUID}    ${DIFFICULTY}    robottest_step32

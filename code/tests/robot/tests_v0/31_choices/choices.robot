@@ -224,7 +224,7 @@ Suite Setup Choices
     Set Suite Variable    ${CLASS}    ${class}
     Set Suite Variable    ${TRAIT}    ${trait}
 
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
     ${match}=    Create Match    ${TOKEN}    ${story}    ${difficulty}    robottest_step31
@@ -247,7 +247,7 @@ Fresh Choice Match
     [Documentation]    A fresh running single-player match on the suite's story. Each open of a
     ...                choice-event latches per-match state (the EVENT_EXECUTED marker), so a
     ...                pristine-event test must run on its own match.
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     ${token}=    Set Variable    ${guest.json()}[accessToken]
     ${match}=    Create Match    ${token}    ${STORY_UUID}    ${DIFFICULTY}    robottest_step31_fresh

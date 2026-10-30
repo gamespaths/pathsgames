@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import { rememberMatchVersion, versionedWrite } from './matchVersion'
 
 /**
  * Single-player match API client (Step 19 / v0.19.10, Step 20 / v0.20.1).
@@ -23,6 +24,11 @@ function authConfig(accessToken) {
     : { withCredentials: true }
 }
 
+/** v1.7.0 step 8 — the config with extra headers (If-Match on the eleven gameplay writes). */
+function withHeaders(config, extra) {
+  return extra && Object.keys(extra).length ? { ...config, headers: { ...(config.headers ?? {}), ...extra } } : config
+}
+
 /**
  * Create a single-player match. Throws on a backend error so the caller can
  * surface it. v0.37.7 — the `csrfToken` issued with the bearer at login travels
@@ -34,22 +40,41 @@ export async function createMatch(payload, accessToken, csrfToken) {
     config.headers = { ...(config.headers ?? {}), 'X-CSRF-TOKEN': csrfToken }
   }
   const res = await apiClient().post('/api/matches', payload, config)
+  rememberMatchVersion(res.data?.uuid, res.data)
   return res.data
 }
 
 /** v0.37.5 — a cold Lambda plus a long match history can exceed the 5 s client default. */
 const LIST_MATCHES_TIMEOUT_MS = 15000
 
-/** List the matches owned by the authenticated user (newest first). */
+/** v1.7.0 step 9 — at most this many pages of 50 are read for one list. */
+const LIST_MATCHES_MAX_PAGES = 20
+
+/**
+ * List the matches owned by the authenticated user: active first, then last played.
+ * v1.7.0 step 9 — the backend answers {items, nextCursor, limit}; every page is read.
+ */
 export async function listMatches(accessToken) {
-  const res = await apiClient().get('/api/matches',
-    { ...authConfig(accessToken), timeout: LIST_MATCHES_TIMEOUT_MS })
-  return res.data
+  const items = []
+  let cursor = null
+  for (let page = 0; page < LIST_MATCHES_MAX_PAGES; page++) {
+    const res = await apiClient().get('/api/matches', {
+      ...authConfig(accessToken), timeout: LIST_MATCHES_TIMEOUT_MS,
+      ...(cursor ? { params: { cursor } } : {}),
+    })
+    const data = res.data
+    if (Array.isArray(data)) return data
+    items.push(...(Array.isArray(data?.items) ? data.items : []))
+    cursor = data?.nextCursor ?? null
+    if (!cursor) break
+  }
+  return items
 }
 
 /** Retrieve the full runtime info of one match owned by the current user. */
 export async function getMatchInfo(uuid, accessToken, lang) {
   const res = await apiClient().get(`/api/match/${uuid}/info?lang=${lang ?? 'en'}`, authConfig(accessToken))
+  rememberMatchVersion(uuid, res.data)
   return res.data
 }
 
@@ -80,11 +105,11 @@ export async function getMatchMission(uuid, uuidMission, accessToken, lang) {
  * (`EVENT_NOT_END_GAME`) and `404` when the caller does not own the match.
  */
 export async function endMatch(uuidMatch, uuidEvent, accessToken) {
-  const res = await apiClient().patch(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().patch(
     `/api/match/${uuidMatch}/end/${uuidEvent}`,
     null,
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -95,11 +120,11 @@ export async function endMatch(uuidMatch, uuidEvent, accessToken) {
  * Throws on a backend error.
  */
 export async function joinMatch(uuidMatch, payload, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/matches/${uuidMatch}/join`,
     payload ?? {},
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -126,11 +151,11 @@ export async function getCharacter(uuidMatch, uuidCharacter, accessToken) {
  * (409 MATCH_NOT_STARTABLE / NO_CHARACTERS_JOINED, 404 MATCH_NOT_FOUND).
  */
 export async function startMatch(uuidMatch, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/matches/${uuidMatch}/start`,
     null,
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -140,11 +165,11 @@ export async function startMatch(uuidMatch, accessToken) {
  * (409 MATCH_NOT_RUNNING / NOT_YOUR_TURN, 404 MATCH_NOT_FOUND).
  */
 export async function passTurn(uuidMatch, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/action/pass`,
     null,
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -197,11 +222,11 @@ export async function getMatchWeather(uuidMatch, accessToken) {
  * NOT_YOUR_TURN / MATCH_NOT_RUNNING, 404 MATCH_NOT_FOUND).
  */
 export async function sleepCharacter(uuidMatch, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/action/sleep`,
     null,
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -215,11 +240,11 @@ export async function sleepCharacter(uuidMatch, accessToken) {
  * MATCH_NOT_FOUND).
  */
 export async function startMovement(uuidMatch, targetLocationUuid, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/movements/start`,
     { targetLocationUuid },
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -293,11 +318,11 @@ export async function getMatchLocations(uuidMatch, accessToken, lang) {
 export async function executeEvent(uuidMatch, eventUuid, accessToken, lang) {
   const config = authConfig(accessToken)
   if (lang) config.params = { lang }
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/action/execute-event`,
     { eventUuid },
-    config,
-  )
+    withHeaders(config, extra),
+  ))
   return res.data
 }
 
@@ -329,11 +354,11 @@ export async function executeEvent(uuidMatch, eventUuid, accessToken, lang) {
 export async function selectChoice(uuidMatch, choiceUuid, accessToken, lang) {
   const config = authConfig(accessToken)
   if (lang) config.params = { lang }
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/action/select-choice`,
     { choiceUuid },
-    config,
-  )
+    withHeaders(config, extra),
+  ))
   return res.data
 }
 
@@ -373,11 +398,11 @@ export async function getInventory(uuidMatch, accessToken, lang) {
 export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
   const config = authConfig(accessToken)
   if (lang) config.params = { lang }
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/inventory/use-item`,
     { itemInstanceUuid },
-    config,
-  )
+    withHeaders(config, extra),
+  ))
   return res.data
 }
 
@@ -393,11 +418,11 @@ export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
  * `MATCH_NOT_FOUND`.
  */
 export async function useExp(uuidMatch, stat, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/action/use-exp`,
     { stat },
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
@@ -411,11 +436,11 @@ export async function useExp(uuidMatch, stat, accessToken) {
  * multiplayer and has no endpoint here.
  */
 export async function dropItem(uuidMatch, itemInstanceUuid, accessToken) {
-  const res = await apiClient().post(
+  const res = await versionedWrite(uuidMatch, extra => apiClient().post(
     `/api/gameplay/${uuidMatch}/inventory/drop-item`,
     { itemInstanceUuid },
-    authConfig(accessToken),
-  )
+    withHeaders(authConfig(accessToken), extra),
+  ))
   return res.data
 }
 
