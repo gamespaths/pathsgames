@@ -60,7 +60,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Home: left page a fixed introduction card (picture, title, tutorial button, anti-bot check), right page all the stories in one list, no category rows for now (frontend)
     - Card columns from a parameter: three on desktop, two on medium screens and mobile (frontend)
     - Card split in front and back faces; the back shows the site's d20 dice in light gold, pulsing (frontend)
-    - Animation settings from env variables (`VITE_ANIM_DEAL`, `VITE_ANIM_DEAL_FACEDOWN`, `VITE_ANIM_PLAY`, `VITE_ANIM_TURN`, `VITE_ANIM_TURN_MODE`, `VITE_ANIM_SPEED`; default all on, speed 0.25) in `.env.example`; `.env`, `.env.test`, `.env.alpha` updated by the owner (frontend, infra)
+    - Animation settings from env variables (`VITE_ANIM_DEAL`, `VITE_ANIM_DEAL_FACEDOWN`, `VITE_ANIM_PLAY`, `VITE_ANIM_TURN`, `VITE_ANIM_TURN_MODE`, `VITE_ANIM_SPEED`, `VITE_ANIM_DECK`; default all on, speed 0.3333, deck under the book) in `.env.example`; `.env`, `.env.test`, `.env.alpha` updated by the owner (frontend, infra)
     - Deal: cards fly from a visible deck on the right page, face-down, one after the other, when they enter the screen (frontend)
     - Unit tests (tests)
 15. **Play and page turn** — choosing a card and changing page are animated.

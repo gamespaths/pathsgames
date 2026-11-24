@@ -20,6 +20,10 @@ documents and the other versions are listed in the global index
 | `Step10_AdminUserManagementBackend.md` | Developed 1.7.0: admin users list, ban with BANNED matches, suspend, unblock, log writer; 1.10.0 dev expire-suspension | admin users, ban, BANNED, pepper, expire-suspension |
 | `Step11_AdminUserManagementPages.md` | Developed 1.7.0: react-admin users list, detail and action dialogs | users page, dialogs, reason, suspend date |
 | `Step12_PaginationAndMultiDeviceContinuity.md` | Developed 1.7.0: admin paging residuals, session cap 12, logout-all, refresh 250 days, A-B-C Robot | pagination, SESSION_LIMIT, sessions_valid_after, SameSite, knownAccount |
+| `Step13_BookLayoutWithoutModals.md` | Analysed 1.13.0: in-flow books, /player and /story routes, policy chapter, navbar X, footer | no modals, routes, policy chapter, navbar, footer, sticky |
+| `Step14_HomeBookAndCardFaces.md` | Analysed 1.13.0: Home as a book, card front and back, animation env, deal | home book, card back, d20, VITE_ANIM, deal, columns |
+| `Step15_PlayAndPageTurn.md` | Analysed 1.13.0: played card, one page turn, (i) fade, mobile preview without modal | play, page turn, snapshot, fade, PlayContext, LoadingCard |
+| `Step16_MobileBookAndPreferences.md` | Analysed 1.13.0: vertical phone book, mobile turn, vibration, player preferences card | mobile book, sticky deck, vibration, preferences, localStorage, columns |
 
 # Version Control
 - **Document Version**: 1.13.0

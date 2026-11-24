@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- Paths Games — v1.13.0 animation concepts: 1 deal, 2 play, 3 page turn (desktop and mobile).
-     Standalone page, no build: open this file in a browser. -->
+<!-- Paths Games — v1.13.0 concept: Home, story set-up, start match and game as books (no modals),
+     with the card animations (deal, play, page turn) on desktop and mobile. Open this file in a browser. -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Paths Games — Card Animations v1.13.0</title>
+  <title>Paths Games — Book Concept v1.13.0</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,64 +13,108 @@
   <link rel="stylesheet" href="demo.css" />
 </head>
 <body>
-  <header class="demo-panel" id="panel">
-    <div class="demo-brand" title="Play a card or open a tab to see the effects. The default speed is ¼×, as the planned env default.">
-      <i class="fas fa-book-open"></i> Paths Games <span>animation concepts · v1.13.0</span>
+  <!-- Navbar: always visible (step 13); the book's close button is a bookmark on the right. -->
+  <nav class="navbar-medieval" id="navbar">
+    <a class="navbar-brand-pg" href="#/" data-nav="brand" title="Paths Games">
+      <i class="fas fa-dice-d20 navbar-dice"></i><span class="navbar-brand-text">Paths Games</span>
+    </a>
+    <div class="navbar-right">
+      <div class="navbar-social">
+        <a class="navbar-social-link" href="https://www.instagram.com/pathsgames/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+        <a class="navbar-social-link" href="https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ" target="_blank" rel="noopener" title="YouTube"><i class="fab fa-youtube"></i></a>
+      </div>
+      <button type="button" class="nav-user-btn" data-nav="user" data-tip="Player page" data-tip-pos="below" aria-label="Player page">
+        <i class="fas fa-user-circle"></i><span class="nav-user-btn__label">Guest</span>
+      </button>
     </div>
-    <button type="button" class="demo-panel-toggle" id="btn-panel" aria-expanded="false" aria-controls="controls">
-      <i class="fas fa-sliders-h"></i> Controls
-    </button>
-    <div class="demo-controls" id="controls">
-      <label title="Cards fly from the deck to their slot, one after the other">
-        <input type="checkbox" id="fx-deal" checked /> <b>1</b> Deal
-      </label>
-      <label class="demo-sub" title="Cards travel face-down and flip face-up when they land">
-        <input type="checkbox" id="fx-facedown" checked /> face-down
-      </label>
-      <label title="The chosen card lifts and glows, the others fall away, then it flies into the story">
-        <input type="checkbox" id="fx-play" checked /> <b>2</b> Play
-      </label>
-      <label title="The page turns on every change: location, tabs, items, map, missions">
-        <input type="checkbox" id="fx-turn" checked /> <b>3</b> Page turn
-      </label>
-      <select id="fx-turn-mode" aria-label="Page turn mode">
-        <option value="full">full flip</option>
-        <option value="simple">simple</option>
-      </select>
-      <label>Speed
-        <select id="fx-speed">
-          <option value="1">1×</option>
-          <option value="0.5">½×</option>
-          <option value="0.25" selected>¼× (default)</option>
-        </select>
-      </label>
-      <label title="Simulated server response time while the card is being resolved">Server
-        <input type="range" id="fx-latency" min="0" max="2000" step="100" value="600" />
-        <output id="fx-latency-out">600 ms</output>
-      </label>
-      <label title="Simulates prefers-reduced-motion: every effect is skipped">
-        <input type="checkbox" id="fx-reduced" /> reduced motion
-      </label>
-      <button type="button" id="btn-redeal"><i class="fas fa-redo"></i> Re-deal</button>
-      <button type="button" id="btn-restart"><i class="fas fa-home"></i> Restart</button>
-    </div>
-  </header>
+  </nav>
 
+  <!-- The book of the current page: bookmarks on its top edge, leather cover, two pages. -->
   <main class="stage" id="stage">
-    <div class="book-shell">
-      <nav class="book-tabs" id="tabs" aria-label="Book sections"></nav>
-      <div class="book-wrapper" id="book">
-        <div class="book-spine"></div>
-        <section class="book-page book-page-left" id="page-left">
-          <div class="page-inner"></div>
-        </section>
-        <section class="book-page book-page-right" id="page-right">
-          <div class="page-inner"></div>
-          <div class="deck" aria-hidden="true"><span></span><span></span><span></span></div>
-        </section>
+    <div class="book-shell" id="shell">
+      <div class="book-bookmarks" id="bookmarks"></div>
+      <!-- Experiment: the deck lies on the table, partly under the book, right of the right page (desktop). -->
+      <div class="deck-pile" id="deck-pile" aria-hidden="true">
+        <span><i class="fas fa-dice-d20"></i></span><span><i class="fas fa-dice-d20"></i></span>
+        <span><i class="fas fa-dice-d20"></i></span><span><i class="fas fa-dice-d20"></i></span>
+        <span><i class="fas fa-dice-d20"></i></span><span><i class="fas fa-dice-d20"></i></span>
+        <span><i class="fas fa-dice-d20"></i></span><span><i class="fas fa-dice-d20"></i></span>
+        <span><i class="fas fa-dice-d20"></i></span><span class="deck-pile__top"><i class="fas fa-dice-d20 d20"></i></span>
+      </div>
+      <div class="book" id="book">
+        <span class="book-corner tl"></span><span class="book-corner tr"></span>
+        <span class="book-corner bl"></span><span class="book-corner br"></span>
+        <span class="book-headband top"></span><span class="book-headband bottom"></span>
+        <div class="book-ribbon" aria-hidden="true"></div>
+        <div class="book-pages" id="pages">
+          <div class="book-spine"></div>
+          <section class="book-page book-page-left" id="page-left">
+            <div class="page-inner"></div>
+          </section>
+          <section class="book-page book-page-right" id="page-right">
+            <div class="page-inner"></div>
+            <div class="deck" aria-hidden="true"><span></span><span></span><span><i class="fas fa-dice-d20 d20"></i></span></div>
+          </section>
+        </div>
       </div>
     </div>
   </main>
+
+  <!-- Footer: below the fold, two centred rows (step 13). -->
+  <footer class="pg-footer">
+    <div class="pg-footer__row">
+      <button type="button" class="pg-footer__env" data-policy="roadmap" data-tip="What is new: the roadmap">
+        <i class="fas fa-info-circle"></i> ALPHA
+      </button>
+      <span class="pg-footer__server" data-tip="One server online: with several, a server select">
+        <span class="pg-footer__dot"></span> server v1.13.0
+      </span>
+      <span class="pg-footer__copy"><i class="fas fa-dice-d20"></i> PATHS GAMES v1.13.0 &copy; ALL RIGHTS RESERVED</span>
+    </div>
+    <div class="pg-footer__row">
+      <button type="button" class="pg-footer__link" data-policy="privacy"><i class="fas fa-shield-alt"></i> Privacy</button>
+      <button type="button" class="pg-footer__link" data-policy="terms"><i class="fas fa-file-contract"></i> Terms</button>
+      <button type="button" class="pg-footer__link" data-policy="cookies"><i class="fas fa-cookie-bite"></i> Cookies</button>
+      <button type="button" class="pg-footer__link" data-policy="credits"><i class="fas fa-users"></i> Credits</button>
+    </div>
+  </footer>
+
+  <!-- Demo controls: only in the concept. -->
+  <button type="button" class="demo-fab" id="demo-fab" aria-expanded="false" aria-controls="demo-panel" title="Demo controls">
+    <i class="fas fa-sliders-h"></i>
+  </button>
+  <div class="demo-panel" id="demo-panel" hidden>
+    <div class="demo-panel__title"><i class="fas fa-book-open"></i> Concept v1.13.0 — demo controls</div>
+    <label><input type="checkbox" id="fx-deal" checked /> <b>1</b> Deal</label>
+    <label class="demo-sub"><input type="checkbox" id="fx-facedown" checked /> face-down</label>
+    <label><input type="checkbox" id="fx-play" checked /> <b>2</b> Play</label>
+    <label><input type="checkbox" id="fx-turn" checked /> <b>3</b> Page turn</label>
+    <label class="demo-sub">mode
+      <select id="fx-turn-mode"><option value="full">full flip</option><option value="simple">simple</option></select>
+    </label>
+    <label>Speed
+      <select id="fx-speed">
+        <option value="1">1×</option>
+        <option value="0.5">½×</option>
+        <option value="0.3333" selected>⅓× (default)</option>
+        <option value="0.25">¼×</option>
+      </select>
+    </label>
+    <label>Server
+      <input type="range" id="fx-latency" min="0" max="2000" step="100" value="600" />
+      <output id="fx-latency-out">600 ms</output>
+    </label>
+    <label>Deck
+      <select id="fx-deck"><option value="under">under the book</option><option value="over">over the book</option></select>
+    </label>
+    <label><input type="checkbox" id="fx-vibrate" checked /> vibration (Android)</label>
+    <label><input type="checkbox" id="fx-reduced" /> reduced motion</label>
+    <div class="demo-panel__buttons">
+      <button type="button" id="btn-redeal"><i class="fas fa-redo"></i> Re-deal</button>
+      <button type="button" id="btn-restart"><i class="fas fa-home"></i> Restart demo</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="demo.js"></script>
 </body>

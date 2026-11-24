@@ -1,5 +1,5 @@
-/* Paths Games — v1.13.0 animation concepts (1 deal, 2 play, 3 page turn) for desktop and mobile.
-   Tokens and card/book look copied from code/frontend/react-game/src/styles. */
+/* Paths Games — v1.13.0 concept: every page a book under the navbar, richer book graphics,
+   react-game bookmarks, card animations (deal, play, page turn) for desktop and mobile. */
 :root {
   --color-parchment:        #e8d5b0;
   --color-parchment-light:  #f2e6c8;
@@ -18,19 +18,29 @@
   --color-gold-deep:        #7a4e00;
   --color-gold-super-deep:  #5c3700;
 
-  --book-page-background: linear-gradient(90deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 80%, var(--color-brown-tan) 100%);
-  --book-page-background-right: linear-gradient(270deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 80%, var(--color-brown-tan) 100%);
+  --navbar-bg: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);
+  --bar-background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
   --book-bookmark-background: linear-gradient(0deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 20%, var(--color-brown-tan) 100%);
   --book-bookmark-background-hover: linear-gradient(0deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 75%, var(--color-brown-tan) 100%);
-  --book-border: 0.5rem solid var(--color-brown-warm);
-  --bar-background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
+  /* page paper: lighter on the outer edge, warmer towards the gutter (site palette) */
+  --page-left-bg: linear-gradient(90deg, #c99459 0%, #e0b080 3%, #e4ba8a 40%, #d9a060 84%, #c08040 96%, #9a6430 100%);
+  --page-right-bg: linear-gradient(270deg, #c99459 0%, #e0b080 3%, #e4ba8a 40%, #d9a060 84%, #c08040 96%, #9a6430 100%);
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* gold-deep corner flourish of the pages, one per corner */
+  --orn-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%237a4e00' stroke-linecap='round'%3E%3Cpath d='M4 60V20C4 11 11 4 20 4h40' stroke-width='1.6'/%3E%3Cpath d='M10 60V24c0-8 6-14 14-14h36' stroke-width='.8' opacity='.7'/%3E%3Cpath d='M18 18c6 0 9 3 9 9M18 18c0 6 3 9 9 9' stroke-width='1.2'/%3E%3C/g%3E%3Ccircle cx='18' cy='18' r='2.6' fill='%237a4e00'/%3E%3C/svg%3E");
+  --orn-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='matrix(-1 0 0 1 64 0)'%3E%3Cg fill='none' stroke='%237a4e00' stroke-linecap='round'%3E%3Cpath d='M4 60V20C4 11 11 4 20 4h40' stroke-width='1.6'/%3E%3Cpath d='M10 60V24c0-8 6-14 14-14h36' stroke-width='.8' opacity='.7'/%3E%3Cpath d='M18 18c6 0 9 3 9 9M18 18c0 6 3 9 9 9' stroke-width='1.2'/%3E%3C/g%3E%3Ccircle cx='18' cy='18' r='2.6' fill='%237a4e00'/%3E%3C/g%3E%3C/svg%3E");
+  --orn-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='matrix(1 0 0 -1 0 64)'%3E%3Cg fill='none' stroke='%237a4e00' stroke-linecap='round'%3E%3Cpath d='M4 60V20C4 11 11 4 20 4h40' stroke-width='1.6'/%3E%3Cpath d='M10 60V24c0-8 6-14 14-14h36' stroke-width='.8' opacity='.7'/%3E%3Cpath d='M18 18c6 0 9 3 9 9M18 18c0 6 3 9 9 9' stroke-width='1.2'/%3E%3C/g%3E%3Ccircle cx='18' cy='18' r='2.6' fill='%237a4e00'/%3E%3C/g%3E%3C/svg%3E");
+  --orn-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='matrix(-1 0 0 -1 64 64)'%3E%3Cg fill='none' stroke='%237a4e00' stroke-linecap='round'%3E%3Cpath d='M4 60V20C4 11 11 4 20 4h40' stroke-width='1.6'/%3E%3Cpath d='M10 60V24c0-8 6-14 14-14h36' stroke-width='.8' opacity='.7'/%3E%3Cpath d='M18 18c6 0 9 3 9 9M18 18c0 6 3 9 9 9' stroke-width='1.2'/%3E%3C/g%3E%3Ccircle cx='18' cy='18' r='2.6' fill='%237a4e00'/%3E%3C/g%3E%3C/svg%3E");
 
   --font-display: 'Cinzel Decorative', 'Trajan Pro', serif;
   --font-heading: 'Cinzel', 'Palatino Linotype', serif;
   --font-body:    'Crimson Text', 'Georgia', serif;
 
-  /* Timings at speed 1: demo.js rewrites them from the speed control (default ¼× = 4× longer). */
+  --nav-h: 64px; /* demo.js writes the real navbar height */
+
+  /* Timings at speed 1: demo.js rewrites them from the speed control (default ⅓× = 3× longer). */
   --t-open: 650ms;
+  --t-close: 260ms;
   --t-deal: 620ms;
   --t-dealStep: 110ms;
   --t-lift: 240ms;
@@ -40,184 +50,449 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
+html, body { margin: 0; }
+html { overflow-x: clip; }
+html.is-turning { overflow: hidden; } /* no scrolling under a turning page (mobile) */
 body {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: radial-gradient(ellipse at 50% 30%, #3a1d0b 0%, var(--color-brown-deep) 70%);
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(122, 69, 32, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 30%, #3a1d0b 0%, var(--color-brown-deep) 72%);
+  background-attachment: fixed;
   color: var(--color-parchment);
   font-family: var(--font-body);
+  overflow-x: clip;
 }
+button { font: inherit; }
 
-/* ═══════════ demo control panel ═══════════ */
-.demo-panel {
-  flex: 0 0 auto;
+/* ═══════════ navbar (as react-game main.css NAVBAR) ═══════════ */
+.navbar-medieval {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 22px;
-  padding: 8px 16px;
-  background: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);
+  justify-content: space-between;
+  padding: 0.7rem 2rem;
+  background: var(--navbar-bg);
   border-bottom: 2px solid var(--color-gold-dark);
-  font-family: var(--font-heading);
-  font-size: 0.85rem;
-  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
-.demo-brand {
+.navbar-brand-pg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: clamp(1.2rem, 2.4vw, 1.8rem);
   color: var(--color-gold-light);
+  text-shadow: 0 0 20px rgba(232, 184, 48, 0.5);
+  text-decoration: none;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  cursor: help;
 }
-.demo-brand span {
-  margin-left: 6px;
-  font-family: var(--font-heading);
-  font-size: 0.75rem;
-  color: var(--color-brown-super-tan);
+.navbar-dice { display: inline-block; font-size: 1.3em; animation: dice-bounce 4s ease-in-out infinite; }
+@keyframes dice-bounce {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  10% { transform: rotate(45deg) translateY(-6px); }
+  20% { transform: rotate(20deg) translateY(0); }
+  45% { transform: rotate(180deg) translateY(-5px); }
+  60% { transform: rotate(160deg) translateY(0); }
+  80% { transform: rotate(340deg) translateY(-2px); }
 }
-.demo-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
-.demo-controls label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer; }
-.demo-controls b {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--color-gold-dark);
-  color: var(--color-brown-deep);
-  font-size: 0.7rem;
-}
-.demo-sub { margin-left: -8px; font-size: 0.78rem; opacity: 0.85; }
-.demo-controls select,
-.demo-controls button,
-.demo-panel-toggle {
-  font: inherit;
-  color: var(--color-gold-light);
-  background: var(--color-brown-dark);
+.navbar-right { display: flex; align-items: center; gap: 12px; }
+.navbar-social { display: flex; gap: 12px; }
+.navbar-social-link { color: var(--color-gold-light); font-size: 1.15rem; opacity: 0.85; transition: color 0.2s, transform 0.2s; }
+.navbar-social-link:hover { color: var(--color-gold-shine); transform: translateY(-2px); }
+.nav-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: linear-gradient(180deg, var(--color-brown-mid), var(--color-brown-dark));
   border: 1px solid var(--color-gold-dark);
-  border-radius: 4px;
-  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
   cursor: pointer;
 }
-.demo-controls button:hover { border-color: var(--color-gold); color: var(--color-gold-shine); }
-.demo-controls input { accent-color: var(--color-gold); }
-.demo-controls input[type=range] { width: 90px; }
-.demo-controls output { min-width: 58px; color: var(--color-brown-super-tan); }
-.demo-controls :disabled { opacity: 0.45; cursor: not-allowed; }
-.demo-panel-toggle { display: none; margin-left: auto; align-items: center; gap: 6px; }
+.nav-user-btn:hover { border-color: var(--color-gold); color: var(--color-gold-shine); }
 
-/* ═══════════ stage + book (as main.css BOOK OVERLAY / PAGES) ═══════════ */
+/* ═══════════ tooltip: drawn by the page, not the browser's (any [data-tip]; demo.js places it) ═══════════ */
+.pg-tip {
+  position: fixed;
+  z-index: 4000;
+  display: none;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 6px 12px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--color-brown-mid), var(--color-brown-deep));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(232, 184, 48, 0.12);
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.pg-tip.is-on { display: block; animation: pg-tip-in 0.15s ease-out; }
+.pg-tip::before {
+  content: '';
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  bottom: -6px;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-gold-dark);
+  border-bottom: 0;
+}
+.pg-tip.is-below::before { top: -6px; bottom: auto; border: 6px solid transparent; border-bottom-color: var(--color-gold-dark); border-top: 0; }
+@keyframes pg-tip-in { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+
+/* ═══════════ stage: the book fills the screen under the navbar, the footer is below the fold ═══════════ */
 .stage {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
+  height: calc(100vh - var(--nav-h));
+  height: calc(100dvh - var(--nav-h));
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 56px 12px 20px;
+  padding: 46px 16px 30px; /* just the bookmarks' height over the book */
 }
+.stage:has(.book-bookmarks.is-empty) { padding-top: 16px; }
 .book-shell {
   position: relative;
   width: min(94vw, 1080px);
-  height: min(100%, 680px);
+  height: 100%;
+  min-height: 520px;
 }
-.book-wrapper {
+.book-shell.is-opening { animation: pg-book-open var(--t-open) cubic-bezier(0.22, 1, 0.36, 1); }
+.book-shell.is-closing { animation: pg-book-close var(--t-close) ease-in forwards; }
+@keyframes pg-book-open {
+  from { opacity: 0; transform: perspective(1200px) rotateX(18deg) scale(0.86); }
+  to   { opacity: 1; transform: perspective(1200px) rotateX(0deg) scale(1); }
+}
+@keyframes pg-book-close {
+  to { opacity: 0; transform: perspective(1200px) rotateX(-8deg) scale(0.92); }
+}
+
+/* ═══════════ the book: leather cover, gold tooling, metal corners, ribbon ═══════════ */
+.book {
   position: relative;
-  display: flex;
+  z-index: 1; /* the bookmarks tuck under its top edge */
   width: 100%;
   height: 100%;
-  border-radius: 12px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.8);
-  perspective: 2600px; /* the turning sheet (3) lives in this 3D space */
-  animation: pg-book-open var(--t-open) cubic-bezier(0.22, 1, 0.36, 1);
+  padding: 18px 18px 20px;
+  border-radius: 14px;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 22% 12%, rgba(255, 214, 150, 0.12), transparent 55%),
+    radial-gradient(ellipse at 85% 95%, rgba(0, 0, 0, 0.4), transparent 60%),
+    linear-gradient(135deg, #4a2410 0%, #331606 45%, #43200c 100%);
+  background-size: 160px 160px, auto, auto, auto;
+  background-blend-mode: soft-light, normal, normal, normal;
+  box-shadow:
+    0 36px 60px -12px rgba(0, 0, 0, 0.85),
+    0 14px 26px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 210, 140, 0.1),
+    inset 0 0 44px rgba(0, 0, 0, 0.55);
 }
-@keyframes pg-book-open {
-  from { opacity: 0; transform: perspective(1200px) rotateX(20deg) scale(0.85); }
-  to   { opacity: 1; transform: perspective(1200px) rotateX(0deg) scale(1); }
+/* gold tooled frame and stitching on the leather */
+.book::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(200, 150, 10, 0.6);
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 3px rgba(26, 10, 2, 0.55), inset 0 0 0 4px rgba(200, 150, 10, 0.26);
+  pointer-events: none;
+}
+.book::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 1px dashed rgba(232, 184, 48, 0.22);
+  border-radius: 8px;
+  pointer-events: none;
+}
+.book-corner {
+  position: absolute;
+  z-index: 6;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(135deg, #b8860b 0%, #9a6f08 35%, #7a4e00 70%, #4a2e00 100%); /* dark gold */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+.book-corner.tl { top: -3px; left: -3px; clip-path: polygon(0 0, 100% 0, 0 100%); border-top-left-radius: 15px; }
+.book-corner.tr { top: -3px; right: -3px; clip-path: polygon(0 0, 100% 0, 100% 100%); border-top-right-radius: 15px; }
+.book-corner.bl { bottom: -3px; left: -3px; clip-path: polygon(0 0, 0 100%, 100% 100%); border-bottom-left-radius: 15px; }
+.book-corner.br { bottom: -3px; right: -3px; clip-path: polygon(100% 0, 0 100%, 100% 100%); border-bottom-right-radius: 15px; }
+.book-corner::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e8b830, #5c3700 70%);
+}
+.book-corner.tl::after { top: 8px; left: 8px; }
+.book-corner.tr::after { top: 8px; right: 8px; }
+.book-corner.bl::after { bottom: 8px; left: 8px; }
+.book-corner.br::after { bottom: 8px; right: 8px; }
+/* the cloth headbands at both ends of the spine */
+.book-headband {
+  position: absolute;
+  left: 50%;
+  z-index: 5;
+  width: 34px;
+  height: 9px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: repeating-linear-gradient(90deg, #5c3700 0 3px, #9a6f08 3px 5px); /* dark gold */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(232, 184, 48, 0.3);
+  pointer-events: none;
+}
+.book-headband.top { top: 6px; }
+.book-headband.bottom { bottom: 7px; }
+/* the ribbon comes out from between the pages, under the bottom edge */
+.book-ribbon {
+  position: absolute;
+  z-index: 0;
+  left: calc(50% + 46px);
+  bottom: -38px;
+  width: 16px;
+  height: 62px;
+  background: linear-gradient(90deg, #5a0f08, #8e1c10 40%, #b0331d 55%, #6e140b);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 11px), 0 100%);
+  filter: drop-shadow(1px 3px 2px rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+
+/* ═══════════ pages: paper, stacked edges, gutter, ornaments ═══════════ */
+.book-pages {
+  position: relative;
+  display: flex;
+  height: 100%;
+  perspective: 2600px; /* the turning sheet (3) lives in this 3D space */
 }
 .book-spine {
   position: absolute;
   left: 50%;
-  top: 1%;
-  height: 98%;
-  width: 12px;
+  top: 0;
+  width: 28px;
+  height: 100%;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 40%, var(--color-brown-dark) 100%);
-  border-radius: 3px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-  z-index: 10;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(46, 18, 4, 0.42) 35%, rgba(20, 8, 0, 0.62) 50%, rgba(46, 18, 4, 0.42) 65%, transparent);
+}
+.book-spine::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 5%;
+  bottom: 5%;
+  border-left: 1px dashed rgba(232, 184, 48, 0.4); /* the binding thread */
 }
 .book-page {
   position: relative;
   width: 50%;
   height: 100%;
-  background: var(--book-page-background);
-  border: var(--book-border);
   overflow: hidden;
 }
+.book-page-left {
+  border-radius: 6px 2px 2px 6px;
+  background: var(--orn-tl) left 6px top 6px / 54px no-repeat, var(--orn-bl) left 6px bottom 6px / 54px no-repeat, var(--page-left-bg);
+  /* the stacked sheets on the outer edge */
+  box-shadow: -1px 1px 0 #c79a62, -2px 2px 0 #ecca9c, -3px 3px 0 #b8874e, -4px 4px 0 #e2bd8a, -5px 5px 0 #a87a42, -6px 7px 12px rgba(0, 0, 0, 0.45);
+}
+.book-page-right {
+  border-radius: 2px 6px 6px 2px;
+  background: var(--orn-tr) right 6px top 6px / 54px no-repeat, var(--orn-br) right 6px bottom 6px / 54px no-repeat, var(--page-right-bg);
+  box-shadow: 1px 1px 0 #c79a62, 2px 2px 0 #ecca9c, 3px 3px 0 #b8874e, 4px 4px 0 #e2bd8a, 5px 5px 0 #a87a42, 6px 7px 12px rgba(0, 0, 0, 0.45);
+  container-type: size; /* card size follows the page (cqw / cqh) */
+}
+/* paper grain and stains */
 .book-page::before {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0.06;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  background-size: 200px 200px;
+  background:
+    radial-gradient(circle at 82% 88%, rgba(122, 69, 32, 0.14), transparent 30%),
+    radial-gradient(circle at 12% 30%, rgba(122, 69, 32, 0.08), transparent 26%),
+    var(--noise);
+  background-size: auto, auto, 200px 200px;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
 }
-.book-page-left {
-  border-radius: 12px 0 0 12px;
-  box-shadow: inset -4px 0 12px rgba(0, 0, 0, 0.4);
+/* curvature: the paper darkens towards the gutter */
+.book-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.book-page-right {
-  border-radius: 0 12px 12px 0;
-  box-shadow: inset 4px 0 12px rgba(0, 0, 0, 0.4);
-  background: var(--book-page-background-right);
-  container-type: size; /* card size follows the page (cqw / cqh) */
-}
+.book-page-left::after  { background: linear-gradient(to left, rgba(70, 30, 5, 0.38), rgba(70, 30, 5, 0.08) 7%, transparent 16%); }
+.book-page-right::after { background: linear-gradient(to right, rgba(70, 30, 5, 0.38), rgba(70, 30, 5, 0.08) 7%, transparent 16%); }
 .page-inner {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 10px;
+  padding: 14px 16px;
+}
+.book-page-right .page-inner {
+  overflow-y: auto;
+  padding-bottom: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold-dark) transparent;
 }
 
-/* ── tabs: the site's bookmarks on the book's top edge (sticky pills on mobile) ── */
-.book-tabs {
+/* ═══════════ bookmarks (as react-game BookBookmarks: icon + badges, the label is the tooltip) ═══════════ */
+.book-bookmarks {
   position: absolute;
   top: 0;
-  left: 24px;
-  z-index: 5;
+  left: 42px;
+  right: 42px;
+  z-index: 0;
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  justify-content: space-between; /* the page tabs on the left, the close tab on the right */
+  gap: 8px;
   transform: translateY(-100%);
+  pointer-events: none;
 }
-.book-tab {
+.book-bookmarks.is-empty { display: none; }
+.bm-group { display: flex; align-items: flex-end; gap: 8px; }
+.bm-group--right { margin-left: auto; }
+.book-bookmark {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px 8px;
+  padding: 6px 12px 12px;
+  margin-bottom: -6px; /* slides under the cover's edge */
   border: 3px solid var(--color-brown-warm);
   border-bottom: none;
   border-radius: 8px 8px 0 0;
   background: var(--book-bookmark-background);
   color: var(--color-brown-light);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   cursor: pointer;
   box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.5);
   transition: background 0.15s ease, color 0.15s ease;
 }
-.book-tab:hover { background: var(--book-bookmark-background-hover); color: var(--color-gold-dark); }
-.book-tab.is-active { background: var(--book-bookmark-background-hover); color: var(--color-gold-super-deep); cursor: default; }
+.book-bookmark:hover { background: var(--book-bookmark-background-hover); color: var(--color-gold-dark); }
+.book-bookmark.is-active { background: var(--book-bookmark-background-hover); color: var(--color-gold-super-deep); cursor: default; }
+.book-bookmark.is-danger {
+  border-color: #c0392b;
+  background: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%);
+  color: #ffe9e4;
+  box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.65);
+}
+.book-bookmark.is-alert {
+  border-color: var(--color-gold-light);
+  background: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%);
+  color: #fff6d5;
+  box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.6);
+}
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--color-brown-mid);
+  border: 1px solid var(--color-gold-dark);
+  color: var(--color-parchment);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.stat-badge i { color: var(--color-gold-light); font-size: 0.85em; }
+.book-bookmark.is-danger .stat-badge { border-color: #7b1f14; }
+/* the tabs in the cover's leather: grain, tooled gold frame, stitching, dark gold */
+.book-bookmark {
+  position: relative;
+  border: 1px solid #1a0a02;
+  border-bottom: none;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 214, 150, 0.14), transparent 60%),
+    linear-gradient(180deg, #4a2410 0%, #331606 60%, #2a1205 100%);
+  background-size: 160px 160px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
+  color: var(--color-gold);
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 210, 140, 0.12);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.book-bookmark::before,
+.book-bookmark::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border-bottom: none;
+}
+.book-bookmark::before { /* the tooled gold frame */
+  inset: 3px 3px 0;
+  border: 1px solid rgba(200, 150, 10, 0.6);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  box-shadow: inset 0 0 0 2px rgba(26, 10, 2, 0.5);
+}
+.book-bookmark::after { /* the stitching */
+  inset: 6px 6px 0;
+  border: 1px dashed rgba(232, 184, 48, 0.22);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+}
+.book-bookmark:hover {
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 214, 150, 0.2), transparent 60%),
+    linear-gradient(180deg, #5a2c12 0%, #3d1a08 60%, #2e1406 100%);
+  background-size: 160px 160px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
+  color: var(--color-gold-light);
+}
+.book-bookmark.is-active {
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 214, 150, 0.24), transparent 60%),
+    linear-gradient(180deg, #6b3516 0%, #4a2410 60%, #3a1b08 100%);
+  background-size: 160px 160px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
+  color: var(--color-gold-shine);
+}
+.book-bookmark.is-active::before { border-color: rgba(232, 184, 48, 0.9); }
+.book-bookmark.is-danger {
+  border-color: #3a0805;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 160, 140, 0.18), transparent 60%),
+    linear-gradient(180deg, #8e1c10 0%, #5e1209 60%, #460c06 100%);
+  background-size: 160px 160px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
+  color: #ffe9e4;
+  box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.55);
+}
+.book-bookmark.is-alert {
+  border-color: #2e1a02;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 236, 170, 0.22), transparent 60%),
+    linear-gradient(180deg, #9a6f08 0%, #6b4a05 60%, #4a3303 100%);
+  background-size: 160px 160px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
+  color: #fff6d5;
+  box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.5);
+}
 
-/* ── left page: the location / section, as the site's page card ── */
+/* ═══════════ left page: page card (title, picture, text) ═══════════ */
 .loc-page {
   display: flex;
   flex-direction: column;
@@ -226,23 +501,38 @@ body {
   border-radius: 10px;
   overflow: hidden;
   background: var(--color-brown-dark);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 18px rgba(60, 25, 5, 0.45);
 }
 .book-page-title {
+  position: relative;
   flex-shrink: 0;
   margin: 0;
-  padding: 10px 12px;
+  padding: 10px 44px;
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+  font-size: clamp(1.15rem, 2.2vw, 1.7rem);
   color: var(--color-gold-light);
   text-shadow: 0 0 10px rgba(200, 150, 10, 0.5);
   text-align: center;
   background: var(--bar-background);
   border-bottom: 2px solid var(--color-gold-dark);
 }
+.page-nav {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--color-gold-light);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+.page-nav:hover { background: rgba(200, 150, 10, 0.25); border-color: var(--color-gold-dark); color: var(--color-gold-shine); }
 .loc-img {
   position: relative;
-  flex: 0 0 46%;
+  flex: 0 0 45%; /* as .book-page-img: always the same share of the card, the text scrolls */
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -251,31 +541,94 @@ body {
   font-size: clamp(3rem, 8vw, 6rem);
   text-shadow: 0 0 24px rgba(255, 215, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.7);
 }
+.loc-img.has-photo { background-size: cover; background-position: center; }
 .loc-img::after {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+.photo-credit {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 1;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  color: var(--color-parchment);
+  text-shadow: none;
 }
 .book-page-desc {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   margin: 0;
-  padding: 12px 14px;
-  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  padding: 12px 16px;
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
   font-style: italic;
-  line-height: 1.3;
+  line-height: 1.32;
   color: var(--color-gold-deep);
   background: var(--color-parchment-light);
   border-top: 2px solid var(--color-gold-dark);
 }
+.book-page-desc p { margin: 0 0 0.6em; }
+.book-page-desc .lead { font-family: var(--font-heading); font-style: normal; font-weight: 700; color: var(--color-gold-super-deep); }
+.left-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; font-style: normal; }
+.btn-book {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold-dark));
+  color: var(--color-brown-deep);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(60, 25, 5, 0.35);
+}
+.btn-book:hover { filter: brightness(1.1); }
+.antibot {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid rgba(122, 78, 0, 0.4);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.45);
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-style: normal;
+  color: var(--color-brown-mid);
+}
+.antibot.is-ok i { color: #2f8f46; }
+.policy-text {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  border: 2px solid var(--color-gold-dark);
+  border-radius: 8px;
+  background: var(--color-parchment-light);
+  color: var(--color-gold-deep);
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+.policy-text h4 { margin: 0.6em 0 0.3em; font-family: var(--font-heading); color: var(--color-gold-super-deep); }
+.policy-text p { margin: 0 0 0.7em; }
 
-/* ── right page: header + card grid + deck ── */
+/* ═══════════ right page: header plaque + card grid + deck ═══════════ */
 .right-head {
+  position: relative;
   flex-shrink: 0;
-  margin: 0 0 10px;
-  padding: 7px 10px;
+  margin: 0 0 12px;
+  padding: 7px 34px;
   font-family: var(--font-heading);
   font-weight: 700;
   letter-spacing: 1px;
@@ -285,12 +638,25 @@ body {
   background: var(--bar-background);
   border: 2px solid var(--color-gold-dark);
   border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(60, 25, 5, 0.35);
 }
 .right-head i { margin-right: 6px; }
+/* Hidden on purpose: the space over the cards is kept for the multiplayer messages. */
+.right-head { display: none; }
+.right-head::before, .right-head::after {
+  content: '\25C6';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--color-gold);
+}
+.right-head::before { left: 12px; }
+.right-head::after { right: 12px; }
 
 .selection-list {
-  /* 2 rows of 2:3 cards must fit above the deck, 3 columns across the page */
-  --card-w: clamp(92px, min(calc((100cqh - 182px) / 3), calc((100cqw - 48px) / 3)), 158px);
+  /* 3 columns of 2:3 cards; two rows must fit above the deck */
+  --card-w: clamp(92px, min(calc((100cqh - 50px) / 3), calc((100cqw - 60px) / 3)), 162px);
   display: grid;
   grid-template-columns: repeat(3, var(--card-w));
   justify-content: center;
@@ -299,24 +665,63 @@ body {
 }
 .selection-list.cols-1 { grid-template-columns: var(--card-w); }
 .selection-list.cols-2 { grid-template-columns: repeat(2, var(--card-w)); }
-
 .deck {
   position: absolute;
-  right: 18px;
-  bottom: 16px;
+  right: 22px;
+  bottom: 18px;
+  z-index: 2;
   width: 54px;
   aspect-ratio: 2 / 3;
-  z-index: 2;
   pointer-events: none;
 }
-.deck span {
-  position: absolute;
-  inset: 0;
-  border-radius: 6px;
-}
+.deck span { position: absolute; inset: 0; border-radius: 6px; }
 .deck span:nth-child(1) { transform: rotate(-7deg) translate(-3px, 2px); }
 .deck span:nth-child(2) { transform: rotate(4deg) translate(2px, -1px); }
-.deck span:nth-child(3) { transform: rotate(-1deg); }
+.deck span:nth-child(3) { transform: rotate(-1deg); display: grid; place-items: center; font-size: 1.4rem; }
+
+/* Experiment: the deck lies on the table, right of the right page, partly under the book (desktop) */
+.book-page-right > .deck { display: none; }
+.deck-pile {
+  position: absolute;
+  z-index: 0; /* under the book (z-index 1): the left cards slide a little under its cover */
+  right: -122px;
+  bottom: 70px;
+  width: 160px;
+  height: 210px;
+  pointer-events: none;
+}
+.book-shell.deck-over .deck-pile { z-index: 2; } /* demo option: the deck lies over the book's edge */
+.deck-pile span {
+  position: absolute;
+  width: 84px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 1.5rem;
+  color: rgba(240, 210, 122, 0.45);
+  background:
+    repeating-linear-gradient(45deg, rgba(200, 150, 10, 0.14) 0 6px, transparent 6px 12px),
+    radial-gradient(circle, var(--color-brown-warm), var(--color-brown-deep));
+  border: 2px solid var(--color-gold-dark);
+  box-shadow: inset 0 0 0 4px var(--color-brown-dark), inset 0 0 0 5px var(--color-gold-dark), 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+.deck-pile span i { transform: rotate(20deg); }
+.deck-pile span:nth-child(1) { left: 18px; top: 24px; transform: rotate(-10deg); }
+.deck-pile span:nth-child(2) { left: 52px; top: 14px; transform: rotate(8deg); }
+.deck-pile span:nth-child(3) { left: 30px; top: 48px; transform: rotate(-4deg); }
+.deck-pile span:nth-child(4) { left: 60px; top: 40px; transform: rotate(12deg); }
+.deck-pile span:nth-child(5) { left: 14px; top: 66px; transform: rotate(-7deg); }
+.deck-pile span:nth-child(6) { left: 48px; top: 60px; transform: rotate(5deg); }
+.deck-pile span:nth-child(7) { left: 36px; top: 30px; transform: rotate(-2deg); }
+.deck-pile span:nth-child(8) { left: 56px; top: 74px; transform: rotate(9deg); }
+.deck-pile span:nth-child(9) { left: 24px; top: 52px; transform: rotate(-12deg); }
+.deck-pile span:nth-child(10) { left: 44px; top: 44px; transform: rotate(3deg); color: inherit; }
+
+@media (max-width: 1360px) {
+  /* little room beside the book: the pile comes closer and smaller */
+  .deck-pile { right: -100px; transform: scale(0.82); transform-origin: left bottom; }
+}
 
 /* ═══════════ card (gc-* look, split in two faces for the face-down deal) ═══════════ */
 .pg-card {
@@ -338,13 +743,12 @@ body {
   flex-direction: column;
   border: 2px solid var(--color-gold-dark);
   background: linear-gradient(145deg, var(--color-brown-warm) 0%, var(--color-brown-dark) 100%);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 10px rgba(40, 15, 2, 0.5);
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .face.back,
 .deck span {
   background:
-    radial-gradient(circle at 50% 50%, rgba(232, 184, 48, 0.18) 0 18%, transparent 19%),
     repeating-linear-gradient(45deg, rgba(200, 150, 10, 0.14) 0 6px, transparent 6px 12px),
     radial-gradient(circle, var(--color-brown-warm), var(--color-brown-deep));
   border: 2px solid var(--color-gold-dark);
@@ -354,10 +758,19 @@ body {
   transform: rotateY(180deg);
   display: grid;
   place-items: center;
-  color: var(--color-gold-light);
-  font-size: calc(var(--card-w, 150px) * 0.22);
+  font-size: calc(var(--card-w, 150px) * 0.34);
 }
-/* The back only exists while the card is in the air: a flattened card never shows it. */
+/* the site's d20 (favicon), light gold and pulsing — on the card back and on the deck */
+.d20 {
+  color: #f0d27a;
+  transform: rotate(20deg);
+  animation: pg-d20-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pg-d20-pulse {
+  0%, 100% { transform: rotate(20deg) scale(1);    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.35)); }
+  50%      { transform: rotate(20deg) scale(1.09); filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.85)); }
+}
+/* the back only exists while the card is in the air: a flattened card never shows it */
 .pg-card:not(.is-dealing) .face.back { visibility: hidden; }
 
 .gc-title {
@@ -397,25 +810,43 @@ body {
   text-shadow: 0 0 16px rgba(255, 215, 0, 0.3), 0 3px 8px rgba(0, 0, 0, 0.7);
 }
 .gc-img i { transition: transform 0.5s ease; }
-.gc-type-badge {
+.gc-type-badge,
+.gc-cat-badge,
+.gc-status {
   position: absolute;
-  left: 6px;
-  bottom: 6px;
+  z-index: 2;
   padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid var(--color-gold-dark);
   font-family: var(--font-heading);
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-shadow: none;
-  color: var(--color-gold-light);
+  white-space: nowrap;
 }
+.gc-type-badge { top: 6px; left: 6px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); border: 1px solid var(--color-gold-dark); color: var(--color-gold-light); }
+.gc-cat-badge { top: 6px; right: 6px; border-radius: 4px; background: var(--color-gold); color: var(--color-brown-deep); }
+.gc-status { top: 26px; left: 6px; border-radius: 999px; background: rgba(0, 0, 0, 0.65); color: var(--color-parchment); }
+.gc-status i { color: #4ade80; margin-right: 3px; }
+.gc-badges {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+  padding: 18px 4px 5px;
+  background: linear-gradient(transparent, rgba(10, 4, 0, 0.88) 55%);
+  text-shadow: none;
+}
+.gc-badges .stat-badge { font-size: 0.6rem; padding: 1px 5px; }
 .gc-footer {
   flex-shrink: 0;
   display: flex;
+  gap: 4px;
   padding: 6px 7px 7px;
   background: linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-deep) 100%);
   border-top: 2px solid var(--color-gold-dark);
@@ -433,17 +864,18 @@ body {
   border-radius: 4px;
   color: var(--color-gold-light);
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.1s;
 }
+.gc-footer__btn--icon { flex: 0 0 auto; padding: 3px 8px; }
 .gc-footer__btn:active { transform: scale(0.96); }
 .gc-footer__btn-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* a footer without a button: a lock reason, or a value (stat, mission state, "you are here") */
+/* a footer without a button: a lock reason or a value (stat, phase, "selected") */
 .gc-footer__note {
   flex: 1;
   min-width: 0;
-  padding: 4px 0;
+  align-self: center;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -454,6 +886,7 @@ body {
 }
 .gc-footer__note.is-lock { color: var(--color-parchment); opacity: 0.65; }
 .pg-card.is-locked .gc-img { filter: grayscale(0.85) brightness(0.6); }
+.pg-card.is-selected .face.front { border-color: var(--color-gold-shine); box-shadow: 0 0 14px 3px rgba(255, 215, 0, 0.45); }
 
 /* hover only where a pointer hovers: on touch a tapped card would stay lifted */
 @media (hover: hover) {
@@ -462,17 +895,17 @@ body {
     border-color: var(--color-gold);
     color: var(--color-gold-shine);
   }
-  .book-wrapper:not(.is-busy) .pg-card:hover { transform: translateY(-3px) scale(1.03); z-index: 10; }
-  .book-wrapper:not(.is-busy) .pg-card:hover .face.front {
+  .book:not(.is-busy) .pg-card:hover { transform: translateY(-3px) scale(1.03); z-index: 10; }
+  .book:not(.is-busy) .pg-card:hover .face.front {
     border-color: var(--color-gold);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 14px rgba(200, 150, 10, 0.22);
+    box-shadow: 0 10px 28px rgba(40, 15, 2, 0.65), 0 0 14px rgba(200, 150, 10, 0.25);
   }
-  .book-wrapper:not(.is-busy) .pg-card:not(.is-locked):hover .gc-img i { transform: scale(1.12); }
+  .book:not(.is-busy) .pg-card:not(.is-locked):hover .gc-img i { transform: scale(1.12); }
 }
-.book-wrapper.is-busy .gc-footer__btn { pointer-events: none; }
+.book.is-busy button,
+.book-bookmarks.is-busy button { pointer-events: none; }
 
 /* ═══════════ 1 — DEAL: from the deck to the slot, one after the other ═══════════ */
-/* transition: none, or the opacity transition would win over the animation's delay */
 .pg-card.pre-deal { opacity: 0; transition: none; pointer-events: none; }
 .pg-card.is-dealing {
   pointer-events: none;
@@ -484,16 +917,14 @@ body {
 }
 .pg-card.deal-facedown { animation-name: pg-deal-facedown; }
 .pg-card.deal-flat     { animation-name: pg-deal-flat; }
-
-/* No opacity here: an opacity animation flattens the 3D card and the back face would vanish.
-   A waiting card simply sits on the deck, face-down, until its turn. */
+/* no opacity here: an opacity animation flattens the 3D card and the back face would vanish */
 @keyframes pg-deal-facedown {
-  0%   { transform: perspective(900px) translate(var(--from-x), var(--from-y)) rotate(var(--from-rot)) scale(0.36) rotateY(180deg); }
+  0%   { transform: perspective(900px) translate(var(--from-x), var(--from-y)) rotate(var(--from-rot)) scale(0.34) rotateY(180deg); }
   58%  { transform: perspective(900px) translate(0, -12px) rotate(0deg) scale(1.04) rotateY(180deg); }
   100% { transform: perspective(900px) translate(0, 0) rotate(0deg) scale(1) rotateY(0deg); }
 }
 @keyframes pg-deal-flat {
-  0%   { opacity: 0; transform: translate(var(--from-x), var(--from-y)) rotate(var(--from-rot)) scale(0.36); }
+  0%   { opacity: 0; transform: translate(var(--from-x), var(--from-y)) rotate(var(--from-rot)) scale(0.34); }
   10%  { opacity: 1; }
   80%  { opacity: 1; transform: translate(0, -6px) rotate(0deg) scale(1.03); }
   100% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
@@ -527,7 +958,6 @@ body {
   50%      { box-shadow: 0 0 26px 9px rgba(255, 215, 0, 0.65), 0 16px 32px rgba(0, 0, 0, 0.6); }
 }
 @keyframes pg-shine { from { transform: translateX(0); } to { transform: translateX(270%); } }
-
 .pg-card.is-dimmed {
   opacity: 0.4;
   filter: grayscale(0.7) brightness(0.7);
@@ -542,7 +972,6 @@ body {
     opacity var(--t-discard) ease-in calc(var(--j, 0) * var(--t-discardStep)),
     filter var(--t-discard);
 }
-/* a copy of the played card, fixed on the viewport so no page clips its flight */
 .flying-card { position: fixed; z-index: 2000; margin: 0; pointer-events: none; transition: none; }
 .flying-card .face.front {
   border-color: var(--color-gold-shine);
@@ -550,7 +979,6 @@ body {
 }
 
 /* ═══════════ 3 — PAGE TURN ═══════════ */
-/* desktop full: a sheet hinged on the spine, old page in front, new page on its back */
 .page-flipper {
   position: absolute;
   top: 0;
@@ -583,8 +1011,6 @@ body {
 .turn-shadow { position: absolute; inset: 0; z-index: 5; opacity: 0; pointer-events: none; }
 .turn-shadow.from-left  { background: linear-gradient(to right, rgba(0, 0, 0, 0.6), transparent 70%); }
 .turn-shadow.from-right { background: linear-gradient(to left, rgba(0, 0, 0, 0.6), transparent 70%); }
-
-/* mobile full: the visible slice of the single page, copied on a fixed sheet hinged on its left edge */
 .m-sheet {
   position: fixed;
   z-index: 1500;
@@ -604,8 +1030,78 @@ body {
   pointer-events: none;
   background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent 75%);
 }
+/* between pages: the right half folds onto the left (book closed, cover up), then opens on another book */
+.book-shell { perspective: 2600px; }
+.book-flap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 5;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  will-change: transform;
+}
+.flap-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flap-front { border-radius: 0 14px 14px 0; }
+.flap-copy { position: absolute; top: 0; margin: 0; animation: none !important; }
+.flap-back { transform: rotateY(180deg); border-radius: 14px 0 0 14px; }
+/* the front cover: leather, tooled gold frame, the site's d20 and the book's title */
+.cover-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 30% 20%, rgba(255, 214, 150, 0.14), transparent 55%),
+    radial-gradient(ellipse at 80% 95%, rgba(0, 0, 0, 0.45), transparent 60%),
+    linear-gradient(135deg, #4a2410 0%, #331606 45%, #43200c 100%);
+  background-size: 160px 160px, auto, auto, auto;
+  background-blend-mode: soft-light, normal, normal, normal;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.55);
+}
+.cover-frame {
+  position: absolute;
+  inset: 18px;
+  border: 2px solid rgba(200, 150, 10, 0.65);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 6px rgba(26, 10, 2, 0.45), inset 0 0 0 7px rgba(200, 150, 10, 0.3);
+  pointer-events: none;
+}
+.cover-d20 {
+  font-size: clamp(3rem, 6vw, 5rem);
+  color: var(--color-gold);
+  transform: rotate(20deg);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 22px rgba(255, 215, 0, 0.35);
+}
+.cover-title {
+  max-width: 80%;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  line-height: 1.15;
+  text-align: center;
+  color: var(--color-gold-light);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 16px rgba(232, 184, 48, 0.4);
+}
+.cover-sub {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--color-gold-dark);
+}
+.m-cover { border-radius: 12px; }
 
-/* simple: the new right page swings in from the spine, the left one fades */
 .page-inner.page-enter      { transform-origin: left center;  animation: pg-page-enter var(--t-simple) cubic-bezier(0.22, 1, 0.36, 1) both; }
 .page-inner.page-enter-back { transform-origin: right center; animation: pg-page-enter-back var(--t-simple) cubic-bezier(0.22, 1, 0.36, 1) both; }
 .page-inner.page-fade       { animation: pg-page-fade var(--t-simple) ease both; }
@@ -617,74 +1113,368 @@ body {
   from { opacity: 0; transform: perspective(1400px) rotateY(35deg); }
   to   { opacity: 1; transform: perspective(1400px) rotateY(0deg); }
 }
-@keyframes pg-page-fade {
-  from { opacity: 0; filter: blur(3px); }
-  to   { opacity: 1; filter: none; }
+@keyframes pg-page-fade { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }
+
+/* ═══════════ footer: two centred rows, below the fold ═══════════ */
+.pg-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px 14px;
+  background: linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-deep) 100%);
+  border-top: 2px solid var(--color-gold-dark);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: var(--color-parchment);
+}
+.pg-footer__row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 18px; }
+.pg-footer__env,
+.pg-footer__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-gold-light);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+.pg-footer__env { padding: 1px 9px; border: 1px solid var(--color-gold-dark); border-radius: 999px; font-weight: 700; letter-spacing: 0.08em; }
+.pg-footer__link:hover, .pg-footer__env:hover { color: var(--color-gold-shine); }
+.pg-footer__server { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border: 1px solid #2f8f46; border-radius: 999px; }
+.pg-footer__dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+.pg-footer__copy i { color: var(--color-gold-light); margin-right: 4px; }
+
+/* ═══════════ demo controls and toast (concept only) ═══════════ */
+.demo-fab {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 3000;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gold-dark);
+  background: var(--navbar-bg);
+  color: var(--color-gold-light);
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+.demo-panel {
+  position: fixed;
+  left: 14px;
+  bottom: 68px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: min(300px, calc(100vw - 28px));
+  padding: 12px 14px;
+  border: 2px solid var(--color-gold-dark);
+  border-radius: 10px;
+  background: rgba(26, 10, 2, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+}
+.demo-panel[hidden] { display: none; }
+.demo-panel__title { font-family: var(--font-display); color: var(--color-gold-light); margin-bottom: 4px; }
+.demo-panel label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.demo-panel b {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-gold-dark);
+  color: var(--color-brown-deep);
+  font-size: 0.7rem;
+}
+.demo-sub { margin-left: 22px; font-size: 0.76rem; opacity: 0.85; }
+.demo-panel select, .demo-panel__buttons button {
+  font: inherit;
+  color: var(--color-gold-light);
+  background: var(--color-brown-dark);
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.demo-panel input { accent-color: var(--color-gold); }
+.demo-panel input[type=range] { flex: 1; }
+.demo-panel output { min-width: 56px; color: var(--color-brown-super-tan); }
+.demo-panel :disabled { opacity: 0.45; cursor: not-allowed; }
+.demo-panel__buttons { display: flex; gap: 8px; margin-top: 4px; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 3100;
+  transform: translate(-50%, 20px);
+  padding: 9px 18px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 8px;
+  background: var(--color-brown-dark);
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ═══════════ react-game Card components, kept as they are (rule of steps 13–16) ═══════════ */
+/* BonusBadgeList */
+.bonus-badge-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; }
+/* little card title: name, cost, little statistics (fading out on the right), type badge on hover */
+.gc-title__text { flex: 0 1 auto; }
+.gc-cost { margin-left: auto; }
+.gc-title__badges {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+}
+.gc-title__badges .stat-badge { flex-shrink: 0; padding: 0 4px; font-size: 0.55rem; }
+.gc-title .gc-type-badge {
+  top: 50%;
+  left: auto;
+  right: 5px;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.78);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+/* not limited to hover devices (step 16): on a phone a tap shows the type too */
+.pg-card:hover .gc-title .gc-type-badge { opacity: 1; }
+/* CardButtons: selected state and secondary actions (actionsList) */
+.gc-footer__btn--selected {
+  background: linear-gradient(180deg, rgba(200, 150, 10, 0.35), rgba(200, 150, 10, 0.18));
+  border-color: var(--color-gold-shine);
+  color: var(--color-gold-shine);
+}
+.gc-footer.has-actions { display: grid; grid-template-columns: auto 1fr auto; }
+/* page card: statistics over the picture */
+.loc-img .book-page-img-badge-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  z-index: 1;
+  max-width: 92%;
+  transform: translateX(-50%);
+  text-shadow: none;
+}
+.loc-img .book-page-img-badge-overlay .stat-badge { font-size: 0.8rem; padding: 2px 8px; }
+/* TipNote: the gold-glow hint, or a story / picture credit on one line */
+.pg-note {
+  position: relative;
+  margin-top: 10px;
+  padding: 8px 30px 8px 10px;
+  border: 2px solid var(--color-gold);
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.08);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.55), inset 0 0 6px rgba(255, 215, 0, 0.25);
+  font-size: 1.05rem;
+  animation: pg-note-in 0.35s ease-out;
+}
+@keyframes pg-note-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.pg-note__icon { margin-right: 6px; color: var(--color-gold-dark); }
+.pg-note--single { display: flex; align-items: center; }
+.pg-note--single .pg-note__text { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pg-note__link { margin-left: 6px; color: var(--color-gold-deep); }
+.pg-note__hide {
+  position: absolute;
+  right: 6px;
+  bottom: 8px;
+  padding: 0 2px;
+  background: none;
+  border: 0;
+  color: var(--color-gold);
+  font-size: inherit;
+  cursor: pointer;
+}
+/* extraContent */
+.book-page-extra {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--color-parchment-light);
+  border-top: 1px dashed var(--color-gold-dark);
+  color: var(--color-gold-deep);
+}
+.pg-extra-note { font-family: var(--font-heading); font-size: 0.9rem; }
+/* the page CardButtons bar */
+.book-page-buttons {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  background: var(--bar-background);
+  border-top: 2px solid var(--color-gold-dark);
+}
+.book-page-buttons .gc-footer__btn { flex: 0 1 auto; min-width: 120px; padding: 5px 16px; font-size: 0.95rem; }
+.loc-page.is-playing { border-color: var(--color-gold-shine); animation: pg-glow 1s ease-in-out infinite; }
+/* CardCreditsBar: type, tip, story credit, picture credit */
+.gc-credits {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 3px 8px;
+  background: var(--bar-background);
+  border-top: 1px solid var(--color-gold-dark);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: 0.3px;
+  color: var(--color-parchment-light);
+}
+.gc-type-badge-credits { flex-shrink: 0; margin-right: 6px; color: var(--color-gold-light); font-weight: 700; text-transform: uppercase; }
+.gc-credits__tip {
+  flex-shrink: 0;
+  padding: 0 5px;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--color-gold-shine);
+  text-decoration: underline;
+  text-decoration-color: rgba(232, 184, 48, 0.35);
+  cursor: pointer;
+}
+.gc-credits__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Home: the tutorial button, larger and centred */
+.left-center { display: flex; justify-content: center; margin-top: 14px; }
+.btn-book--big { padding: 11px 28px; font-size: 1.15rem; }
+
+/* ═══════════ sizes as the react-game (main.css): titles, text, badges, buttons ═══════════ */
+.gc-title { padding: 6px 8px; }
+.gc-title__text { font-size: clamp(0.65rem, 1.5vw, 0.9rem); line-height: 1.2; }
+.gc-title .gc-type-badge { font-size: 0.7rem; }
+.gc-cost { font-size: 0.8rem; }
+.gc-footer { padding: 6px 8px 7px; }
+.gc-footer__btn { padding: 3px 6px; font-size: 1rem; }
+.gc-footer__note { font-size: 1rem; }
+.gc-footer__note.is-lock { opacity: 0.6; }
+.stat-badge { padding: 3px 7px; font-size: 0.8rem; }
+/* the little BonusBadgeList (card title, picture overlay, bookmarks) */
+.gc-title__badges .stat-badge,
+.gc-badges .stat-badge,
+.book-bookmark .stat-badge { padding: 1px 5px; font-size: 0.725rem; }
+.book-page-title { font-size: 2rem; }
+.book-page-desc { padding: 10px; font-size: 1.5rem; line-height: 1.25; }
+.book-page-extra { padding: 10px; font-size: 1.25rem; line-height: 1.25; }
+.pg-note { font-size: 1.2rem; }
+.book-bookmark { font-size: 1.5rem; }
+.book-page-buttons .gc-footer__btn { font-size: 1rem; }
+.loc-img .book-page-img-badge-overlay .stat-badge { padding: 3px 7px; font-size: 0.8rem; }
+
+/* ═══════════ medium screens: two card columns, the list scrolls inside the page ═══════════ */
+@media (max-width: 1119px) {
+  .selection-list,
+  .selection-list.cols-3 {
+    --card-w: clamp(110px, calc((100cqw - 46px) / 2), 172px);
+    grid-template-columns: repeat(2, var(--card-w));
+  }
 }
 
-/* ═══════════ mobile: same query as react-game mobileView.js MOBILE_MQ ═══════════ */
+/* ═══════════ mobile: a vertical book bound on its left edge (same query as MOBILE_MQ) ═══════════ */
 @media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  .demo-panel { gap: 6px 12px; padding: 6px 10px; font-size: 0.8rem; }
-  .demo-brand span { display: none; }
-  .demo-panel-toggle { display: inline-flex; }
-  .demo-controls { display: none; width: 100%; }
-  .demo-panel.is-open .demo-controls { display: flex; }
-
-  /* the stage scrolls, like .book-overlay on the site */
-  .stage {
-    display: block;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 8px 24px;
-  }
-  .book-shell { width: min(100%, 560px); height: auto; margin: 0 auto; }
-  .book-tabs {
+  .navbar-medieval { padding: 0.45rem 0.8rem; }
+  .navbar-brand-pg { font-size: 1.15rem; gap: 6px; }
+  .nav-user-btn__label { display: none; }
+  .stage { display: block; height: auto; padding: 0 8px 30px; }
+  .book-shell { width: min(100%, 560px); height: auto; min-height: 0; margin: 0 auto; }
+  /* the bookmarks become a sticky bar under the navbar */
+  .book-bookmarks {
     position: sticky;
-    top: 0;
+    top: var(--nav-h);
     left: auto;
     z-index: 30;
     transform: none;
-    justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* one row: it scrolls sideways when the badges do not fit */
     gap: 6px;
-    margin: 0 -8px 10px;
-    padding: 8px 6px;
-    background: rgba(26, 10, 2, 0.94);
+    margin: 0 -8px 12px;
+    padding: 7px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: rgba(26, 10, 2, 0.95);
     border-bottom: 1px solid var(--color-gold-dark);
+    pointer-events: auto;
   }
-  .book-tab {
-    padding: 5px 11px;
-    border: 2px solid var(--color-brown-warm);
-    border-radius: 999px;
-    box-shadow: none;
-    font-size: 0.78rem;
+  .book-bookmark { flex-shrink: 0; margin: 0; padding: 4px 10px; border: 2px solid var(--color-brown-warm); border-radius: 999px; font-size: 1rem; box-shadow: none; }
+  .bm-group { gap: 6px; }
+  /* the home tab stays at the right end of the row while the other tabs scroll */
+  .bm-group--right { position: sticky; right: -8px; padding: 0 8px 0 6px; background: rgba(26, 10, 2, 0.95); }
+  .book-headband { display: none; }
+  .book { height: auto; padding: 10px 8px 14px 12px; }
+  .book::after {
+    /* the binding on the left edge: a thin dark line with small gold bands */
+    inset: 12px auto 12px 4px;
+    width: 4px;
+    border: none;
+    border-radius: 2px;
+    background:
+      repeating-linear-gradient(180deg, transparent 0 38px, rgba(200, 150, 10, 0.6) 38px 39px, transparent 39px 40px),
+      linear-gradient(90deg, #1a0a02, #3a1a08 50%, #1a0a02);
   }
-  .book-wrapper { flex-direction: column; height: auto; }
+  .book-ribbon { left: auto; right: 46px; }
+  .book-pages { flex-direction: column; height: auto; perspective: none; }
   .book-spine { display: none; }
   /* clip, not hidden: hidden would make the page a scroll box and stop the sticky deck */
   .book-page { width: 100%; height: auto; overflow: clip; }
-  .book-page-left  { border-radius: 12px 12px 0 0; }
-  .book-page-right { border-radius: 0 0 12px 12px; container-type: inline-size; }
-  .page-inner { height: auto; }
+  .book-page-left {
+    border-radius: 6px 6px 2px 2px;
+    background: var(--orn-tl) left 6px top 6px / 48px no-repeat, var(--orn-tr) right 6px top 6px / 48px no-repeat, var(--page-right-bg);
+    box-shadow: 1px 1px 0 #c79a62, 2px 2px 0 #ecca9c, 3px 3px 0 #b8874e, 4px 4px 0 #e2bd8a, 5px 6px 10px rgba(0, 0, 0, 0.4);
+  }
+  .book-page-right {
+    border-radius: 2px 2px 6px 6px;
+    background: var(--orn-bl) left 6px bottom 6px / 48px no-repeat, var(--orn-br) right 6px bottom 6px / 48px no-repeat, var(--page-right-bg);
+    container-type: inline-size;
+  }
+  .book-page-left::after { background: linear-gradient(to top, rgba(70, 30, 5, 0.3), transparent 6%); }
+  .book-page-right::after { background: linear-gradient(to bottom, rgba(70, 30, 5, 0.3), transparent 6%); }
+  .page-inner,
+  .book-page-right .page-inner { height: auto; overflow: visible; padding: 12px 12px; }
   .loc-page { height: auto; }
-  .loc-img { flex: 0 0 auto; height: 170px; }
+  .loc-img { flex: 0 0 auto; height: 33svh; } /* as the react-game mobile page card */
   .book-page-desc { flex: 0 0 auto; }
+  .policy-text { flex: 0 0 auto; }
   .selection-list,
   .selection-list.cols-3 {
-    --card-w: clamp(110px, calc((100cqw - 34px) / 2), 190px);
+    --card-w: clamp(110px, calc((100cqw - 38px) / 2), 190px);
     grid-template-columns: repeat(2, var(--card-w));
   }
   /* the deck rides the bottom of the screen while the cards are in view */
-  .deck { position: sticky; right: auto; bottom: 12px; display: block; margin: 4px 16px 12px auto; }
+  .deck,
+  .book-page-right > .deck { position: sticky; right: auto; bottom: 12px; display: block; margin: 4px 14px 12px auto; }
+  .deck-pile { display: none; }
+  .pg-footer { padding-bottom: 70px; } /* room for the demo button */
 }
 @media (max-width: 480px) {
-  .book-tab span { display: none; }
-  .book-tab.is-active span { display: inline; }
+  .navbar-social { display: none; }
+}
+@media (max-width: 330px) {
+  .selection-list, .selection-list.cols-2, .selection-list.cols-3 { grid-template-columns: var(--card-w); }
 }
 /* phone turned sideways: little height, room for three columns */
 @media (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  .loc-img { height: 120px; }
   .selection-list.cols-3 {
     --card-w: clamp(100px, calc((100cqw - 48px) / 3), 150px);
     grid-template-columns: repeat(3, var(--card-w));
@@ -701,10 +1491,28 @@ body {
     transition-delay: 0ms !important;
   }
 }
-body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
   animation-duration: 1ms !important;
   animation-delay: 0ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 1ms !important;
   transition-delay: 0ms !important;
+}
+
+/* sizes as the react-game mobile.css */
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .selection-list .gc-title__text { font-size: 1rem; }
+  .gc-footer__btn { font-size: 1.125rem; }
+  .book-page-extra { font-size: 1rem; }
+  .stat-badge { padding: 4px 9px; font-size: 0.72rem; }
+  .gc-title__badges .stat-badge,
+  .gc-badges .stat-badge,
+  .book-bookmark .stat-badge { padding: 1px 5px; font-size: 0.68rem; }
+  .book-bookmark { font-size: 1rem; }
+}
+
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .book-bookmark { border: 1px solid #1a0a02; }
+  .book-bookmark::before { inset: 2px; border: 1px solid rgba(200, 150, 10, 0.6); border-radius: 999px; }
+  .book-bookmark::after { inset: 4px; border: 1px dashed rgba(232, 184, 48, 0.22); border-radius: 999px; }
 }
