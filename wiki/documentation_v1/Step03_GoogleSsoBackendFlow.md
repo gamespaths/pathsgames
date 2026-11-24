@@ -80,7 +80,7 @@ Today admin tokens come from `code/scripts/dev/mint_admin_token.sh` and `code/te
   - The Java and Python scripts are not used for now (they have no public stage), kept for completeness.
   - AWS: the alpha stage gets the same admin bootstrap system as beta (manual Lambda + script); the script invokes the manual admin Lambda of the given stage (`aws lambda invoke`) and prints user and token (the console invoke stays possible).
   - Sub-point: list the three scripts in `.claude/docs/commands.md` when developed.
-- Admin with Google SSO stays out of scope (roadmap step 14 note unchanged).
+- Admin with Google SSO stays out of scope (roadmap step 39 note unchanged).
 
 ### 3.7 Release checklist
 

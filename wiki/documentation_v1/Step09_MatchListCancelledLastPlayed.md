@@ -33,7 +33,7 @@ Superseded in 1.8.0: the "last played" line and the "show cancelled" toggle belo
 - `api/matches.js` `listMatches` reads `items`. Match list (`features/guest-user/UserMatchesList.jsx`, `features/matches/MatchCard.jsx`, `MatchStatusBadge.jsx`, `utils/matchStatus.js`): active matches first, "last played" line with a relative time ("2 hours ago") from `tsUpdate`; `CANCELLED` (and `BANNED`) matches in a muted style with the existing label, hidden until the "show cancelled" toggle is on, never opened; a cancelled one explains "the match of your Google account for this story was kept".
 - Matches named in `cancelledMatchUuids` of the last login are highlighted once.
 - `features/start-match/StartMatchFlow.jsx`: for a guest with Google sign-in on, the hint "Have an account? Sign in to continue" before Play, next to the login card (EN and IT strings).
-- Dates use the browser locale until step 16 formats dates and numbers by locale.
+- Dates use the browser locale until step 17 formats dates and numbers by locale.
 
 ### 3.3 Tests
 - Unit on the 3 backends: `tsUpdate` present and ISO and moving with a write; sort order; envelope with `nextCursor` null up to 50 and a cursor beyond 50; merge matrix (Google active vs guest active of the same story, no Google match, different stories, ended kept, a newer guest match still loses); `cancelledMatchUuids` content. Vitest for the card (relative time, toggle, cancelled style, no open on click, highlight once) and the hint. Coverage > 96%.

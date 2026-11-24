@@ -7,6 +7,7 @@ documents and the other versions are listed in the global index
 | File | What is in it | Keywords |
 |---|---|---|
 | `Roadmap.md` | Plan of the 42 steps of V1, steps 1-12 done | roadmap, steps, beta, draft |
+| `website_concepts_v0/v1.13.0/` | Prototype of card animations: deal, play, page turn, mobile | animation, deal, page turn, book, mobile |
 | `Step01_Version1Launch.md` | V1 launch: daily AWS smoke test Lambda, schedule, alarms, TTL | smoke test, alarms, fast locations, registry lock, OpenAPI |
 | `Step02_GoogleSsoIdentityModel.md` | Google SSO identity table, nickname rules, username mapping (developed 1.2.0) | identities, nickname, users table, migration, DynamoDB |
 | `Step03_GoogleSsoBackendFlow.md` | Google ID token login, hashed sessions, replay, rate limit, admin bootstrap (developed 1.2.0) | google login, ID token, nonce, refresh, JWKS |
@@ -21,7 +22,7 @@ documents and the other versions are listed in the global index
 | `Step12_PaginationAndMultiDeviceContinuity.md` | Developed 1.7.0: admin paging residuals, session cap 12, logout-all, refresh 250 days, A-B-C Robot | pagination, SESSION_LIMIT, sessions_valid_after, SameSite, knownAccount |
 
 # Version Control
-- **Document Version**: 1.11.0
+- **Document Version**: 1.13.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -34,8 +35,9 @@ documents and the other versions are listed in the global index
   | 1.8.0 | Screen changes, fixes and test script updates | October 23, 2026 |
   | 1.10.0 | Security fixes and new test steps added | October 28, 2026 |
   | 1.11.0 | Test status and last fixes noted | October 29, 2026 |
+  | 1.13.0 | Animation concepts added; roadmap steps reordered | November 24, 2026 |
 
-- **Last Updated**: October 29, 2026 (v1.11.0)
+- **Last Updated**: November 24, 2026 (v1.13.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -1,8 +1,8 @@
 # Step 10 — Admin tool: user management backend
 
 **Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/10_admin_users` green on Java, Python and AWS (1.10.0 run). Analysis decisions below are kept; "Implementation notes" lists what shipped.**
-Roadmap line: *control users* ([Roadmap](./Roadmap.md) step 10). Pages: [Step 11](./Step11_AdminUserManagementPages.md); the log list and page: roadmap step 14.
-The intervention-log WRITER lives here because ban, suspend, unblock and the `IDENTITY_MISMATCH` actions need it; roadmap step 14 extends it to the other admin actions and adds the list and the page.
+Roadmap line: *control users* ([Roadmap](./Roadmap.md) step 10). Pages: [Step 11](./Step11_AdminUserManagementPages.md); the log list and page: roadmap step 39.
+The intervention-log WRITER lives here because ban, suspend, unblock and the `IDENTITY_MISMATCH` actions need it; roadmap step 39 extends it to the other admin actions and adds the list and the page.
 
 ## 1. Goal
 
@@ -20,7 +20,7 @@ An admin can find a user, read the profile and match history, ban, suspend and u
 - **An ADMIN can never be banned or suspended**, by anyone, themselves included: refused.
 - Ban and suspend change the state, evict the user from the 60-second state cache of [Step 3](./Step03_GoogleSsoBackendFlow.md) and revoke every access and refresh token. A hash of the banned Google subject is kept (no personal data): HMAC-SHA256 with a secret pepper from a parameter (code default only for dev), table `users_banned_subjects`; the HMAC of BOTH `sub` and email is kept and login is blocked if either matches. Pepper rotation is not supported; the pepper differs per stage.
 - **`IDENTITY_MISMATCH`:** the admin arms a one-time re-link; the next login with that email replaces the subject. "Delete the old user" uses the normal deletion of [Step 5](./Step05_GoogleSsoPrivacyE2E.md).
-- **Intervention-log writer** (admin id, action, target uuid only, reason) created here and used by ban, suspend, unblock and the mismatch actions. AWS: monthly partition `ADMINLOG#YYYY-MM`. The reason has at most 500 characters and the UI warns "no personal data". Retention 24 months. Roadmap step 14 extends the writer to every other admin action (match stop and delete, restore, owner move, guest purge, story import).
+- **Intervention-log writer** (admin id, action, target uuid only, reason) created here and used by ban, suspend, unblock and the mismatch actions. AWS: monthly partition `ADMINLOG#YYYY-MM`. The reason has at most 500 characters and the UI warns "no personal data". Retention 24 months. Roadmap step 39 extends the writer to every other admin action (match stop and delete, restore, owner move, guest purge, story import).
 - The email is visible only in the react-admin detail page; the nickname prefix may reveal the email prefix (admin API only): accepted.
 
 ## 3. Sub-points per component
@@ -54,7 +54,7 @@ An admin can find a user, read the profile and match history, ban, suspend and u
 
 ### 3.6 Tests
 - Unit (coverage > 96%): list filters, default and cursor on each backend, ban side effects (tokens, cache, matches to `BANNED`, hashes, blocked re-registration by `sub` and by email), unblock removing the hashes while matches stay `BANNED`, suspend limits and the automatic unblock, guest and ADMIN refused, pepper guard, re-link flag, log row per action and none for refused actions, retention, statistics excluding `BANNED`.
-- Robot `tests_v1/10_admin_users/`: list and search (a check after the database refresh finds a user by nickname), ban then login refused (also with a new fake account that has the same email), unblock then login works, suspend with `until`, mismatch resolution, an admin cannot be banned. The log rows are covered by unit tests only: the list endpoint comes in roadmap step 14.
+- Robot `tests_v1/10_admin_users/`: list and search (a check after the database refresh finds a user by nickname), ban then login refused (also with a new fake account that has the same email), unblock then login works, suspend with `until`, mismatch resolution, an admin cannot be banned. The log rows are covered by unit tests only: the list endpoint comes in roadmap step 39.
 
 ### 3.7 Docs (when developed)
 - [Security](../Security.md) (ban, suspend, pepper), [Data Model](../DataModel.md) (tables, columns, GSI keys, `BANNED`), [Game Rules](../GameRules.md) (already marked from 1.7.0), [Environments](../Environments.md) (pepper), [API Conventions](../ApiConventions.md) only for the new resource paths.
@@ -66,7 +66,7 @@ An admin can find a user, read the profile and match history, ban, suspend and u
 3. (decided) `IDENTITY_MISMATCH`: one-time re-link armed by the admin; old user deleted with the normal deletion.
 4. (decided) Ban reversible, unblock removes the hashes; matches of a banned user become `BANNED` and stay so.
 5. (decided) AWS log partition per month, reason max 500 characters with a UI warning, retention 24 months.
-6. (decided) Roadmap step 14 extends the writer to every other admin action.
+6. (decided) Roadmap step 39 extends the writer to every other admin action.
 7. (decided) An ADMIN is never banned or suspended; a suspended login answers `ACCOUNT_DISABLED` with `suspendedUntil`.
 8. (decided) Pepper rotation not supported, one pepper per stage; nickname prefix revealing the email prefix accepted.
 9. (decided) Nickname prefix on GSI1 (`USERSTATE#n` / `<nickname_lower>#<uuid>`), no new index.

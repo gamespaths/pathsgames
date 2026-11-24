@@ -43,12 +43,24 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 
 | Topic | Version | Notes |
 |-------|---------|-------|
-| Test ACM certificate and environment variables | V1 step 41 (analysis, moved from V0), V1 steps 19-20 (env refactor) | Result goes in [Environments](./Environments.md) |
+| Test ACM certificate and environment variables | V1 step 20 | Result goes in [Environments](./Environments.md) |
 | DynamoDB single-table split (users, stories, matches, logs) | V1 | Logs table first, the rest only analysed |
 | Distributed lock for scheduled jobs on several instances | V6 | e.g. ShedLock for Java |
 
+## 3. Pending checks from the 1.12.0 alpha release
+
+| Check | Why | When |
+|-------|-----|------|
+| Permissions boundary, phase 2: deploy alpha from the CI with the boundary variable set, verify every alpha Lambda and scheduler role (15) carries the boundary, then play a quick game round | The boundary code exists since 1.10.0 but protects nothing until the roles carry it; it limits the damage of stolen CI keys (no admin-level Lambda role can be created) | Before the next alpha deploy (1.13.0) |
+| Permissions boundary, phase 3 (enforce): apply the strict CI policy, then one more CI deploy must stay green | Proves the CI still deploys under the strict rules, so the next release does not fail unexpectedly | Before the next alpha deploy (1.13.0) |
+| Masked pepper: check the banned-subject pepper shows masked in the deploy parameter list | A secret printed in deploy logs could be read by anyone with access to the logs | Before the next alpha deploy (1.13.0) |
+| Clean-up: delete the pre-reset alpha backup (remote and local copy) when no longer needed; remove the old unused repository secrets; detach the full-access policy from the CI user (always keeping the boundary enforced) | The backup holds personal data of the old accounts (data minimisation); unused secrets and broad permissions are attack surface | Before the next alpha deploy (1.13.0) |
+| Alpha README and release note: list the pepper, session, SameSite and boundary keys in the alpha README (sections 3 and 5) and add a Hotfix/release note for 1.12.0 on alpha | A deploy from scratch could miss those parameters; traceability of the release | Before the next alpha deploy (1.13.0) |
+
+Manual tests 10 (boundary) and 15 (masked pepper) of the 1.11.0 list were ticked but are only really closed by the first three checks above.
+
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.13.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -56,8 +68,9 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
   | 0.41.2 | Basic KPI report marked done | September 29, 2026 |
   | 1.1.0 | V0 items marked done or moved to V1 | October 14, 2026 |
   | 1.4.0 | Transaction and participation statistics ideas added | October 21, 2026 |
+  | 1.13.0 | Pending alpha checks added; roadmap references fixed | November 24, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: November 24, 2026 (v1.13.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

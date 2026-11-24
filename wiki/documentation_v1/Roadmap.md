@@ -12,13 +12,14 @@ Shared references for this version: [Game Rules](../GameRules.md),
 
 - **Step 1**: version 1 launch. **Steps 2-5**: Google SSO first (tables ready for Steam; developed together, intermediate releases get intermediate versions).
 - **Steps 6-9**: profile and multi-device (the same account on many devices finds the same game state): profile backend and page, match concurrency, match list and merge rule. **Steps 6-12 were developed together and released as 1.7.0**, docs included (like steps 2-5 in 1.2.0).
-- **Steps 10-14**: admin tool — user management (backend and react-admin pages), pagination residuals plus multi-device continuity (step 12), navigation and match detail, intervention log.
-- **Steps 15-20**: EN/IT interface, accessibility, background music (two steps), scripts and certificates (to evaluate).
+- **Steps 10-12**: admin tool — user management (backend and react-admin pages), pagination residuals plus multi-device continuity.
+- **Steps 13-17**: book UI and card animations (layout without modals, Home book and card faces, play and page turn, mobile book and preferences), then i18n and accessibility in one step (17).
+- **Steps 18-20**: background music (two steps), scripts and certificates (to evaluate).
 - **Steps 21-27**: story frontend data, permadeath and game over, location-forced weather.
 - **Steps 28-31**: admin tool parameters, admin messages, negative conditions (to evaluate).
 - **Steps 32-35**: single-table analysis, AWS logs table, crowdfunding, content licenses.
 - **Step 36**: game manual for players. **Step 37**: documentation alignment.
-- **Steps 38-39**: reserved for bug fixes or new features. 
+- **Step 38**: AWS secrets out of the Lambda environment. **Step 39**: admin tool — navigation, match detail and intervention log.
 - **Steps 40-42**: recurring hardening, migration from alpha, beta launch.
 
 
@@ -45,38 +46,52 @@ Shared references for this version: [Game Rules](../GameRules.md),
 
 # Next steps
 
-13. **Admin tool — navigation and match detail** — one clear admin dashboard.
-    - react-admin sections: Matches, Users, Stories, System, Reports (frontend)
-    - Match detail page: characters, locations, registry, turn queue (frontend)
-    - Reuse existing admin endpoints; add only the missing summary fields (backend)
-    - Role guard on every admin page (frontend)
+13. **Book layout without modals** — every page keeps its own book under an always-visible navbar.
+    - No single persistent book: each page has its own book, page turns happen inside a page only (frontend)
+    - Remove the modal overlays: game, start book, start match, end game, and the player panel render inside the page layout (frontend)
+    - New routes: the player page `/player` (formerly GuestUserModal) and the story set-up `/story/:storyId` (formerly StartBookModal inside the Home); other URLs may be added if needed (frontend)
+    - Policy book opens inside the current book as a chapter, without changing the URL, then back; also during a match (card credits); the `?policy=` deep link keeps working (frontend)
+    - Close (X) button removed from the books and moved into the navbar, tooltip "Back to the home page"; in a match it still asks today's confirmation (frontend)
+    - Footer: a small bar always visible at the bottom, never hidden; which links stay in it is decided later (frontend)
+    - ErrorCard becomes the right page of the book (like the loading page) instead of an overlay; the cookie banner stays a modal (frontend)
+    - Mobile scrolling moves from the overlay to the page; scroll helpers updated (frontend)
+    - Unit tests updated for the pages that were modals (tests)
+14. **Home book and card faces** — the Home becomes a book and every card gets a back. Concept prototype: `website_concepts_v0/v1.13.0/`.
+    - Home: left page a fixed introduction card (picture, title, tutorial button, anti-bot check), right page all the stories in one list, no category rows for now (frontend)
+    - Card columns from a parameter: three on desktop, two on medium screens and mobile (frontend)
+    - Card split in front and back faces; the back shows the site's d20 dice in light gold, pulsing (frontend)
+    - Animation settings from env variables (`VITE_ANIM_DEAL`, `VITE_ANIM_DEAL_FACEDOWN`, `VITE_ANIM_PLAY`, `VITE_ANIM_TURN`, `VITE_ANIM_TURN_MODE`, `VITE_ANIM_SPEED`; default all on, speed 0.25) in `.env.example`; `.env`, `.env.test`, `.env.alpha` updated by the owner (frontend, infra)
+    - Deal: cards fly from a visible deck on the right page, face-down, one after the other, when they enter the screen (frontend)
     - Unit tests (tests)
-14. **Admin tool — intervention log** — every admin action is traced (ban, suspend, unblock and mismatch actions since step 10).
-    - Extend the log writer of [Step 10](./Step10_AdminUserManagementBackend.md) to every other admin action: match stop and delete, snapshot restore, owner move, guest purge, story import; the target is stored by uuid only, no nickname (backend)
-    - The admin user with SSO (how an account becomes admin) is analysed apart: out of scope for now (docs)
-    - Admin log list with filters (backend)
-    - Admin log page in react-admin (frontend)
+15. **Play and page turn** — choosing a card and changing page are animated.
+    - Played card: lifts and glows while the server answers, the others fall away, the card flies into the story; one single page turn after the answer (the loading page only as a fallback) (frontend)
+    - Full page turn on the spine for every change inside a page: location, information, backpack, map, missions (frontend)
+    - The (i) preview on desktop: the card on the left page fades in when opened and fades out when closed (frontend)
+    - The (i) preview on mobile: no more modal; the top card is replaced with a fade, the page scrolls to it, a back icon closes it (frontend)
     - Unit tests (tests)
-    - Robot checks (tests)
-15. **i18n — react-game EN/IT** — interface in English and Italian.
+16. **Mobile book and preferences** — the same book on phones, and the player's own settings.
+    - Analysis of a vertical book on mobile (today mobile shows the cards without the book), then its layout (docs, frontend)
+    - Mobile page turn on the page's left edge, sticky deck, deal on scroll, light vibration on Android when a card is played (iOS ignored) (frontend)
+    - Preferences card on the player page: the right page lists the preferences (language, theme, size, animations, columns); clicking it opens a card on the right page to change them (frontend)
+    - Number of card columns customizable by the player (frontend)
+    - Preferences kept in the browser (localStorage), listed in the cookie banner among the strictly necessary items (no new consent request, banner revision not bumped) and in the privacy policy (frontend, docs)
+    - Env variables only give the defaults; the player's preferences override them; the OS reduced-motion setting always wins; themes will later make everything customizable (frontend)
+    - Unit tests (tests)
+17. **i18n and accessibility** — interface in English and Italian, localised backend messages, and the game usable with keyboard and assistive technologies (no voice).
     - i18n library `react-i18next`, translation keys namespaced per page (frontend)
     - Extract every react-game string into EN and IT files (frontend)
     - Language selector and default from the browser or the profile preference; guests keep it in localStorage (frontend)
     - Story texts in the chosen language through the existing `list_texts.lang`; missing language falls back to the story default, no error (backend, frontend)
-    - Unit tests and a missing-translation check (tests)
-16. **i18n — backend messages** — second half of localisation.
     - react-admin stays in English only: no translation (frontend)
     - Backend error messages with stable codes the frontends translate (backend)
     - Dates and numbers formatted by locale (frontend)
     - Story import checks: texts present in both languages (warning, not blocking) (backend)
-    - Unit tests (tests)
-17. **Accessibility** — the game usable with keyboard and assistive technologies (no voice).
     - Keyboard navigation on every page and card (frontend)
     - ARIA labels and roles on cards, book pages and dialogs (frontend)
     - Colour contrast check of the medieval palette, high-contrast option saved in the profile, in localStorage for guests (frontend)
-    - Show the high-contrast toggle prepared in step 7 in the profile page (frontend)
-    - Reduced-motion option for animations (frontend)
-    - Automated accessibility checks in unit tests (tests)
+    - Show the high-contrast toggle prepared in step 7 in the profile page; it can reuse the preferences card of step 16 (frontend)
+    - Reduced-motion preference in the profile; it also switches off the animations of steps 13-16 (frontend)
+    - Automated accessibility checks and a missing-translation check in unit tests (tests)
 18. **Audio — part 1** — background music in the game.
     - Analysis of the audio scope, formats and the split with part 2 (docs)
     - Background music player with volume and mute, off by default (frontend)
@@ -215,7 +230,17 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - SAM template: parameter names instead of values, `ssm:GetParameter` and `kms:Decrypt` scoped to the stage parameters (infra)
     - Deploy scripts write the parameters before `sam deploy`; no secret printed in clear (infra)
     - Unit tests and Robot suites (tests)
-39. **Reserved**
+39. **Admin tool — navigation, match detail and intervention log** — one clear admin dashboard, and every admin action traced (ban, suspend, unblock and mismatch actions since step 10).
+    - react-admin sections: Matches, Users, Stories, System, Reports (frontend)
+    - Match detail page: characters, locations, registry, turn queue (frontend)
+    - Reuse existing admin endpoints; add only the missing summary fields (backend)
+    - Role guard on every admin page (frontend)
+    - Extend the log writer of [Step 10](./Step10_AdminUserManagementBackend.md) to every other admin action: match stop and delete, snapshot restore, owner move, guest purge, story import; the target is stored by uuid only, no nickname (backend)
+    - The admin user with SSO (how an account becomes admin) is analysed apart: out of scope for now (docs)
+    - Admin log list with filters (backend)
+    - Admin log page in react-admin (frontend)
+    - Unit tests (tests)
+    - Robot checks (tests)
 40. **Security and hardening check** — recurring.
     - Security review of SSO, profile, linking, admin tool and messages (all)
     - OAuth and JWT penetration tests (tests)
@@ -243,7 +268,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 1.11.0
+- **Document Version**: 1.13.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -256,8 +281,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 1.7.0 | Profile, many-device and admin user steps done | October 23, 2026 |
   | 1.10.0 | Security review fixes; secrets step added | October 28, 2026 |
   | 1.11.0 | Automatic tests run and green on three backends | October 29, 2026 |
+  | 1.13.0 | Book and animation steps added; steps reordered | November 24, 2026 |
 
-- **Last Updated**: October 29, 2026 (v1.11.0)
+- **Last Updated**: November 24, 2026 (v1.13.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

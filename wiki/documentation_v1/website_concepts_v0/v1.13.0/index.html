@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- Paths Games — v1.13.0 animation concepts: 1 deal, 2 play, 3 page turn (desktop and mobile).
+     Standalone page, no build: open this file in a browser. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paths Games — Card Animations v1.13.0</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" />
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+  <header class="demo-panel" id="panel">
+    <div class="demo-brand" title="Play a card or open a tab to see the effects. The default speed is ¼×, as the planned env default.">
+      <i class="fas fa-book-open"></i> Paths Games <span>animation concepts · v1.13.0</span>
+    </div>
+    <button type="button" class="demo-panel-toggle" id="btn-panel" aria-expanded="false" aria-controls="controls">
+      <i class="fas fa-sliders-h"></i> Controls
+    </button>
+    <div class="demo-controls" id="controls">
+      <label title="Cards fly from the deck to their slot, one after the other">
+        <input type="checkbox" id="fx-deal" checked /> <b>1</b> Deal
+      </label>
+      <label class="demo-sub" title="Cards travel face-down and flip face-up when they land">
+        <input type="checkbox" id="fx-facedown" checked /> face-down
+      </label>
+      <label title="The chosen card lifts and glows, the others fall away, then it flies into the story">
+        <input type="checkbox" id="fx-play" checked /> <b>2</b> Play
+      </label>
+      <label title="The page turns on every change: location, tabs, items, map, missions">
+        <input type="checkbox" id="fx-turn" checked /> <b>3</b> Page turn
+      </label>
+      <select id="fx-turn-mode" aria-label="Page turn mode">
+        <option value="full">full flip</option>
+        <option value="simple">simple</option>
+      </select>
+      <label>Speed
+        <select id="fx-speed">
+          <option value="1">1×</option>
+          <option value="0.5">½×</option>
+          <option value="0.25" selected>¼× (default)</option>
+        </select>
+      </label>
+      <label title="Simulated server response time while the card is being resolved">Server
+        <input type="range" id="fx-latency" min="0" max="2000" step="100" value="600" />
+        <output id="fx-latency-out">600 ms</output>
+      </label>
+      <label title="Simulates prefers-reduced-motion: every effect is skipped">
+        <input type="checkbox" id="fx-reduced" /> reduced motion
+      </label>
+      <button type="button" id="btn-redeal"><i class="fas fa-redo"></i> Re-deal</button>
+      <button type="button" id="btn-restart"><i class="fas fa-home"></i> Restart</button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="book-shell">
+      <nav class="book-tabs" id="tabs" aria-label="Book sections"></nav>
+      <div class="book-wrapper" id="book">
+        <div class="book-spine"></div>
+        <section class="book-page book-page-left" id="page-left">
+          <div class="page-inner"></div>
+        </section>
+        <section class="book-page book-page-right" id="page-right">
+          <div class="page-inner"></div>
+          <div class="deck" aria-hidden="true"><span></span><span></span><span></span></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="demo.js"></script>
+</body>
+</html>
