@@ -108,3 +108,11 @@ describe('RegistryCards (Step 36)', () => {
     expect(seen).toHaveLength(0)
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('RegistryCards — dealt grid (step 14)', () => {
+  it('the list carries pg-dealt', () => {
+    const { container } = render(<RegistryCards registry={[entry('k', 'tutorial', 1)]} />)
+    expect(container.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

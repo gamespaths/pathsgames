@@ -1,6 +1,7 @@
 import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import ChoiceCard from './ChoiceCard'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * Step 31 — the right-page list of a choice-event's options.
@@ -23,7 +24,7 @@ export default function PendingChoicesList({
 
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {choices.map((choice) => (
           <ChoiceCard
 
@@ -50,7 +51,7 @@ export default function PendingChoicesList({
           actionIcon="fa-ban"
           hidePreview
         /> */}
-      </div>
+      </DealtList>
     </div>
   )
 }

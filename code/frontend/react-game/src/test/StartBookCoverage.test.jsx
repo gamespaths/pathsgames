@@ -11,7 +11,9 @@ vi.mock('../i18n/context', () => ({
 }))
 vi.mock('../api/stories', () => ({ getStoryDetail: vi.fn(), getStories: vi.fn() }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, mobile }) => <div data-testid="book">{left}{right}{mobile}</div>,
+  default: ({ left, right, pageKey, direction }) => (
+    <div data-testid="book" data-key={pageKey} data-direction={direction ?? 'none'}>{left}{right}</div>
+  ),
 }))
 vi.mock('../components/layout/Card', () => ({
   default: ({ card, onClose, statItemsToPageContent }) => (
@@ -32,6 +34,7 @@ vi.mock('../features/start-book/ConfigView', () => ({
       <button onClick={() => onChangeClick('trait')}>change-trait</button>
       <button onClick={() => onChangeClick('difficulty')}>change-difficulty</button>
       <button onClick={() => onPreview?.(null, 'bonuses', null, [])}>preview-null</button>
+      <button onClick={() => onPreview?.({ title: 'Bonuses', card: { title: 'Bonuses' } }, 'bonuses', null, [])}>preview-bonuses</button>
     </div>
   ),
 }))
@@ -40,18 +43,6 @@ vi.mock('../features/start-book/OptionPicker', () => ({
     <div data-testid={`selection-${type}`}>
       {options?.map((o, i) => <button key={i} onClick={() => onSelect(o)}>pick:{o.name}</button>)}
       <button onClick={onBack}>back</button>
-    </div>
-  ),
-}))
-// The mobile column asks the modal for the options of every type, including the
-// ones the desktop picker never opens.
-vi.mock('../features/start-book/StartBookMobile', () => ({
-  default: ({ getOptionsForType }) => (
-    <div data-testid="mobile">
-      <span data-testid="opt-trait">{getOptionsForType('trait').length}</span>
-      <span data-testid="opt-difficulty">{getOptionsForType('difficulty').length}</span>
-      <span data-testid="opt-character">{getOptionsForType('character').length}</span>
-      <span data-testid="opt-unknown">{getOptionsForType('nonsense').length}</span>
     </div>
   ),
 }))
@@ -145,9 +136,11 @@ describe('StartBook — class re-validation', () => {
     await screen.findByTestId('config-view')
     fireEvent.click(screen.getByText('change-trait'))
     expect(screen.getByTestId('selection-trait')).toBeInTheDocument()
+    expect(screen.getByTestId('book').dataset).toMatchObject({ key: '1', direction: 'forward' })
     fireEvent.click(screen.getByText('pick:Brave'))
-    // The list stays open after a toggle (traits are multi-select).
+    // The list stays open after a toggle (traits are multi-select); step 15: no turn.
     expect(screen.getByTestId('selection-trait')).toBeInTheDocument()
+    expect(screen.getByTestId('book').dataset.key).toBe('1')
     fireEvent.click(screen.getByText('back'))
     expect(screen.getByTestId('sel-traits')).toHaveTextContent('none')
     // Toggling it back on restores the selection.
@@ -155,6 +148,29 @@ describe('StartBook — class re-validation', () => {
     fireEvent.click(screen.getByText('pick:Brave'))
     fireEvent.click(screen.getByText('back'))
     expect(screen.getByTestId('sel-traits')).toHaveTextContent('Brave')
+  })
+
+  // Step 15 — an (i) preview fades on the left page; on phones it is the top card, scrolled to.
+  it('an (i) preview fades in on the left page, scrolled into view on phones', async () => {
+    window.matchMedia = vi.fn(() => ({ matches: true }))
+    const scrollIntoView = vi.fn()
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    const realQS = document.querySelector.bind(document)
+    const qs = vi.spyOn(document, 'querySelector').mockImplementation(sel =>
+      (sel === '.book-page-left' ? { scrollIntoView } : realQS(sel)))
+    try {
+      wrap()
+      await screen.findByTestId('config-view')
+      fireEvent.click(screen.getByText('preview-bonuses'))
+      expect(screen.getByTestId('book').dataset).toMatchObject({ key: '1', direction: 'fade' })
+      expect(document.querySelector('.pg-fade-in .card-preview-overlay')).not.toBeNull()
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+      fireEvent.click(screen.getAllByText('page-back').at(-1))
+      expect(screen.getByTestId('book').dataset).toMatchObject({ key: '2', direction: 'fade' })
+      expect(document.querySelector('.card-preview-overlay')).toBeNull()
+    } finally {
+      raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
+    }
   })
 
   // A preview with no entity clears the reading page instead of opening an empty one.
@@ -165,15 +181,15 @@ describe('StartBook — class re-validation', () => {
     expect(screen.getByTestId('config-view')).toBeInTheDocument()
   })
 
-  // The mobile column resolves the option list of every type; an unknown type is
-  // simply empty.
-  it('serves the option list of every type to the mobile column', async () => {
+  // v1.14.0 — one tree: phones open the same picker as the desktop, each with its own options.
+  it('serves the option list of each type to the one picker', async () => {
     wrap()
     await screen.findByTestId('config-view')
-    expect(screen.getByTestId('opt-trait')).toHaveTextContent('1')
-    expect(screen.getByTestId('opt-difficulty')).toHaveTextContent('1')
-    expect(screen.getByTestId('opt-character')).toHaveTextContent('2')
-    expect(screen.getByTestId('opt-unknown')).toHaveTextContent('0')
+    fireEvent.click(screen.getByText('change-trait'))
+    expect(screen.getByTestId('selection-trait').querySelectorAll('button')).toHaveLength(2) // one option + back
+    fireEvent.click(screen.getByText('back'))
+    fireEvent.click(screen.getByText('change-difficulty'))
+    expect(screen.getByTestId('selection-difficulty').querySelectorAll('button')).toHaveLength(2)
   })
 })
 
@@ -297,8 +313,6 @@ describe('StartBook — traits hidden from the start-match page (v0.35.2)', () =
     fireEvent.click(screen.getByText('change-trait'))
     expect(screen.getByText('pick:Brave')).toBeInTheDocument()
     expect(screen.queryByText('pick:Cursed')).toBeNull()
-    // The mobile column asks the same question and must get the same answer.
-    expect(screen.getByTestId('opt-trait').textContent).toBe('1')
   })
 
   it('preselects the first PICKABLE trait, not the first one', async () => {
@@ -320,6 +334,7 @@ describe('StartBook — traits hidden from the start-match page (v0.35.2)', () =
     await screen.findByTestId('config-view')
 
     expect(screen.getByTestId('sel-traits').textContent).toBe('none')
-    expect(screen.getByTestId('opt-trait').textContent).toBe('0')
+    fireEvent.click(screen.getByText('change-trait'))
+    expect(screen.queryByText(/^pick:/)).toBeNull()
   })
 })

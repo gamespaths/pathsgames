@@ -71,7 +71,7 @@ export default function ExperienceStatCard({
   return (
     <Card
       card={cardData}
-      entityType="experience"
+      entityType="experience" playId={`exp:${row.stat}`}
       onAction={row.affordable ? handleUse : undefined}
       actionLabel={t('game.exp.use')}
       actionIcon="fa-arrow-up"

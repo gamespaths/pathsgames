@@ -72,6 +72,11 @@
   --card-big-h-w:   640px;
   --card-big-h-h:   196px;
 
+  /* === CARD COLUMNS (v1.14.0) — every card grid; step 16 lets the player override wide / narrow === */
+  --cards-cols-wide:   3;
+  --cards-cols-narrow: 2;
+  --cards-cols:        var(--cards-cols-wide);
+
   /* === LAYOUT (v1.13.0) — the Navbar writes its real height over this fallback === */
   --navbar-h:       72px;
   --book-tabs-h:    46px;
@@ -84,5 +89,17 @@
 }
 
 @media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  :root { --navbar-h: 56px; }
+  /* Step 16 — the height of the book's sticky tab row on phones (mobile.css). */
+  :root { --navbar-h: 56px; --book-pills-h: 3rem; }
+}
+
+/* Card columns, in this order: narrow under 1120px, wide again on a phone turned sideways, one under 331px. */
+@media (max-width: 1120px) {
+  :root { --cards-cols: var(--cards-cols-narrow); }
+}
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 500px) {
+  :root { --cards-cols: var(--cards-cols-wide); }
+}
+@media (max-width: 330px) {
+  :root { --cards-cols: 1; }
 }

@@ -11,6 +11,7 @@ import roadmap from '@/data/roadmap.json'
 import policies from '@/data/policies.json'
 import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
 import { STORY_LICENSE, STORY_LICENSE_URL } from '@/utils/cardCredits'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * PolicyChapter — v1.13.0: the Privacy / Terms / Cookies / Credits / Devlog chapter of the current book
@@ -64,7 +65,7 @@ function CreditsCards({ entries, t }) {
   )
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list credits-cards">
+      <DealtList className="config-cards-area selection-list credits-cards">
         {entries.map(({ key, kind, card }) => (
           <Card key={key} card={card} imageAlt={card.title} hidePreview
             childrenIntoImage={
@@ -77,7 +78,7 @@ function CreditsCards({ entries, t }) {
               ? () => window.open(safeExternalUrl(card.linkCopyright), '_blank', 'noopener,noreferrer') : undefined}
             actionLabel={t('modals.credits.openCredit')} actionIcon="fa-external-link-alt" />
         ))}
-      </div>
+      </DealtList>
     </div>
   )
 }
@@ -112,7 +113,7 @@ export function RoadmapIntro({ intro, repoLabel, creditsLabel, onCredits }) {
 export function RoadmapCards({ entries = roadmap, t }) {
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list roadmap-cards">
+      <DealtList className="config-cards-area selection-list roadmap-cards">
         {sortRoadmap(entries).map(entry => (
           <Card key={entry.id} card={roadmapCard(entry)} name={entry.title ?? entry.id}
             imageAlt={entry.id} hidePreview
@@ -129,14 +130,14 @@ export function RoadmapCards({ entries = roadmap, t }) {
             onAction={() => window.open(entry.link, '_blank', 'noopener,noreferrer')}
             actionLabel={t('modals.roadmap.button')} actionIcon="fa-map-signs" />
         ))}
-      </div>
+      </DealtList>
     </div>
   )
 }
 
 const IDENTITY = key => key
 
-/** The open chapter as `{ kind, left, right, mobile }`, or null (also outside a PolicyBookProvider). */
+/** The open chapter as `{ kind, left, right }`, or null (also outside a PolicyBookProvider). */
 export function usePolicyChapter() {
   const i18n = useTranslation()
   const t = i18n?.t ?? IDENTITY
@@ -183,6 +184,5 @@ export function usePolicyChapter() {
     kind: policyBook,
     left: leftPage,
     right: rightPage,
-    mobile: <div className="book-mobile-layout policy-chapter-mobile">{leftPage}{rightPage}</div>,
   }
 }

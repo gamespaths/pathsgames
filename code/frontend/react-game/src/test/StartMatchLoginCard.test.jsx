@@ -18,10 +18,6 @@ vi.mock('@/features/guest-user/usePlayerPage', () => ({
 }))
 vi.mock('@/hooks/useAntibot', () => ({ default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }) }))
 vi.mock('@/components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
-const modal = vi.hoisted(() => ({ props: null }))
-vi.mock('@/components/modals/CardPreviewModal', () => ({
-  default: (props) => { modal.props = props; return props.preview?.additionalProps?.extraContent ?? null },
-}))
 vi.mock('@/features/guest-user/GoogleSignInButton', () => ({
   default: ({ autoStart, compact }) => <div data-testid="google-signin" data-auto={String(!!autoStart)} data-compact={String(!!compact)} />,
 }))
@@ -102,31 +98,25 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
     expect(screen.queryByTestId('google-signin')).toBeNull()
   })
 
-  it('v1.8.0 — on mobile the guest page opens in the modal, the Google button inside it; the login closes it', () => {
-    const hide = vi.fn()
-    const show = vi.fn()
-    const el = document.createElement('div')
-    el.id = 'cardPreviewModal'
-    document.body.appendChild(el)
-    window.bootstrap = { Modal: { getOrCreateInstance: () => ({ show }), getInstance: () => ({ hide }) } }
+  it('v1.14.0 — on mobile the guest page opens in the top card with its Google button (no modal); the login clears it', () => {
+    const getOrCreateInstance = vi.fn()
+    window.bootstrap = { Modal: { getOrCreateInstance } }
     const mm = window.matchMedia
     window.matchMedia = vi.fn(() => ({ matches: true }))
     try {
       ctx.value = { isGoogleUser: false, googleEnabled: true, user: { userUuid: 'u1', accessToken: 'tok' } }
       const { rerender } = renderFlow()
       fireEvent.click(screen.getByTestId('select-login'))
-      expect(show).toHaveBeenCalled()
-      expect(modal.props.preview.type).toBe('login')
-      expect(screen.getByTestId('page-card').querySelector('[data-testid="google-signin"]')).toBeNull()
+      expect(getOrCreateInstance).not.toHaveBeenCalled()
+      expect(screen.getByTestId('page-card').querySelector('[data-testid="google-signin"]').dataset.auto).toBe('true')
       expect(screen.getAllByTestId('google-signin')).toHaveLength(1)
       ctx.value = { ...ctx.value, isGoogleUser: true, user: { userUuid: 'u1', accessToken: 'tok', displayName: 'Mario' } }
       rerender(<MemoryRouter><StartMatchFlow story={STORY} config={CONFIG} storyId="s1" /></MemoryRouter>)
-      expect(hide).toHaveBeenCalled()
-      expect(modal.props.preview).toBeNull()
+      expect(screen.getByTestId('page-card')).toHaveTextContent('The Lost Crown')
+      expect(screen.queryByTestId('google-signin')).toBeNull()
     } finally {
       window.matchMedia = mm
       delete window.bootstrap
-      el.remove()
     }
   })
 

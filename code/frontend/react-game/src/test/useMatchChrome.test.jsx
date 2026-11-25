@@ -80,4 +80,23 @@ describe('useMatchChrome', () => {
     renderHook(() => useMatchChrome(null, 'tok', 'en'))
     expect(getMatchLocations).not.toHaveBeenCalled()
   })
+
+  // Step 15 — the page turn of an answer waits for its weather: refresh settles once all asked calls did.
+  it('refresh returns a promise settled once every asked payload has landed (also a failing one)', async () => {
+    const { result } = renderHook(() => useMatchChrome('m1', 'tok', 'en'))
+    await waitFor(() => expect(result.current.clock).not.toBeNull())
+    let release
+    getMatchWeather.mockImplementationOnce(() => new Promise(res => { release = res }))
+    getMatchClock.mockImplementationOnce(() => Promise.reject(new Error('down')))
+    let settled = false
+    let p
+    act(() => { p = result.current.refresh({ clock: true, weather: true, locations: false }) })
+    p.then(() => { settled = true })
+    await act(async () => { await Promise.resolve() })
+    expect(settled).toBe(false)
+    await act(async () => { release({ uuid: 'w2' }); await p })
+    expect(settled).toBe(true)
+    expect(result.current.weather).toEqual({ uuid: 'w2' })
+    expect(result.current.clock).toEqual({ currentClock: 3 })
+  })
 })

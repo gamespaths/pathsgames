@@ -52,15 +52,17 @@ export default function ChoiceCard({
     title: choice?.name, description: choice?.description,
   }
 
+  // Returns the select-choice promise: the played card stays lifted until it settles (step 15).
   function handleDo() {
-    if (!available) return
-    onSelect?.(choice)
+    if (!available) return undefined
+    return onSelect?.(choice)
   }
+  const playId = choice?.uuid ? `choice:${choice.uuid}` : null
 
   return (
     <Card story={story} variant="little"
       card={cardData}
-      entityType="choice" testId="choice"
+      entityType="choice" testId="choice" playId={playId}
 
       locked={locked}
       lockInfo={lockInfoShort}
@@ -77,7 +79,7 @@ export default function ChoiceCard({
         stats: [],
         side: previewSide,
         props: available
-          ? { onAction: handleDo, actionLabel: t('game.choices.do'), actionIcon: DO_ICON }
+          ? { onAction: handleDo, actionLabel: t('game.choices.do'), actionIcon: DO_ICON, playId }
           : { extraContent: (<>{lockInfo}<RegistryLockInfo lock={registryLock} target="choice" /></>) },
       })}
       

@@ -7,7 +7,6 @@ import { getStory, getStoryDetail } from '../api/stories'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { useTranslation } from '../i18n/context'
 import GameBook from '../features/gameplay/GameBook'
-import GameBookMobile from '../features/gameplay/GameBookMobile'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import LoadingCard from '@/components/layout/LoadingCard'
@@ -190,14 +189,14 @@ export default function GamePage() {
   // v1.13.0 — every state is a Book: the loading card, the fatal error page, then the board.
   if (loading) {
     const left = <LoadingCard story={story} />
-    return <>{banner}<Book left={left} right={null} mobile={<GameBookMobile left={left} right={null} />} /></>
+    return <>{banner}<Book left={left} right={null} /></>
   }
   if (matchError && !matchError.transient) {
     const left = story?.card
       ? <Card variant="page" card={story.card} story={story} entityType="story" loading={false} />
       : <Card variant="page" card={buildErrorCard(t)} entityType="error" loading={false} />
     const right = <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} />
-    return <>{banner}<Book left={left} right={right} mobile={<GameBookMobile left={left} right={right} />} /></>
+    return <>{banner}<Book left={left} right={right} /></>
   }
   return (
     <>

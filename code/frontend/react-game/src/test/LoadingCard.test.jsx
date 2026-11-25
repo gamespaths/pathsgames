@@ -58,14 +58,10 @@ describe('LoadingCard', () => {
     expect(screen.getByText('game.loadingCard.description')).toBeInTheDocument()
   })
 
-  it('caps and centers the card when maxWidth is given, fills the space otherwise', () => {
+  it('step 14 — no maxWidth any more: the page card is always the root, a stray prop is ignored', () => {
     const { container } = render(<LoadingCard maxWidth="300px" />)
-    const wrap = container.firstChild
-    expect(wrap.style.maxWidth).toBe('300px')
-    expect(wrap.style.margin).toBe('0px auto')
-    expect(wrap.querySelector('.book-page-content')).not.toBeNull()
-    // without maxWidth there is no wrapper: the page card is the root element
-    const { container: bare } = render(<LoadingCard />)
-    expect(bare.firstChild.className).toContain('book-page-content')
+    expect(container.firstChild.className).toContain('book-page-content')
+    expect(container.firstChild.style.maxWidth).toBe('')
+    expect(container.querySelectorAll('.book-page-content')).toHaveLength(1)
   })
 })

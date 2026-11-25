@@ -1,6 +1,7 @@
 import RegistryKeyCard from './RegistryKeyCard'
 import { registryValues, visibleRegistry } from '@/utils/registry'
 import { useTranslation } from '@/i18n/context'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * RegistryCards — Step 36. The registry page: one card per visible key, on the RIGHT page of
@@ -25,14 +26,14 @@ export default function RegistryCards({ registry, story, onPreview, previewSide 
 
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {rows.length === 0
           ? <p className="game-empty">{t('game.registry.empty')}</p>
           : rows.map(entry => (
             <RegistryKeyCard key={entry.uuid ?? entry.key} entry={entry} story={story}
               onPreview={onPreview} previewSide={previewSide} joinValues={joinValues} />
           ))}
-      </div>
+      </DealtList>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import ExperienceStatCard from './ExperienceStatCard'
 import { expStatRows } from '@/utils/experience'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * ExperienceCards — Step 38. The training page: one ExperienceStatCard per stat, on the
@@ -14,14 +15,14 @@ export default function ExperienceCards({
   const rows = expStatRows(playerStats).sort((a, b) => Number(b.affordable) - Number(a.affordable))
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {rows.map(row => (
           <ExperienceStatCard key={row.stat} row={row} story={story}
             experience={playerStats?.experience ?? 0}
             matchUuid={matchUuid} accessToken={accessToken}
             onDone={onDone} onError={onError} />
         ))}
-      </div>
+      </DealtList>
     </div>
   )
 }

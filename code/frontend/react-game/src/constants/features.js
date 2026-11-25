@@ -11,10 +11,9 @@ export function parseFlag(value, fallback) {
 export const SHOW_BOOK_BOOKMARKS = parseFlag(import.meta.env?.VITE_SHOW_BOOK_BOOKMARKS, true)
 
 // v0.35.5 — the game-status card at the top of the board. Off inside the book, where the
-// bookmarks already say what it says; on in the mobile stack, which has no bookmarks (they
-// live in .book-wrapper, hidden there) and would otherwise lose that news altogether.
+// bookmarks already say what it says; step 16: off on phones too, where the sticky pills say it.
 export const SHOW_CARD_CHARACTERISTICS = parseFlag(import.meta.env?.VITE_SHOW_CARD_CHARACTERISTICS, false)
-export const SHOW_MOBILE_CARD_CHARACTERISTICS = parseFlag(import.meta.env?.VITE_SHOW_MOBILE_CARD_CHARACTERISTICS, true)
+export const SHOW_MOBILE_CARD_CHARACTERISTICS = parseFlag(import.meta.env?.VITE_SHOW_MOBILE_CARD_CHARACTERISTICS, false)
 
 // v0.35.8 — teaser stories from data/stories.json appended to the API catalog on the Home.
 export const ADD_COMING_SOON_STORIES = parseFlag(import.meta.env?.VITE_ADD_COMING_SOON_STORIES, false)

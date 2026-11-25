@@ -63,11 +63,16 @@ describe('StoryCard — a coming-soon story', () => {
     expect(container.querySelectorAll('.fa-hourglass-half')).toHaveLength(shipped.length)
   })
 
-  it('files each teaser under its own category section', () => {
+  it('step 14 — one list: each teaser inside its own category, with its category badge', () => {
     const stories = withComingSoonStories([API_STORY], 'en', true)
-    render(<StoryCatalog stories={stories} footerState="ready" onStoryClick={vi.fn()} />)
-    // One section per distinct category, teasers merged into the API ones they share.
-    const categories = new Set(stories.map(s => s.category))
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(categories.size)
+    const { container } = render(<StoryCatalog stories={stories} footerState="ready" onStoryClick={vi.fn()} />)
+    expect(container.querySelectorAll('.selection-list')).toHaveLength(1)
+    expect(screen.queryAllByRole('heading')).toHaveLength(0)
+    // categories in first-seen order, teasers merged into the API ones they share
+    const order = [...new Set(stories.map(s => s.category))]
+    const expected = order.flatMap(cat => stories.filter(s => s.category === cat).map(s => s.category))
+    const badges = [...container.querySelectorAll('.story-card-badge')].map(el => el.textContent)
+    expect(badges).toEqual(expected)
+    expect(container.querySelectorAll('.story-card--soon .story-card-badge')).toHaveLength(shipped.length)
   })
 })

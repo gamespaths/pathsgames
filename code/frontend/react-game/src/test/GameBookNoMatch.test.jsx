@@ -27,8 +27,10 @@ vi.mock('../api/matches', () => ({
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right }) => <div data-testid="book">{left}{right}</div>,
 }))
-vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
-vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
+vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" />,
+  // Step 15 — GameBook reads the end-game pages through the hook, in its own Book.
+  useEndGamePages: () => ({ left: <div data-testid="end-game-book" />, right: null, wrapperClass: 'book-wrapper end-game-wrapper',
+    pageKey: 0, direction: null, enter: () => {} }) }))
 vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/matches/MatchLogCard', () => ({ default: () => <div data-testid="match-log-card" /> }))
 vi.mock('../components/layout/Card', () => ({

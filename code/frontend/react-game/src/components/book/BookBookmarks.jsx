@@ -11,6 +11,7 @@ import BonusBadgeList from '@/components/ui/BonusBadgeList'
  *
  * An active tab is inert — the page it opened is already there, and the way back is that
  * page's own arrow — and so is a disabled one (a feature that has not landed yet).
+ * Step 16 — the active tab carries its label too: shown only by the phone pills (mobile.css).
  */
 export default function BookBookmarks({ items = [], side = 'left' }) {
   const visible = (items ?? []).filter(Boolean)
@@ -35,6 +36,7 @@ export default function BookBookmarks({ items = [], side = 'left' }) {
             aria-label={item.label}
           >
             {item.icon && <i className={item.icon} />}
+            {item.active && <span className="book-bookmark__label" aria-hidden="true">{item.label}</span>}
             {item.badges?.length > 0 && (
               <BonusBadgeList items={item.badges} showZeros littleVersion withTitle={false}
                 className="book-bookmark__badges" />

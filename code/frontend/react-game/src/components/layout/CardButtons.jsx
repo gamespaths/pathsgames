@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
+import { usePlay } from '../../features/gameplay/play/PlayContext'
 
 /**
  * CardButtons — the footer action area of a Card: the (i) preview button plus
  * the contextual select / change / end-game button, or the locked "coming soon"
  * label. Rendered by Card with the relevant props + `onPreviewClick`/`name`.
+ * Step 15 — with a `playId` inside a game book, the main action and the select button play the card.
  */
 export default function CardButtons({
   isPage, name,
@@ -23,9 +25,21 @@ export default function CardButtons({
   infoLabel, infoIconClassName, infoLabelClassName = "",
   // Optional test id base: buttons get `<testId>-info`, `-select`, `-action`; secondary ones `a.testId`.
   testId,
+  playId = null,
 }) {
   const [actionStarted, setActionStarted] = useState(false)
   const { t } = useTranslation()
+  const play = usePlay()
+  const playing = Boolean(playId && play)
+  // The clicked card's root, read inside the click: the small card or the reading page.
+  const beginPlay = e => {
+    if (playing) play.begin(playId, e?.currentTarget?.closest?.('.pg-card, .book-page-content') ?? null)
+  }
+  // A play still lifting when the call settles failed (API error, STALE_MATCH): it is put down.
+  const endPlay = () => { if (playing) play.cancel() }
+  const handleSelect = playing
+    ? async e => { beginPlay(e); try { await onSelect(e) } catch { /* handled by the select */ } finally { endPlay() } }
+    : onSelect
   // An entry without a handler has no button to click: drop it rather than render a dead one.
   const secondaryActions = (Array.isArray(actionsList) ? actionsList : []).filter(a => a?.onAction)
     /*<div className="gc-footer"><div className="gc-actions">*/
@@ -89,7 +103,7 @@ export default function CardButtons({
       {onPreview && !hidePreview && getPreviewButton(false, "mr-1", true)}
       <button
         className={`gc-footer__btn${selected ? ' gc-footer__btn--selected' : ''}`}
-        onClick={onSelect}
+        onClick={handleSelect}
         data-testid={tid('select')}
       >
         <i className={`fas ${selected ? 'fa-check' : (selectIcon ?? 'fa-hand-pointer')} me-1`} />
@@ -109,7 +123,8 @@ export default function CardButtons({
     return (<div className={divStyle}><div className={gcActionClass}>
       {flagInformationCard && getPreviewButton(!previewOpened, " me-1", previewOpened)}
       {(!actionOnlyIfPreview || previewOpened) && !actionStarted &&
-        <button className="gc-footer__btn" data-testid={tid('action')} onClick={async () => {
+        <button className="gc-footer__btn" data-testid={tid('action')} onClick={async (e) => {
+          beginPlay(e)
           // Show the in-progress spinner, then clear it once the action settles
           // so a card that stays mounted (e.g. GoToSleepCard while energy is
           // still <= 1) returns to its actionable state instead of spinning
@@ -118,7 +133,7 @@ export default function CardButtons({
           setActionStarted(true)
           // The action handler (handleSleep/handleMove/…) surfaces its own
           // errors; here we only guarantee the spinner is cleared either way.
-          try { await onAction() } catch { /* handled by the action */ } finally { setActionStarted(false) }
+          try { await onAction() } catch { /* handled by the action */ } finally { setActionStarted(false); endPlay() }
         }}>
           <i className={`fas ${actionIcon} me-1`} />
           <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{actionLabel}</span>

@@ -1,6 +1,6 @@
 # Step 14 — Home book and card faces
 
-**Status: analysed (1.13.0), owner's decisions recorded (Home left page, no heading over the cards, card components, page picture and text sizes kept, deck on the table beside the book, deck under or over the book), no open doubts.**
+**Status: developed (November 25, 2026, version 1.14.0, react-game only, unit tests green), waiting for owner's test; owner test list: [test/Step14_HomeBookAndCardFaces.md](./test/Step14_HomeBookAndCardFaces.md); analysed (1.13.0), owner's decisions recorded (Home left page, no heading over the cards, card components, page picture and text sizes kept, deck on the table beside the book, deck under or over the book), no open doubts.**
 Roadmap line: *the Home becomes a book and every card gets a back* ([Roadmap](./Roadmap.md) step 14).
 Concept: [`website_concepts_v0/v1.13.0/`](./website_concepts_v0/v1.13.0/README.md) (effect 1, deal; "Book position and deck": `demo.css` `.deck-pile`, `demo.js` `dealBatch`).
 Sibling steps: `Step13_BookLayoutWithoutModals.md` (in-page books, routes, footer),
@@ -13,6 +13,8 @@ react-game (`code/frontend/react-game`) plus seven lines in the alpha deploy wor
 Development order: step 13, then step 16's "one tree on mobile" switch (each page rendered
 once), then steps 14, 15, 16. This step uses step 13's in-page `Book` under the sticky navbar,
 its `/story/:storyId` navigation (the Home no longer mounts `StartBookModal`) and the one tree.
+Built in that order: step 16 part A (one tree on mobile) was developed before this step, so the
+"one tree" deviation noted in the test list is resolved.
 
 In:
 - **Home book**: left page a fixed intro card (today's hero picture with its credit, title,
@@ -160,6 +162,10 @@ No change: the suites are API-only (RequestsLibrary, no browser library).
     `BookPageRight`, can turn them off) and shown only when the right page holds a dealt list
     (`.book-shell:has(.book-page-right .pg-dealt)` for the pile, `.book-page-right:has(.pg-dealt)`
     for the page deck).
+  - **Owner's decision after the test (November 25, 2026):** the table pile is always shown on
+    desktop while the deal is on, not only when the right page holds a dealt list (`.deck-pile` is
+    `display: block`); still hidden on phones and with the deal off. Step 16 later made the page
+    deck sticky on phones.
   - On desktop the right page reserves no room for a deck (no bottom padding or margin): the
     card list gets the whole page height.
 - CSS moves (main.css / mobile.css):
@@ -248,6 +254,10 @@ No change: the suites are API-only (RequestsLibrary, no browser library).
     (`antibot.verifying`) with the single Turnstile widget (keyed by `gate.attempt`); once
     passed (`ready`) one line "Success! You are human." (`antibot.success`, new); blocked and
     error keep today's navbar message;
+    **Owner's decision after the test (November 25, 2026):** the strip and the success line sit
+    under the intro text (`Card` prop `afterDescription`), not in `extraContent`; the success
+    line shows only after a check passed on this visit and leaves after 4 s; the intro text is
+    three lines;
   - `TutorialButton` once the stories are loaded, **larger and centred** (CSS of the existing
     `.home-tutorial-btn`; its logic and the `tutorial-btn` test id unchanged).
 - Stories page (right): heading `home.stories` kept in the markup but hidden by CSS
@@ -341,16 +351,19 @@ from CSS or layout: new suites install a fake observer and mock `getBoundingClie
 
 ## 8. Doubts
 
-No open doubts.
+No open doubts. Owner's fixes after the first test (November 25, 2026): dealt lists `overflow: visible`,
+scroller reaching 10 px into the page margin, grid padding 8px 4px 12px, tighter dark hover shadow plus gold glow,
+dark-gold scroll bars inside the book; details in [test/Step14_HomeBookAndCardFaces.md](./test/Step14_HomeBookAndCardFaces.md) §3.
 
 # Version Control
-- **Document Version**: 1.13.0
+- **Document Version**: 1.14.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.13.0 | Home book, card backs and deck on the table agreed | November 24, 2026 |
+  | 1.14.0 | Developed; waiting for owner's test | November 25, 2026 |
 
-- **Last Updated**: November 24, 2026 (v1.13.0)
+- **Last Updated**: November 25, 2026 (v1.14.0)
 
 
 # &lt; Paths Games /&gt;

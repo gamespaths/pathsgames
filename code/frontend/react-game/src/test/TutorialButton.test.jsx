@@ -142,6 +142,18 @@ describe('HomePage — tutorial button', () => {
     expect(mockOpenPlayerPage).toHaveBeenCalled()
   })
 
+  it('step 14 — sits alone at the intro card\'s foot, the anti-bot result above under the text, larger and centred by its CSS class', async () => {
+    listMatches.mockResolvedValue([])
+    const { container } = renderHome()
+    const btn = await screen.findByTestId('tutorial-btn')
+    const extra = container.querySelector('.book-page-left .book-page-extra.home-intro-extra')
+    expect(extra).toContainElement(btn)
+    expect(btn).toHaveClass('btn-start-game', 'home-tutorial-btn')
+    expect(btn.previousElementSibling).toBeNull()
+    const success = await screen.findByTestId('antibot-success')
+    expect(success.closest('.book-page-desc')).not.toBeNull()
+  })
+
   it('no button once the tutorial was played to the end', async () => {
     listMatches.mockResolvedValue([{ uuid: 'm1', storyUuid: 't1', status: 'ENDED' }])
     renderHome()

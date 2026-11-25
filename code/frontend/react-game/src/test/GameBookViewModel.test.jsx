@@ -21,27 +21,27 @@ vi.mock('@/features/matches/MatchLogCard', () => ({
 }))
 
 const BASE = {
-  view: 'board', previewLeft: null, previewRight: null, previewModal: null,
+  view: 'board', previewLeft: null, previewRight: null,
   pendingChoices: null, counterZero: null, mapSelected: null, missionSelected: null,
   sleepCardForced: false,
 }
 
 describe('bookViewReducer', () => {
-  it('closes every open page but keeps the news and the mobile modal', () => {
+  it('closes every open page but keeps the news', () => {
     const open = { ...BASE, view: 'map', previewLeft: { card: {} }, previewRight: { kind: 'weather' },
-      mapSelected: { id: 2 }, sleepCardForced: true, previewModal: { card: {} },
+      mapSelected: { id: 2 }, sleepCardForced: true,
       pendingChoices: { choices: [] }, counterZero: [{ idLocation: 1 }] }
     const next = bookViewReducer(open, { type: 'closeAll' })
     expect(next).toMatchObject({ view: 'board', previewLeft: null, previewRight: null,
       mapSelected: null, sleepCardForced: false })
-    expect(next.previewModal).toEqual({ card: {} })
     expect(next.pendingChoices).toEqual({ choices: [] })
     expect(next.counterZero).toHaveLength(1)
   })
 
-  it('drops the mobile modal too when the board reloads', () => {
-    const next = bookViewReducer({ ...BASE, previewModal: { card: {} } }, { type: 'resetForReload' })
-    expect(next.previewModal).toBeNull()
+  it('v1.14.0 — no mobile modal any more: a reload closes the pages with no turn', () => {
+    const next = bookViewReducer({ ...BASE, view: 'items' }, { type: 'resetForReload' })
+    expect(next).toMatchObject({ view: 'board', turn: { key: 1, direction: null } })
+    expect(next).not.toHaveProperty('previewModal')
   })
 
   it('makes the tabbed views exclusive', () => {
@@ -81,7 +81,7 @@ describe('bookViewReducer', () => {
   })
 
   it('covers the remaining transitions and ignores an unknown action', () => {
-    expect(bookViewReducer(BASE, { type: 'previewModal', value: { card: {} } }).previewModal).toEqual({ card: {} })
+    expect(bookViewReducer(BASE, { type: 'previewModal', value: { card: {} } })).toBe(BASE)
     expect(bookViewReducer(BASE, { type: 'previewLeft', value: { card: {} } }).previewLeft).toEqual({ card: {} })
     expect(bookViewReducer({ ...BASE, previewRight: { kind: 'weather' } },
       { type: 'setChoices', value: { choices: [1] } })).toMatchObject({ previewRight: null })
@@ -95,30 +95,31 @@ describe('bookViewReducer', () => {
 })
 
 describe('useBookView — openPreview', () => {
-  afterEach(() => { delete window.matchMedia; delete window.bootstrap })
+  afterEach(() => { delete window.matchMedia; vi.restoreAllMocks() })
 
   it('routes a right preview inline, whatever the viewport', () => {
     const { result } = renderHook(() => useBookView())
     act(() => result.current[1].openPreview({ card: { title: 'c' }, type: 'item', side: 'right' }))
     expect(result.current[0].previewRight).toMatchObject({ kind: 'preview', type: 'item' })
-    expect(result.current[0].previewModal).toBeNull()
+    expect(result.current[0].turn).toEqual({ key: 1, direction: 'fade' })
   })
 
-  it('opens the Bootstrap (i) modal for a left preview on mobile', () => {
-    const show = vi.fn()
+  // v1.14.0 — CardPreviewModal is gone: on mobile a left preview is the top card of the one tree.
+  it('opens a left preview on the left page on mobile too, and scrolls the phone to it', () => {
     window.matchMedia = vi.fn(() => ({ matches: true }))
-    window.bootstrap = { Modal: { getOrCreateInstance: () => ({ show, hide: vi.fn() }) } }
-    const el = document.createElement('div')
-    el.id = 'cardPreviewModal'
-    document.body.appendChild(el)
+    const scrollIntoView = vi.fn()
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    const realQS = document.querySelector.bind(document)
+    vi.spyOn(document, 'querySelector').mockImplementation(sel =>
+      (sel === '.book-page-left' ? { scrollIntoView } : realQS(sel)))
     const { result } = renderHook(() => useBookView())
     act(() => result.current[1].openPreview({ card: { title: 'c' }, type: 'trait' }))
-    expect(result.current[0].previewModal).toMatchObject({ type: 'trait' })
-    expect(show).toHaveBeenCalled()
-    document.body.removeChild(el)
+    expect(result.current[0].previewLeft).toMatchObject({ type: 'trait' })
+    expect(result.current[0]).not.toHaveProperty('previewModal')
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
   })
 
-  it('falls back to the left reading page when the (i) modal is opted out', () => {
+  it('opens the left reading page on desktop (a stale modal option is ignored)', () => {
     const { result } = renderHook(() => useBookView())
     act(() => result.current[1].openPreview({ card: { title: 'c' }, type: 'trait', modal: false }))
     expect(result.current[0].previewLeft).toMatchObject({ type: 'trait' })
@@ -129,6 +130,22 @@ describe('useBookView — openPreview', () => {
     act(() => result.current[1].openPreview({ card: { title: 'c' }, side: 'right' }))
     act(() => result.current[1].openPreview({ card: null }))
     expect(result.current[0].previewRight).toBeNull()
+  })
+
+  it('step 15 — the registry and training pages turn forward; a drop reopens the bag with no turn', () => {
+    const { result } = renderHook(() => useBookView())
+    act(() => result.current[1].openRegistry())
+    expect(result.current[0]).toMatchObject({ view: 'registry', turn: { key: 1, direction: 'forward' } })
+    act(() => result.current[1].openExp())
+    expect(result.current[0].turn).toEqual({ key: 2, direction: 'forward' })
+    act(() => result.current[1].openItems(null))
+    expect(result.current[0]).toMatchObject({ view: 'items', turn: { key: 3, direction: null } })
+    // a click event is not a direction: the table decides
+    act(() => result.current[1].closeAll({ type: 'click' }))
+    expect(result.current[0].turn).toEqual({ key: 4, direction: 'back' })
+    act(() => result.current[1].holdTurn())
+    act(() => result.current[1].releaseTurn('forward'))
+    expect(result.current[0]).toMatchObject({ hold: false, turn: { key: 5, direction: 'forward' } })
   })
 
   it('turns a mission card into a left page and keeps the mission for the right one', () => {
@@ -142,16 +159,13 @@ describe('useBookView — openPreview', () => {
     expect(result.current[0].missionSelected).toBe(mission)
   })
 
-  it('hides the (i) modal instance when the board reloads', () => {
-    const hide = vi.fn()
-    window.bootstrap = { Modal: { getOrCreateInstance: () => ({ show: vi.fn(), hide }) } }
-    const el = document.createElement('div')
-    el.id = 'cardPreviewModal'
-    document.body.appendChild(el)
+  it('touches no Bootstrap modal when the board reloads', () => {
+    const getOrCreateInstance = vi.fn()
+    window.bootstrap = { Modal: { getOrCreateInstance } }
     const { result } = renderHook(() => useBookView())
     act(() => result.current[1].resetForReload())
-    expect(hide).toHaveBeenCalled()
-    document.body.removeChild(el)
+    expect(getOrCreateInstance).not.toHaveBeenCalled()
+    delete window.bootstrap
   })
 })
 

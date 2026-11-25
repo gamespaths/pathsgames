@@ -185,3 +185,11 @@ describe('ConfigView', () => {
     expect(onProceed).toHaveBeenCalled()
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('ConfigView — dealt grid (step 14)', () => {
+  it('the loadout list carries pg-dealt', () => {
+    setup()
+    expect(document.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

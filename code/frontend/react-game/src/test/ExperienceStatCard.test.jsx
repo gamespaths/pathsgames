@@ -126,3 +126,11 @@ describe('ExperienceCards (Step 38)', () => {
     expect(screen.getAllByTestId('face')[0].textContent).toContain('game.exp.after:5')
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('ExperienceCards — dealt grid (step 14)', () => {
+  it('the list carries pg-dealt', () => {
+    const { container } = render(<ExperienceCards playerStats={{ experience: 1, expCosts: {} }} story={STORY} matchUuid="m1" />)
+    expect(container.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

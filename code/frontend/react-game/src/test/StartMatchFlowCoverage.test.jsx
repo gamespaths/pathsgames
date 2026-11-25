@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 // Coverage-focused suite for the fixed cards block of the start-match book: every
-// card's (i) lens routes its own card to the left reading page, and on mobile the
-// same lens opens the Bootstrap preview modal instead.
+// card's (i) lens routes its own card to the left reading page (v1.14.0: also on
+// mobile, where the left page is the top card; no Bootstrap modal any more).
 
 vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -22,19 +22,19 @@ vi.mock('@/hooks/useAntibot', () => ({
   default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }),
 }))
 vi.mock('@/components/book/Book', () => ({
-  default: ({ left, right }) => <div data-testid="book">{left}{right}</div>,
-}))
-vi.mock('@/components/modals/CardPreviewModal', () => ({
-  default: ({ preview }) => <div data-testid="preview-modal">{preview?.card?.title}</div>,
+  default: ({ left, right, pageKey, direction }) => (
+    <div data-testid="book" data-key={pageKey} data-direction={direction ?? 'none'}>{left}{right}</div>
+  ),
 }))
 // The dumb Card stand-in: `variant="page"` marks the reading page, every other
 // instance is a board card whose (i) and select handlers become buttons.
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ variant, entityType, card, onPreview, onSelect, selectLabel, onAction, actionLabel, locked, lockedReason, lockInfo, statistics }) => (
+  default: ({ variant, entityType, card, onPreview, onSelect, selectLabel, onAction, actionLabel, locked, lockedReason, lockInfo, statistics, onClose }) => (
     <div data-testid={variant === 'page' ? 'page-card' : `cc-${entityType}`} data-locked={String(!!locked)} data-lock-reason={lockedReason ?? ''}
          data-lock-info={lockInfo?.label ?? ''}
          data-stats={(statistics ?? []).map(i => `${i.key}=${i.value}`).join(',')}>
       <span>{card?.title}</span>
+      {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
       {onPreview && <button data-testid={`preview-${entityType ?? 'page'}`} onClick={onPreview}>i</button>}
       {onSelect && <button data-testid={`select-${entityType}`} onClick={onSelect}>{selectLabel}</button>}
       {onAction && <button data-testid={`action-${entityType}`} onClick={onAction}>{actionLabel}</button>}
@@ -124,9 +124,13 @@ describe('StartMatchFlow — the fixed cards block', () => {
   // The story lens puts the story card on the reading page; its action is "Back".
   it('routes the story lens to the left reading page and offers Back on the card', () => {
     renderFlow()
+    expect(screen.queryByTestId('page-back')).toBeNull()
     fireEvent.click(screen.getAllByTestId('preview-story')[0])
-    expect(screen.getAllByTestId('preview-modal')[0]).toHaveTextContent('The Lost Crown')
+    expect(screen.getByTestId('page-card')).toHaveTextContent('The Lost Crown')
     expect(screen.getByTestId('action-story')).toHaveTextContent('book.back')
+    // step 15: the preview carries a back arrow that puts it away
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(screen.queryByTestId('page-back')).toBeNull()
   })
 
   // The first bonuses lens opens the character-attributes page; the second keeps the
@@ -134,17 +138,17 @@ describe('StartMatchFlow — the fixed cards block', () => {
   it('routes the bonus lenses to the reading page', () => {
     renderFlow()
     fireEvent.click(screen.getAllByTestId('preview-bonuses')[0])
-    expect(screen.getAllByTestId('preview-modal')[0]).toHaveTextContent('book.characterAttributesTitle')
+    expect(screen.getByTestId('page-card')).toHaveTextContent('book.characterAttributesTitle')
     fireEvent.click(screen.getAllByTestId('preview-bonuses')[1])
-    expect(screen.getAllByTestId('preview-modal')[0]).not.toHaveTextContent('book.characterAttributesTitle')
+    expect(screen.getByTestId('page-card')).not.toHaveTextContent('book.characterAttributesTitle')
   })
 
   it('routes the game-type and login lenses to the reading page', () => {
     renderFlow()
     fireEvent.click(screen.getAllByTestId('preview-gameType')[0])
-    expect(screen.getAllByTestId('preview-modal')[0]).toHaveTextContent('book.single')
+    expect(screen.getByTestId('page-card')).toHaveTextContent('book.single')
     fireEvent.click(screen.getAllByTestId('preview-login')[0])
-    expect(screen.getAllByTestId('preview-modal')[0]).not.toHaveTextContent('book.single')
+    expect(screen.getByTestId('page-card')).not.toHaveTextContent('book.single')
   })
 
   // The terms card is the only interactive one: its button toggles the gate.
@@ -162,20 +166,45 @@ describe('StartMatchFlow — the fixed cards block', () => {
     expect(openPolicyBook).toHaveBeenCalledWith('terms')
   })
 
-  // On mobile there is no left page, so the lens opens the preview modal.
-  it('opens the Bootstrap preview modal when a lens is used on mobile', () => {
-    const show = vi.fn()
+  // v1.14.0 (step 16 part A) — one tree: the page mounts ONE Turnstile widget, not a hidden second copy.
+  it('mounts a single anti-bot widget and a single card grid', () => {
+    renderFlow()
+    expect(document.querySelectorAll('.start-match-antibot')).toHaveLength(1)
+    expect(document.querySelectorAll('.start-match-cards')).toHaveLength(1)
+    expect(document.querySelector('.book-mobile-layout')).toBeNull()
+  })
+
+  // Step 15 — the start-match book only fades its (i); the phase cards are progress, not pages.
+  it('an (i) fades in and out; Start (the phase cards) is no turn', () => {
+    renderFlow()
+    const book = () => screen.getByTestId('book')
+    fireEvent.click(screen.getAllByTestId('preview-gameType')[0])
+    expect(book().dataset).toMatchObject({ key: '1', direction: 'fade' })
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(book().dataset).toMatchObject({ key: '2', direction: 'fade' })
+    fireEvent.click(screen.getByTestId('action-bonuses'))
+    expect(book().dataset.key).toBe('2')
+  })
+
+  // v1.14.0 — on mobile the lens opens the card in the top card (the left page) and scrolls to it.
+  it('opens the lens in the top card on mobile, scrolled into view, with no modal', () => {
+    const getOrCreateInstance = vi.fn()
     window.matchMedia = vi.fn(() => ({ matches: true }))
-    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn(() => ({ show })) } }
-    const el = document.createElement('div')
-    el.id = 'cardPreviewModal'
-    document.body.appendChild(el)
+    window.bootstrap = { Modal: { getOrCreateInstance } }
+    const scrollIntoView = vi.fn()
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    const realQS = document.querySelector.bind(document)
+    const qs = vi.spyOn(document, 'querySelector').mockImplementation(sel =>
+      (sel === '.book-page-left' ? { scrollIntoView } : realQS(sel)))
     try {
       renderFlow()
-      fireEvent.click(screen.getAllByTestId('preview-story')[0])
-      expect(show).toHaveBeenCalled()
+      fireEvent.click(screen.getAllByTestId('preview-gameType')[0])
+      expect(screen.getByTestId('page-card')).toHaveTextContent('book.single')
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+      expect(getOrCreateInstance).not.toHaveBeenCalled()
+      expect(document.getElementById('cardPreviewModal')).toBeNull()
     } finally {
-      document.body.removeChild(el)
+      raf.mockRestore(); qs.mockRestore()
     }
   })
 })

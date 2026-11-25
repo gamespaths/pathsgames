@@ -34,8 +34,10 @@ vi.mock('../features/gameplay/cards/LocationCard', () => ({ default: () => <div 
 vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-testid="clock-widget" /> }))
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
-vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
-vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
+vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" />,
+  // Step 15 — GameBook reads the end-game pages through the hook, in its own Book.
+  useEndGamePages: () => ({ left: <div data-testid="end-game-book" />, right: null, wrapperClass: 'book-wrapper end-game-wrapper',
+    pageKey: 0, direction: null, enter: () => {} }) }))
 
 // The movement card: fires onMoved with whatever the API answered.
 vi.mock('../features/gameplay/cards/MovementCard', () => ({
@@ -74,6 +76,8 @@ vi.mock('../components/layout/Card', () => ({
 }))
 
 import GameBook from '../features/gameplay/GameBook'
+// Step 16 — the status card is off by default (sticky pills); these suites drive the board through it (env true).
+vi.mock('@/constants/features', async (orig) => ({ ...(await orig()), SHOW_MOBILE_CARD_CHARACTERISTICS: true }))
 
 const GAME_DATA = {
   actualLocationCard: { name: 'Entrance', title: 'Entrance' },

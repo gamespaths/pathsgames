@@ -1,0 +1,324 @@
+/* v1.14.0 — steps 14-15: timings, card back, deal, deck, play and page turn. AnimationContext writes the
+   real --t-* values on <html> (speed and reduced motion); these are the speed 1 fallbacks. */
+:root {
+  --t-open: 650ms;
+  --t-deal: 620ms;
+  --t-dealStep: 110ms;
+  --t-lift: 240ms;
+  --t-fly: 560ms;
+  --t-discard: 320ms;
+  --t-discardStep: 50ms;
+  --t-flip: 900ms;
+  --t-simple: 520ms;
+  --t-sheet: 620ms;
+  --t-fade: 200ms;
+  --card-back-dice: var(--color-gold-light);
+  --card-back-dice-dim: rgba(232, 184, 48, 0.45);
+}
+
+/* ═══ CARD BACK (CardBack.jsx) — 45° gold stripes on the brown radial, double gold frame, the d20 ═══ */
+.pg-back {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px solid var(--color-gold-dark);
+  background:
+    repeating-linear-gradient(45deg, rgba(200, 150, 10, 0.14) 0 6px, transparent 6px 12px),
+    radial-gradient(circle, var(--color-brown-warm), var(--color-brown-deep));
+  box-shadow: inset 0 0 0 4px var(--color-brown-dark), inset 0 0 0 5px var(--color-gold-dark), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.pg-d20 {
+  display: block;
+  width: 45%;
+  height: auto;
+  overflow: visible;
+  color: var(--card-back-dice);
+}
+.pg-d20--still { color: var(--card-back-dice-dim); }
+/* Fixed 1.6 s, not scaled by the speed; scale and glow, never opacity. */
+.pg-d20--pulse { animation: pg-d20-pulse 1.6s ease-in-out infinite; }
+@keyframes pg-d20-pulse {
+  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.35)); }
+  50%      { transform: scale(1.09); filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.85)); }
+}
+
+/* At rest a card has no back and no 3D layer: both exist only while it flies face-down. */
+.pg-card > .pg-card__back { display: none; }
+
+/* ═══ DEAL (useDeal.js) — data attributes on the .pg-card: React owns its className ═══ */
+.pg-card[data-deal="waiting"] {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+.pg-card[data-deal="flying"] {
+  z-index: 3;
+  pointer-events: none;
+  transition: none;
+  animation-duration: var(--t-deal);
+  animation-delay: calc(var(--deal-i, 0) * var(--t-dealStep));
+  animation-timing-function: cubic-bezier(0.2, 0.75, 0.3, 1);
+  animation-fill-mode: both;
+}
+.pg-card[data-deal="flying"][data-deal-face="up"] { animation-name: pg-deal-flat; }
+.pg-card[data-deal="flying"][data-deal-face="down"] {
+  animation-name: pg-deal-facedown;
+  transform-style: preserve-3d;
+}
+.pg-card[data-deal="flying"][data-deal-face="down"] > .pg-card__face {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.pg-card[data-deal="flying"][data-deal-face="down"] > .pg-card__back {
+  display: grid;
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+/* No opacity here: an opacity animation flattens the 3D card and the back face would vanish. */
+@keyframes pg-deal-facedown {
+  0%   { transform: perspective(900px) translate(var(--from-x, 0), var(--from-y, 0)) rotate(var(--from-rot, 0deg)) scale(0.34) rotateY(180deg); }
+  58%  { transform: perspective(900px) translate(0, -12px) rotate(0deg) scale(1.04) rotateY(180deg); }
+  100% { transform: perspective(900px) translate(0, 0) rotate(0deg) scale(1) rotateY(0deg); }
+}
+@keyframes pg-deal-flat {
+  0%   { opacity: 0; transform: translate(var(--from-x, 0), var(--from-y, 0)) rotate(var(--from-rot, 0deg)) scale(0.34); }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; transform: translate(0, -6px) rotate(0deg) scale(1.03); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+/* The list's own slide-in would fight the deal. */
+.pg-dealt[data-deal-list="on"] { animation: none; }
+/* A dealt list never clips (a short one cut the flight and the hover shadow): its scrolling parent does. */
+.selection-list.pg-dealt,
+.config-cards-area.pg-dealt { overflow: visible; }
+/* Room for the hover shadow (lift, tight drop shadow, gold glow: ~12px) on the edge cards: the grid's padding plus
+   the card margin, and its scroller reaching into the page margin (10px, .page-inner), the scroll bar at the page edge. */
+.selection-list.pg-dealt { padding: 8px 4px 12px; }
+.config-view-wrap:has(> .pg-dealt),
+.selection-scroll:has(> .pg-dealt),
+.start-match-cards:has(> .pg-dealt),
+.matches-list-wrap:has(> .pg-dealt) { margin-inline: -10px; padding-inline: 0; }
+
+/* ═══ DECK (Deck.jsx) — table pile beside the right page (desktop); the page deck is step 16's ═══ */
+/* Always on the table on desktop while the deal is on (owner's choice, v1.14.0): hidden only on phones. */
+.deck-pile {
+  display: block;
+  position: absolute;
+  z-index: 0;
+  right: -122px;
+  bottom: 70px;
+  width: 160px;
+  height: 210px;
+  pointer-events: none;
+}
+/* Under the book's edge by default (.book-wrapper is z-index 1); VITE_ANIM_DECK=over lies on the cover. */
+.deck-pile[data-place="over"] { z-index: 2; }
+.deck-pile__card {
+  position: absolute;
+  width: 84px;
+  aspect-ratio: 2 / 3;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 4px var(--color-brown-dark), inset 0 0 0 5px var(--color-gold-dark), 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+.deck-pile__card:nth-child(1)  { left: 18px; top: 24px; transform: rotate(-10deg); }
+.deck-pile__card:nth-child(2)  { left: 52px; top: 14px; transform: rotate(8deg); }
+.deck-pile__card:nth-child(3)  { left: 30px; top: 48px; transform: rotate(-4deg); }
+.deck-pile__card:nth-child(4)  { left: 60px; top: 40px; transform: rotate(12deg); }
+.deck-pile__card:nth-child(5)  { left: 14px; top: 66px; transform: rotate(-7deg); }
+.deck-pile__card:nth-child(6)  { left: 48px; top: 60px; transform: rotate(5deg); }
+.deck-pile__card:nth-child(7)  { left: 36px; top: 30px; transform: rotate(-2deg); }
+.deck-pile__card:nth-child(8)  { left: 56px; top: 74px; transform: rotate(9deg); }
+.deck-pile__card:nth-child(9)  { left: 24px; top: 52px; transform: rotate(-12deg); }
+.deck-pile__card:nth-child(10) { left: 44px; top: 44px; transform: rotate(3deg); }
+
+/* Little room beside the book: the pile comes closer and smaller; under ~1100px only its edge shows. */
+@media (max-width: 1360px) {
+  .deck-pile { right: -100px; transform: scale(0.8); transform-origin: left bottom; }
+}
+
+/* The page deck: three backs at the end of the right page; only phones show it, sticky (mobile.css, step 16). */
+.deck {
+  display: none;
+  position: absolute;
+  right: 22px;
+  bottom: 18px;
+  z-index: 2;
+  width: 54px;
+  aspect-ratio: 2 / 3;
+  pointer-events: none;
+}
+.deck__card { position: absolute; inset: 0; border-radius: 6px; }
+.deck__card:nth-child(1) { transform: rotate(-7deg) translate(-3px, 2px); }
+.deck__card:nth-child(2) { transform: rotate(4deg) translate(2px, -1px); }
+.deck__card:nth-child(3) { transform: rotate(-1deg); }
+
+/* No room beside the book on a phone. */
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .book-shell > .deck-pile { display: none !important; }
+  /* The stacked layout scrolls the whole screen: no page margin to reach into, mobile.css spaces the grids. */
+  .selection-list.pg-dealt { padding: 0; }
+  .config-view-wrap:has(> .pg-dealt) { margin-inline: 0; padding-inline: 0; }
+  .selection-scroll:has(> .pg-dealt) { margin-inline: 0; padding-inline: 4px; }
+  .start-match-cards:has(> .pg-dealt) { margin-inline: 0; padding-inline: 2px; }
+  .matches-list-wrap:has(> .pg-dealt) { margin-inline: 0; padding-inline: 0.25rem; }
+}
+
+/* ═══ PLAY (PlayContext.jsx) — step 15: lift and glow, the other small cards dim then fall, a clone flies ═══ */
+.pg-card.is-playing {
+  z-index: 20;
+  transform: translateY(-14px) scale(1.08);
+  transition: transform var(--t-lift) cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.pg-card.is-playing > .pg-card__front {
+  border-color: var(--color-gold-shine);
+  animation: pg-glow 1s ease-in-out infinite;
+}
+/* The light sweep over the front face (and over the flying copy). */
+.pg-card.is-playing > .pg-card__front::after,
+.flying-card > .pg-card__front::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 60%;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 236, 170, 0.55) 50%, transparent 100%);
+  animation: pg-shine 1.2s ease-in-out infinite;
+}
+@keyframes pg-glow {
+  0%, 100% { box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.6); }
+  50%      { box-shadow: 0 0 26px 9px rgba(255, 215, 0, 0.65), 0 16px 32px rgba(0, 0, 0, 0.6); }
+}
+@keyframes pg-shine { from { transform: translateX(0); } to { transform: translateX(270%); } }
+.pg-card.is-dimmed {
+  opacity: 0.4;
+  transform: translateY(6px) scale(0.94);
+  transition: transform var(--t-lift), opacity var(--t-lift);
+}
+.pg-card.is-dimmed > .pg-card__front { filter: grayscale(0.7) brightness(0.7); }
+/* End states live in classes, not in WAAPI fills: the hold copies the page with cloneNode. */
+.pg-card.is-discarded { opacity: 0; transform: translateY(46px) scale(0.88); pointer-events: none; transition: none; }
+.pg-card.is-played { visibility: hidden; }
+/* A reading page: its picture lifts and glows during the call, the page stays still; then the whole card flies. */
+.book-page-content.is-playing .book-page-img {
+  border-color: var(--color-gold-shine);
+  transform: translateY(-6px) scale(1.03);
+  transition: transform var(--t-lift) cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  animation: pg-glow 1s ease-in-out infinite;
+}
+.book-page-content.is-played { visibility: hidden; }
+/* body > : main.css (imported after) gives .pg-card and .book-page-img position: relative, which put the copy off screen. */
+body > .flying-card { position: fixed; z-index: 2000; margin: 0; max-width: none; pointer-events: none; transition: none; }
+/* A flying reading page: the whole card on the page's paper, framed and glowing like a small card. */
+body > .flying-card.book-page-content {
+  background: var(--book-page-background);
+  border-color: var(--color-gold-shine);
+  box-shadow: 0 0 26px 8px rgba(255, 215, 0, 0.55), 0 14px 30px rgba(0, 0, 0, 0.6);
+}
+.flying-card > .pg-card__front {
+  border-color: var(--color-gold-shine);
+  box-shadow: 0 0 26px 8px rgba(255, 215, 0, 0.55), 0 14px 30px rgba(0, 0, 0, 0.6);
+}
+/* While a card is played the book takes no input and nothing lifts on hover (the navbar stays live). */
+.book-stage.is-busy button { pointer-events: none; }
+.book-stage.is-busy .pg-card:not(.pg-card--no-hover):hover { transform: none; }
+.book-stage.is-busy .pg-card:not(.pg-card--no-hover):hover > .pg-card__front { box-shadow: none; border-color: var(--color-gold-dark); }
+.book-stage.is-busy .pg-card.is-dimmed { transform: translateY(6px) scale(0.94); }
+.book-stage.is-busy .pg-card.is-playing { transform: translateY(-14px) scale(1.08); }
+.book-stage.is-busy .pg-card.is-playing > .pg-card__front { border-color: var(--color-gold-shine); }
+
+/* ═══ PAGE TURN (BookPages.jsx, pageTurn.js) — the old pages copied over the new ones, then removed ═══ */
+.book-turn-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 9; /* over the pages, under the spine (10) and the cover ornaments (11) */
+  perspective: 2600px;
+  pointer-events: none;
+}
+/* While a copy is up the layer takes the clicks: nothing under a turning page can be pressed. */
+.book-turn-layer:not(:empty) { pointer-events: auto; }
+.book-turn-layer .book-page { overflow: hidden; }
+.page-flipper {
+  position: absolute;
+  z-index: 2;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  will-change: transform;
+}
+.page-flipper.is-fwd  { transform-origin: left center; }
+.page-flipper.is-back { transform-origin: right center; }
+.page-flipper > .book-page {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.page-flipper > .flip-back { transform: rotateY(180deg); }
+.flip-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.2));
+}
+.turn-shadow { position: absolute; z-index: 1; opacity: 0; pointer-events: none; }
+.turn-shadow.from-left  { background: linear-gradient(to right, rgba(0, 0, 0, 0.6), transparent 70%); }
+.turn-shadow.from-right { background: linear-gradient(to left, rgba(0, 0, 0, 0.6), transparent 70%); }
+.turn-iframe-box { display: block; }
+
+/* ═══ MOBILE TURN (mobileTurn.js) — step 16: the visible slice copied on a fixed sheet hinged on its left edge ═══ */
+/* No scrolling under a turning sheet; the blocker stops the iOS touch scroll (the navbar stays live). */
+html.is-turning { overflow: hidden; }
+.m-blocker { position: fixed; inset: var(--navbar-h) 0 0 0; z-index: 989; touch-action: none; background: transparent; }
+.m-sheet {
+  position: fixed;
+  z-index: 990; /* over the book, under the sticky navbar (1000) */
+  overflow: hidden;
+  overflow: clip;
+  pointer-events: none;
+  transform-origin: left center;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.m-sheet__book { position: absolute; animation: none !important; }
+/* The tab row of the copy stays on the live book (the slice starts below it). */
+.m-sheet .book-bookmarks-row { visibility: hidden; }
+.m-cast {
+  position: fixed;
+  z-index: 990;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent 75%);
+}
+
+/* ═══ (i) FADE (FadeIn.jsx) — phones only; on desktop the wrapper is no box and the Book fades the page ═══ */
+.pg-fade-in { display: contents; }
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .pg-fade-in { display: block; }
+}
+
+/* ═══ REDUCED MOTION — the OS setting or the app's (data-pg-reduced): no deal, no pulse, no play glow ═══ */
+@media (prefers-reduced-motion: reduce) {
+  .pg-card[data-deal] { opacity: 1 !important; pointer-events: auto !important; animation: none !important; }
+  .pg-card[data-deal] > .pg-card__back { display: none !important; }
+  .pg-d20--pulse { animation: none; }
+  .pg-card.is-playing, .pg-card.is-dimmed, .book-page-content.is-playing .book-page-img { transition: none; }
+  .pg-card.is-playing > .pg-card__front, .book-page-content.is-playing .book-page-img { animation: none; }
+  .pg-card.is-playing > .pg-card__front::after { display: none; }
+}
+html[data-pg-reduced] .pg-card[data-deal] { opacity: 1 !important; pointer-events: auto !important; animation: none !important; }
+html[data-pg-reduced] .pg-card[data-deal] > .pg-card__back { display: none !important; }
+html[data-pg-reduced] .pg-d20--pulse { animation: none; }
+html[data-pg-reduced] .pg-card.is-playing,
+html[data-pg-reduced] .pg-card.is-dimmed,
+html[data-pg-reduced] .book-page-content.is-playing .book-page-img { transition: none; }
+html[data-pg-reduced] .pg-card.is-playing > .pg-card__front,
+html[data-pg-reduced] .book-page-content.is-playing .book-page-img { animation: none; }
+html[data-pg-reduced] .pg-card.is-playing > .pg-card__front::after { display: none; }

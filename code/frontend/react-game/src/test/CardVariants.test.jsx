@@ -213,3 +213,15 @@ describe('Card — title badges and the image overlay', () => {
     expect(screen.getByText(/card.viewOriginal/)).toBeInTheDocument()
   })
 })
+
+describe('Card variants — step 14 faces', () => {
+  it.each(['little', 'medium', 'big', 'small'])('the %s variant has a front and a back face', (variant) => {
+    const { container } = render(<Card card={{ title: 'Two faces', urlImage: 'x.png' }} variant={variant} imageAlt="x" />)
+    const root = container.firstChild
+    expect(root).toHaveClass('pg-card')
+    expect(root.querySelector(':scope > .pg-card__front')).toContainElement(screen.getByAltText('x'))
+    expect(root.querySelector(':scope > .pg-card__back')).toHaveAttribute('aria-hidden', 'true')
+    expect(root.querySelectorAll('.pg-card__face')).toHaveLength(2)
+  })
+})
+

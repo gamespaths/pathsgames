@@ -38,7 +38,8 @@ describe('PlayerBook v1.2.0 — account in the parchment body', () => {
     expect(desc.querySelector('[data-testid="user-account-panel"]')).toBeTruthy()
     expect(screen.getByText('auth.google.logout').closest('button').className).toBe('lang-btn')
     expect(screen.getByTestId('extra').querySelector('[data-testid="user-account-panel"]')).toBeNull()
-    expect(screen.getByTestId('lang-sel')).toBeTruthy()
+    // Step 16 — the language buttons left the user card: they live in the preferences editor now.
+    expect(screen.queryByTestId('lang-sel')).toBeNull()
     fireEvent.error(img)
     expect(title.querySelector('img')).toBeNull()
   })

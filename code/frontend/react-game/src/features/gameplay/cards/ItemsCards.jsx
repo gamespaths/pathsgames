@@ -1,6 +1,7 @@
 import { useTranslation } from '@/i18n/context'
 import ItemCard from './ItemCard'
 import { isItemUsable } from '@/utils/statBadges'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * ItemsCards — Step 34. The backpack page: one ItemCard per inventory row, on the RIGHT
@@ -33,7 +34,7 @@ export default function ItemsCards({
 
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {rows.length === 0
           ? <p className="game-empty">{/*t('game.items.empty') it items empty don't show messages */}</p>
           : rows.map(item => (
@@ -42,7 +43,7 @@ export default function ItemsCards({
               playerStats={playerStats} matchUuid={matchUuid} accessToken={accessToken}
               onDone={onDone} onDropped={onDropped} onError={onError} />
           ))}
-      </div>
+      </DealtList>
     </div>
   )
 }

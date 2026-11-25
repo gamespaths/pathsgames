@@ -41,3 +41,11 @@ describe('PageRightMain — the end-game card hides the sleep card', () => {
     expect(screen.getByTestId('sleep-card')).toBeInTheDocument()
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('PageRightMain — dealt grid (step 14)', () => {
+  it('the board list carries pg-dealt', () => {
+    const { container } = renderWith([])
+    expect(container.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

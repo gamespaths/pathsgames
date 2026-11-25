@@ -1,0 +1,106 @@
+/* Step 16 — the player's display choices: data attributes written on <html> by PreferencesContext (no inline style).
+   Step 17's high contrast comes after these rules and wins over the theme. */
+
+/* ═══ THEME — the palette of the book pages only ═══ */
+html[data-pg-theme="parchment"] {
+  --book-page-background: var(--book-page-background-old);
+  --book-page-background-right: var(--book-page-background-old);
+}
+
+/* ═══ TEXT SIZE — of the browser size: rem text scales, px card widths do not ═══ */
+html[data-pg-size="small"] { font-size: 87.5%; }
+html[data-pg-size="large"] { font-size: 112.5%; }
+
+/* ═══ CARD COLUMNS — the player's value over step 14's --cards-cols, capped per layout (settings.js COLUMN_LIMITS) ═══ */
+/* Desktop: 2–4. */
+html[data-pg-cols="1"],
+html[data-pg-cols="2"] { --cards-cols: 2; }
+html[data-pg-cols="3"] { --cards-cols: 3; }
+html[data-pg-cols="4"] { --cards-cols: 4; }
+/* Medium: 1–3. */
+@media (max-width: 1120px) {
+  html[data-pg-cols="1"] { --cards-cols: 1; }
+  html[data-pg-cols="4"] { --cards-cols: 3; }
+}
+/* Phone: 1–2. */
+@media (max-width: 767px) {
+  html[data-pg-cols="3"],
+  html[data-pg-cols="4"] { --cards-cols: 2; }
+}
+/* Phone sideways: 2–3. */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 500px) {
+  html[data-pg-cols="1"] { --cards-cols: 2; }
+  html[data-pg-cols="3"],
+  html[data-pg-cols="4"] { --cards-cols: 3; }
+}
+/* Always one under 331px. */
+@media (max-width: 330px) {
+  html[data-pg-cols] { --cards-cols: 1; }
+}
+
+/* ═══ REDUCED MOTION — the OS setting or the app's (data-pg-reduced): every animation and transition ends at once ═══ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html[data-pg-reduced] *,
+html[data-pg-reduced] *::before,
+html[data-pg-reduced] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ═══ PREFERENCES EDITOR (PreferencesEditor.jsx) — rows of .lang-btn pills as radio groups ═══ */
+.pref-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.pref-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.pref-row__name {
+  flex: 0 0 9.5rem;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--color-gold-light);
+}
+.pref-row__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pref-row .lang-btn,
+.pref-row .language-list-wrap .lang-btn { margin: 0; }
+.pref-row .language-list-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.lang-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.pref-section {
+  margin: 6px 0 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--color-gold);
+  border-bottom: 1px solid var(--color-gold-dark);
+}
+.pref-note {
+  margin: 0;
+  font-style: italic;
+  color: var(--color-parchment);
+}
+.pref-reset { align-self: flex-start; margin: 6px 0 0 !important; }
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .pref-row__name { flex-basis: 100%; }
+}

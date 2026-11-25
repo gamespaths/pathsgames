@@ -86,8 +86,8 @@ describe('PolicyChapter', () => {
   ])('%s: same title on both pages and every section', (kind, imgId, sections) => {
     const { container } = renderBook(kind)
     const title = titleOf(imgId)
-    // desktop left + right, plus the mobile stack copies
-    expect(container.querySelectorAll('.book-page-title').length).toBe(4)
+    // v1.14.0 one tree: left + right, no mobile copies
+    expect(container.querySelectorAll('.book-page-title').length).toBe(2)
     const left = container.querySelector('.book-page-left')
     expect(left.querySelector('.book-page-title').textContent).toContain('paths.games')
     expect(left.querySelector('.book-page-desc').textContent).toContain('open')
@@ -95,7 +95,7 @@ describe('PolicyChapter', () => {
     expect(container.querySelectorAll('.book-page-left .policy-book-text h6').length).toBe(0)
     expect(container.querySelectorAll('.book-page-right .policy-book-text h6').length).toBe(sections)
     expect(container.querySelector('.policy-book-overlay')).toBeNull()
-    expect(container.querySelector('.book-content--chapter .policy-chapter-mobile')).toBeTruthy()
+    expect(container.querySelector('.policy-chapter-mobile, .book-mobile-layout')).toBeNull()
   })
 
   it('cookies: the manage action opens the consent preferences', () => {
@@ -230,13 +230,13 @@ describe('usePolicyChapter', () => {
     expect(renderHook(() => usePolicyChapter(), { wrapper: PolicyBookProvider }).result.current).toBeNull()
   })
 
-  it('the deep-link chapter as { kind, left, right, mobile }, keys as text without a language provider', () => {
+  it('the deep-link chapter as { kind, left, right }, keys as text without a language provider', () => {
     window.history.replaceState(null, '', '/?policy=terms')
     const { result } = renderHook(() => usePolicyChapter(), { wrapper: PolicyBookProvider })
     expect(result.current.kind).toBe('terms')
     expect(result.current.left).toBeTruthy()
     expect(result.current.right).toBeTruthy()
-    expect(result.current.mobile.props.className).toContain('book-mobile-layout')
+    expect(result.current.mobile).toBeUndefined()
     window.history.replaceState(null, '', '/')
   })
 })
@@ -248,5 +248,17 @@ describe('creditCard', () => {
     expect(creditCard({ id: 'b', url: 'u2', author: 'Bob', authorLink: 'l2' }))
       .toEqual({ urlImage: 'u2', title: 'b', copyrightText: 'Bob', linkCopyright: 'l2', description: 'Photo by Bob', styleImageLarge: '' })
     expect(creditCard({ id: 'c' })).toEqual({ urlImage: null, title: 'c', copyrightText: null, linkCopyright: null, description: null, styleImageLarge: '' })
+  })
+})
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('PolicyChapter — dealt grids (step 14)', () => {
+  it('the credits list carries pg-dealt', () => {
+    const { container } = renderBook('credits')
+    expect(container.querySelector('.book-page-right .credits-cards.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+  it('the roadmap list carries pg-dealt', () => {
+    const { container } = renderBook('roadmap')
+    expect(container.querySelector('.book-page-right .roadmap-cards.selection-list.pg-dealt')).toBeInTheDocument()
   })
 })

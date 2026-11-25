@@ -134,3 +134,11 @@ describe('OptionPicker', () => {
     expect(container.querySelector('.selection-header').textContent).toBe('')
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('OptionPicker — dealt grid (step 14)', () => {
+  it('the option list carries pg-dealt', () => {
+    const { container } = renderPicker({ selected: [] })
+    expect(container.querySelector('.selection-scroll > .selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

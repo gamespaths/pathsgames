@@ -1,6 +1,6 @@
 # Step 16 — Mobile book and preferences
 
-**Status: analysed (November 24, 2026), version 1.13.0. No open doubts: ready for development.**
+**Status: developed (November 25, 2026, version 1.14.0, react-game only, unit tests green): part A, the one-tree switch, with step 15; part B (vertical book graphics, 6.4–6.10) after it; waiting for owner's test; owner test list: [test/Step16_MobileBookAndPreferences.md](./test/Step16_MobileBookAndPreferences.md) (part A in [test/Step15_PlayAndPageTurn.md](./test/Step15_PlayAndPageTurn.md)).**
 Roadmap line: *the same book on phones, and the player's own settings* ([Roadmap](./Roadmap.md) step 16).
 Prototype: [`website_concepts_v0/v1.13.0/`](./website_concepts_v0/v1.13.0/README.md) (mobile part of `demo.js` / `demo.css`).
 Sibling steps: `Step13_BookLayoutWithoutModals.md` (no modals, routes, page scroller, footer),
@@ -212,16 +212,17 @@ No change: the suites are API-only (RequestsLibrary, no browser library in `code
 
 ## 8. Doubts
 
-No open doubts. The owner accepted all seven recommendations (development order, status card, landing, theme and size, animation rows, columns, language buttons); they are recorded in sections 1, 3 and 6. Later decisions (home tab pinned at the end of the row, long-press tooltip on the pills, vertical book graphics, card components and sizes kept, no table pile on phones, Deck row) are in 3, 6.3, 6.4 and 6.9.
+No open doubts. The owner accepted all seven recommendations (development order, status card, landing, theme and size, animation rows, columns, language buttons); they are recorded in sections 1, 3 and 6. Built in 1.14.0, waiting for owner's test: part A with step 15, part B after it; phone scroll jumps use `behavior: 'instant'` (the page-wide smooth scroll made the turn land wrongly); the language buttons are only in the Preferences editor, and `SHOW_MOBILE_CARD_CHARACTERISTICS` defaults to false. Later decisions (home tab pinned at the end of the row, long-press tooltip on the pills, vertical book graphics, card components and sizes kept, no table pile on phones, Deck row) are in 3, 6.3, 6.4 and 6.9.
 
 # Version Control
-- **Document Version**: 1.13.0
+- **Document Version**: 1.14.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.13.0 | Phone book, preferences, deck setting and bookmark note | November 24, 2026 |
+  | 1.14.0 | Developed; waiting for owner's test | November 25, 2026 |
 
-- **Last Updated**: November 24, 2026 (v1.13.0)
+- **Last Updated**: November 25, 2026 (v1.14.0)
 
 
 # &lt; Paths Games /&gt;

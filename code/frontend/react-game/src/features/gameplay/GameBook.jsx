@@ -1,18 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { endMatch } from '../../api/matches'
 import { isStaleMatch } from '../../api/matchVersion'
 import Book from '../../components/book/Book'
-import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import LoadingCard from '@/components/layout/LoadingCard'
 import ErrorCard from '@/components/layout/ErrorCard'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import { useHomeButtonHandler } from '@/context/HomeButtonContext'
 import { buildCardCharacteristicsRight } from '@/utils/gamebook'
 import { buildUpdateMatchCard } from '@/utils/loadoutCards'
-import EndGameBook from './EndGameBook'
-import GameBookMobile from './GameBookMobile'
+import { useEndGamePages } from './EndGameBook'
 import PageLeft from './PageLeft'
 import PageRight from './PageRight'
 import useMatchChrome from './js/useMatchChrome'
@@ -22,6 +20,9 @@ import useMissionsCompleted from './js/useMissionsCompleted'
 import useGameplayResults from './js/useGameplayResults'
 import { buildBookmarksLeft, BOOKMARKS_RIGHT } from './js/bookmarks'
 import { scrollMobileIntoView } from './js/mobileView'
+import { PlayProvider, usePlayController } from './play/PlayContext'
+import { usePreferences } from '@/preferences/PreferencesContext'
+import { vibratePlay } from '@/utils/haptics'
 
 // Re-exported: these readers were part of this module's surface before they moved to
 // @/utils/gameResults, and the board's suite still imports them from here.
@@ -33,6 +34,8 @@ export { statChangeItems } from '@/utils/statBadges'
  * nothing else. The side payloads live in useMatchChrome, what the pages show in
  * useBookView, and what an API answer narrates in useGameplayResults.
  * v1.13.0 — `error` (a transient API error) takes the right page; the home tab opens the close card first.
+ * Step 15 — the played card (PlayContext), the page turns (`turn`, `hold`) and the end game in the same Book.
+ * Step 16 — a played card vibrates the phone once, inside the tap (Android; the player's vibration choice).
  */
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError, reloadKey = 0,
   openLogKey = 0, staleKey = 0, error = null, onErrorClose }) {
@@ -60,6 +63,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const { clock, weather, matchLocations, locationCosts, refresh: refreshChrome } =
     useMatchChrome(matchUuid, accessToken, lang)
   const [view, viewActions] = useBookView()
+  const { effective: prefs } = usePreferences()
+  const play = usePlayController({ onPlayStart: () => vibratePlay(prefs.vibration) })
+  const endPages = useEndGamePages({ story, endGameCard, missions: gameData?.info?.missions })
   const { closePolicyBook } = usePolicyBook()
   // The close card, never straight to the Home: also from an open policy chapter, which gives way.
   useHomeButtonHandler(gameEnded ? null : () => {
@@ -68,13 +74,20 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   })
   // A transient error takes the right page: on mobile it is the bottom of the stack.
   useEffect(() => {
-    if (error) scrollMobileIntoView('.book-mobile-right')
+    if (error) scrollMobileIntoView('.book-page-right')
   }, [error])
+  // Step 15 — the error page comes and goes with a fade: the render that flips it reads the last seen state.
+  const errorOn = Boolean(error)
+  const errorSeen = useRef(errorOn)
+  const errorFlip = errorSeen.current !== errorOn
+  useEffect(() => { errorSeen.current = errorOn }, [errorOn])
   // v1.7.0 step 8 — a match refetch (stale or page return) reloads the chrome and closes the pages
+  // Step 15 — with no turn, and a hold still on is released with none.
   useEffect(() => {
     if (!reloadKey) return
     refreshChrome()
-    viewActions.closeAll()
+    viewActions.releaseTurn(null)
+    viewActions.closeAll(null)
   }, [reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // v1.8.0 — after a STALE_MATCH refetch (closeAll above runs first) the right page explains it
   useEffect(() => {
@@ -92,7 +105,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     view.view === 'missions' || view.view === 'missionSteps')
   const results = useGameplayResults({
     matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather, clock,
-    view, viewActions, refreshChrome, onReload, onError,
+    view, viewActions, refreshChrome, onReload, onError, play: play.api,
   })
   // v0.38.2 — a mission just closed reads on the right page at once, back arrow and all.
   useMissionsCompleted(gameData?.info?.missions, results.showMissionsCompleted)
@@ -102,14 +115,20 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     viewActions.openPreview({ card, type: 'end game', stats, props, side: 'right' })
   }
 
+  // Step 15 — land, then the end pages and their forward turn in ONE commit (nothing reloads: no hold needed).
   const handleEndGame = async (action) => {
     if (ending) return
     setEnding(true)
     setEndError(null)
     try {
       await endMatch(matchUuid, action?.uuidEvent ?? action?.uuid, accessToken)
+      const landing = play.api.land()
+      if (landing) await landing
+      play.api.end()
       setGameEnded(true)
+      endPages.enter()
     } catch (e) {
+      play.api.cancel()
       if (!isStaleMatch(e)) setEndError(e?.response?.data?.error || e?.message || 'end-game-failed')
     } finally {
       setEnding(false)
@@ -133,30 +152,25 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   }
   function closeItemsView() {
     viewActions.closeAll()
-    scrollMobileIntoView('.book-mobile-left')
+    scrollMobileIntoView('.book-page-left')
   }
   function closeRegistryView() {
     viewActions.closeAll()
-    scrollMobileIntoView('.book-mobile-left')
+    scrollMobileIntoView('.book-page-left')
   }
   function closeMissionsView() {
     viewActions.closeAll()
-    scrollMobileIntoView('.book-mobile-left')
+    scrollMobileIntoView('.book-page-left')
   }
   function closeExpView() {
     viewActions.closeAll()
-    scrollMobileIntoView('.book-mobile-left')
+    scrollMobileIntoView('.book-page-left')
   }
   // v0.37.1 — opening the panel is reading the news: the gold tab goes out here, and nowhere
   // else, so it stays lit until the player has actually looked.
   function openMissionsView() {
     missionsAlert.markSeen()
     viewActions.openMissions()
-  }
-
-  if (gameEnded) {
-    return <EndGameBook story={story} endGameCard={endGameCard}
-      missions={gameData?.info?.missions} />
   }
 
   const leftContent = <PageLeft
@@ -214,8 +228,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     ? <ErrorCard status={error.status} message={error.message} onClose={onErrorClose} />
     : results.loading ? <LoadingCard story={story} /> : rightContent
 
+  // Step 15 — ONE Book for the whole match: the end game is a page turn of it, not a second book.
+  if (gameEnded) {
+    return (
+      <PlayProvider controller={play}>
+        <Book left={endPages.left} right={endPages.right} wrapperClass={endPages.wrapperClass}
+          pageKey={`end:${endPages.pageKey}`} direction={endPages.direction} />
+      </PlayProvider>
+    )
+  }
   return (
-    <>
+    <PlayProvider controller={play}>
       <Book
         left={leftContent}
         right={right}
@@ -225,10 +248,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           onOpenMissions: openMissionsView,
           missionsChanged: missionsAlert.changed })}
         bookmarksRight={BOOKMARKS_RIGHT}
-        mobile={<GameBookMobile left={leftContent} right={right} endError={endError} />}
+        pageKey={`${view.turn.key}:${errorOn ? 'error' : 'board'}`}
+        direction={errorFlip ? 'fade' : view.turn.direction}
+        holdTurn={view.hold}
       />
-      {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
-      <CardPreviewModal preview={view.previewModal} story={story} />
-    </>
+    </PlayProvider>
   )
 }

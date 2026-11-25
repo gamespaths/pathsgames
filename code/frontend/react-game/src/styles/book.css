@@ -11,6 +11,8 @@
   align-items: flex-start;
   padding: var(--book-stage-top) 16px var(--book-stage-bottom);
   scroll-margin-top: var(--navbar-h);
+  /* v1.14.0 — the deck pile beside a narrow book is cut here, never a horizontal scroll bar. */
+  overflow-x: clip;
 }
 /* No tab sticks out (the Home, also with a chapter open): the book rises to the navbar. */
 .book-stage--no-tabs { --book-stage-top: 16px; }
@@ -25,9 +27,6 @@
   animation: bookOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* The mobile copy of the home tab: shown above the stacked column only (mobile.css). */
-.book-mobile-home { display: none; }
-
 /* A chapter covers the page's own content: still mounted and rendered, never display:none. */
 .book-content { display: contents; }
 .book-content--covered {
@@ -38,17 +37,11 @@
   visibility: hidden;
   pointer-events: none;
 }
-.book-stage > .book-content--covered {
-  inset: auto;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 0;
-}
 
 /* ═══ BOOK COVER (.book-wrapper) — leather, gold tooled frame and stitching; the pages sit inside ═══ */
 .book-wrapper {
   position: relative;
+  z-index: 1; /* v1.14.0 — over the deck pile (z-index 0), under it with VITE_ANIM_DECK=over (2) */
   display: flex;
   width: 100%;
   height: 100%;
@@ -84,14 +77,17 @@
   pointer-events: none;
 }
 
-/* v0.35.5 — the same board renders inside the book and in the mobile stack; these two say
-   which of the two copies a card sits out. See hideWhereClass in constants/features.js. */
-.book-wrapper .hide-in-book { display: none !important; }
-.book-mobile-layout .hide-in-mobile { display: none !important; }
-
-/* The status card names its shortcuts for the mobile stack only; inside the book the
-   bookmarks already carry those names, so the labels stay off there. */
-.book-wrapper .card-status .gc-footer__btn-label { display: none; }
+/* hideWhereClass (constants/features.js), v1.14.0 one tree: .hide-in-mobile under MOBILE_MQ, .hide-in-book under its negation. */
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .book-wrapper .hide-in-mobile { display: none !important; }
+}
+@media not all and (max-width: 767px) {
+  @media not all and (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+    .book-wrapper .hide-in-book { display: none !important; }
+    /* The status card names its shortcuts on phones only: in the open book the bookmarks carry them. */
+    .book-wrapper .card-status .gc-footer__btn-label { display: none; }
+  }
+}
 
 /* Spine with the binding thread. */
 .book-spine {
@@ -158,8 +154,7 @@
 
 /* ═══════════════════════════════════════════
    BOOK BOOKMARKS (v0.35.5)
-   Tabs slotted into the book's top edge: inside .book-wrapper, so the mobile rule that
-   hides the wrapper hides them too.
+   Tabs slotted into the book's top edge, inside .book-wrapper (phones: mobile.css).
    ═══════════════════════════════════════════ */
 .book-bookmarks {
   position: absolute;
@@ -198,9 +193,12 @@
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.book-bookmark:hover {
-  background: var(--book-bookmark-background-hover);
-  color: var(--color-gold-dark);
+/* Step 16 — only where a pointer hovers: a tapped pill keeps its colours. */
+@media (hover: hover) {
+  .book-bookmark:hover {
+    background: var(--book-bookmark-background-hover);
+    color: var(--color-gold-dark);
+  }
 }
 .book-bookmark.is-active {
   background: var(--book-bookmark-background-hover);
@@ -238,6 +236,10 @@
 .book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
 .book-bookmark.is-disabled:hover { transform: none; }
 .book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
+/* Step 16 — the active tab's name: shown only by the phone pills (mobile.css). */
+.book-bookmark__label { display: none; }
+/* Step 16 — the two rows of tabs as one: no box on desktop, each row keeps its place on the cover. */
+.book-bookmarks-row { display: contents; }
 
 .book-bookmark .player-stats-bar{
   margin-bottom: 0px;
@@ -328,5 +330,3 @@
 /* v1.13.0 — a heading over a card list stays in the markup: its place is kept for the multiplayer messages. */
 .book-cards-heading { display: none !important; }
 
-/* Interim Home host (until step 14): the hero and the catalog stay mounted under the chapter. */
-.home-page.book-content--covered { inset: auto; top: 0; left: 0; width: 100%; height: 0; }

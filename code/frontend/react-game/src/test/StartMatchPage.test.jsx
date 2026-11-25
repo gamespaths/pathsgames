@@ -79,7 +79,7 @@ function renderPage(state, previous = null) {
   )
 }
 
-/** The (duplicated mobile+desktop) Start buttons: the action of the last bonuses card. */
+/** The Start button (v1.14.0 one tree: a single copy): the action of the last bonuses card. */
 const startButtons = () => screen.queryAllByRole('button', { name: 'book.start' })
 /** The locked "Start" faces of that card (the only lock with a reason), when not offered. */
 const startLocks = () => document.querySelectorAll('.gc-footer__cards-buttons[data-tip]')
@@ -153,10 +153,10 @@ describe('StartMatchPage', () => {
     await act(async () => { clickStart() })
     expect(startButtons().length).toBe(0)
     expect(screen.queryAllByRole('button', { name: 'card.info' }).length).toBe(0)
-    expect(document.querySelectorAll('.pg-card--phase').length).toBe(12) // 6 cards, desktop + mobile
+    expect(document.querySelectorAll('.pg-card--phase').length).toBe(6) // 6 cards, one tree
     // story + the two statistics cards: checked under the same "starting" lock
     for (const i of [0, 1, 2]) expect(phaseLabel(i)).toContain('startMatch.phaseStarting')
-    expect(document.querySelectorAll('.pg-card--phase-complete').length).toBe(6)
+    expect(document.querySelectorAll('.pg-card--phase-complete').length).toBe(3)
     expect(phaseLabel(3)).toBe('startMatch.phaseInProgress (3)')
     expect(document.querySelector('.pg-card--phase-inProgress .fa-spinner')).not.toBeNull()
     expect(phaseLabel(4)).toBe('startMatch.phasePending')
@@ -329,5 +329,28 @@ describe('StartMatchPage', () => {
     expect(phaseLabel(3)).toBe('startMatch.phaseComplete')
     expect(phaseLabel(5)).toBe('startMatch.phaseInProgress (1)')
     expect(document.querySelector('.pg-card--phase-failed')).toBeNull()
+  })
+})
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('StartMatchFlow — dealt grids (step 14)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.behavior = 'success'
+    joinMatch.mockResolvedValue({ uuid: 'c1' })
+    startMatch.mockResolvedValue({ status: 'RUNNING' })
+    vi.stubEnv('VITE_MATCH_START_DELAY', '3')
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
+  it('the confirm block and the phases block are both dealt lists', () => {
+    renderPage({ story: STORY, config: CONFIG })
+    expect(document.querySelectorAll('.start-match-cards > .selection-list.pg-dealt').length).toBeGreaterThan(0)
+    act(() => { clickStart() })
+    expect(document.querySelectorAll('.pg-card--phase').length).toBeGreaterThan(0)
+    expect(document.querySelector('.start-match-cards > .selection-list.pg-dealt .pg-card--phase')).toBeInTheDocument()
   })
 })

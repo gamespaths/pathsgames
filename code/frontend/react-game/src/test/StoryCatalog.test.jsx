@@ -5,7 +5,7 @@ vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 
-import StoryCatalog from '../features/catalog/StoryCatalog'
+import StoryCatalog, { catalogOrder } from '../features/catalog/StoryCatalog'
 
 const STORIES = [
   { uuid: 's1', title: 'Forest Path',  category: 'Adventure', card: { urlImage: null } },
@@ -24,13 +24,14 @@ describe('StoryCatalog', () => {
     expect(screen.getByText('home.noStories')).toBeInTheDocument()
   })
 
-  it('renders stories grouped by category', () => {
-    render(<StoryCatalog stories={STORIES} onStoryClick={vi.fn()} />)
-    expect(screen.getByText('Forest Path')).toBeInTheDocument()
-    expect(screen.getByText('Dragon Keep')).toBeInTheDocument()
-    expect(screen.getByText('Ocean Depths')).toBeInTheDocument()
-    expect(screen.getAllByText('Adventure').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Mystery').length).toBeGreaterThan(0)
+  it('step 14 — renders every story in one dealt list, no category rows', () => {
+    const { container } = render(<StoryCatalog stories={STORIES} onStoryClick={vi.fn()} />)
+    const list = container.querySelector('.config-view-wrap > .config-cards-area.selection-list.home-stories.pg-dealt')
+    expect(list).toBeInTheDocument()
+    expect(list.querySelectorAll(':scope > .pg-card')).toHaveLength(3)
+    expect(container.querySelectorAll('.selection-list')).toHaveLength(1)
+    expect(screen.queryAllByRole('heading')).toHaveLength(0)
+    expect(container.querySelector('.stories-section, .section-label, .stories-grid')).toBeNull()
   })
 
   it('calls onStoryClick with the correct story when the card button is clicked', () => {
@@ -79,15 +80,22 @@ describe('StoryCatalog', () => {
     expect(onStoryClick).not.toHaveBeenCalled()
   })
 
-  it('shows each category as a section label', () => {
-    render(<StoryCatalog stories={STORIES} onStoryClick={vi.fn()} />)
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(2)
+  it('step 14 — keeps the order of today: categories in first-seen order, each story inside its own', () => {
+    const mixed = [
+      { uuid: 'a', title: 'A1', category: 'Adventure', card: {} },
+      { uuid: 'b', title: 'M1', category: 'Mystery', card: {} },
+      { uuid: 'c', title: 'A2', category: 'Adventure', card: {} },
+    ]
+    const { container } = render(<StoryCatalog stories={mixed} onStoryClick={vi.fn()} />)
+    const titles = [...container.querySelectorAll('.gc-title__text')].map(el => el.textContent)
+    expect(titles).toEqual(['A1', 'A2', 'M1'])
+    expect(catalogOrder(mixed).map(s => s.uuid)).toEqual(['a', 'c', 'b'])
   })
 
-  it('renders a single category when all stories share one', () => {
-    const single = STORIES.slice(0, 2)
-    render(<StoryCatalog stories={single} onStoryClick={vi.fn()} />)
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1)
+  it('step 14 — shows the category badge on each card', () => {
+    const { container } = render(<StoryCatalog stories={STORIES} onStoryClick={vi.fn()} />)
+    const badges = [...container.querySelectorAll('.pg-card__front .story-card-badge')].map(el => el.textContent)
+    expect(badges).toEqual(['Adventure', 'Adventure', 'Mystery'])
   })
 
   it('badges stories from the matches: Resume button for active, Completed badge for ended', () => {

@@ -14,11 +14,13 @@ import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
 import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rateLimit'
 import { buildCharacterAttributesCard, buildGameTypeCard, buildGoogleLoginCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
-import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
 import { traitBudgetItems } from '@/utils/traitBudget'
-import { isMobileViewport } from '@/features/gameplay/js/mobileView'
+import { scrollMobileIntoView } from '@/features/gameplay/js/mobileView'
+import DealtList from '@/components/layout/DealtList'
+import FadeIn, { previewKey } from '@/components/layout/FadeIn'
+import useBookTurn from '@/hooks/useBookTurn'
 
 /**
  * StartMatchFlow — the single match-setup surface, reached from the start book's
@@ -35,6 +37,7 @@ import { isMobileViewport } from '@/features/gameplay/js/mobileView'
  * (checked) and one card per API phase (creating / joining / running), each spinning while it
  * runs and checked once done; `created` has no card and enters the game at once.
  * Countdown length comes from `VITE_MATCH_START_DELAY` (seconds, default 20).
+ * Step 15 — an (i) preview fades in on the left page (phones: the top card), with a back arrow; phases never turn.
  */
 
 const DEFAULT_DELAY_SECONDS = 20
@@ -88,16 +91,17 @@ export default function StartMatchFlow({ story, config, storyId }) {
   // Read through a ref so an auto-refreshed token never restarts the countdown.
   const tokenRef = useRef(gate.token)
   useEffect(() => { tokenRef.current = gate.token }, [gate.token])
+  const { pageKey, direction, turnTo } = useBookTurn()
 
+  // The (i) lens: the card on the left page (phones: the top card, scrolled to), faded in.
   function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent, loginPage = false) {
-    // Mobile has no left page → the (i) lens opens the big card in a modal.
-    const inModal = Boolean(card && isMobileViewport())
-    setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent, loginPage, inModal } : null)
-    if (inModal) {
-      const el = document.getElementById('cardPreviewModal')
-      const Modal = window.bootstrap?.Modal
-      if (el && Modal) Modal.getOrCreateInstance(el).show()
-    }
+    setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent, loginPage } : null)
+    turnTo('fade')
+    if (card) scrollMobileIntoView('.book-page-left')
+  }
+  function closePreview() {
+    setPreview(null)
+    turnTo('fade')
   }
 
   // v1.8.0 — the Google login page is done once the guest became a Google user: back to the story page
@@ -105,9 +109,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
   useEffect(() => {
     if (!isGoogleUser || !loginPageOpen) return
     setPreview(null)
-    const el = typeof document !== 'undefined' ? document.getElementById('cardPreviewModal') : null
-    if (el) window.bootstrap?.Modal?.getInstance?.(el)?.hide()
-  }, [isGoogleUser, loginPageOpen])
+    turnTo('fade')
+  }, [isGoogleUser, loginPageOpen, turnTo])
 
   // v1.13.0 — back to the story page with this loadout: one step back when it is the previous entry, else a replace.
   const cameFromStory = Boolean(location.state?.fromStory)
@@ -280,7 +283,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
   // (the only interactive one — its toggle gates the Start action).
   const cardsBlock = (
-    <div className="selection-list">
+    <DealtList className="selection-list">
       <Card card={story.card} entityType="story" label={t('book.story')} story={story} flagInformationCard={false} 
         onPreview={() => handleSelectionPreview(story.card,"story")}
         onAction={goBackToBook} actionLabel={t('book.back')} actionIcon="fa-arrow-left" />
@@ -309,7 +312,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         locked={!startReady} lockInfo={{ kind: 'start', label: t('book.start') }}
         lockedReason={startLockReason}
         lockedIcon={gate.phase === 'checking' ? 'fas fa-spinner fa-spin' : 'fas fa-lock'} />
-    </div>
+    </DealtList>
   )
 
   // After Start: the story and the two statistics cards (checked, "starting") then one card per
@@ -323,7 +326,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
     ? `${t('startMatch.phaseInProgress')} (${countdown})`
     : t(`startMatch.phase${status.charAt(0).toUpperCase()}${status.slice(1)}`)
   const phasesBlock = (
-    <div className="selection-list">
+    <DealtList className="selection-list">
       <Card card={story.card} entityType="story" label={t('book.story')} story={story} {...startedLock} />
       <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true}
         statistics={statisticCard1} flagShowFullStatistics={true} {...startedLock} />
@@ -338,7 +341,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
             additionalCardClasses={`pg-card--phase pg-card--phase-${status}`} />
         )
       })}
-    </div>
+    </DealtList>
   )
   const boardBlock = phase === 'confirm' ? cardsBlock : phasesBlock
 
@@ -374,25 +377,22 @@ export default function StartMatchFlow({ story, config, storyId }) {
   }
 
   return (
-    <>
     <Book
       stageClass="start-match-stage"
       wrapperClass="book-wrapper start-match-wrapper"
-      mobile={
-        <div className="book-mobile-layout">
-          <Card variant="page" card={story.card} story={story} loading={false} />
-          <div className="start-match-cards">{boardBlock}</div>
-          <div className="start-match-footer">{antibotWidget}{bottom}</div>
-        </div>
-      }
-      left={ preview 
-        ? <Card variant="page" loading={false}
+      pageKey={pageKey}
+      direction={direction}
+      left={ preview
+        ? <FadeIn key={previewKey({ type: preview.entityType, card: preview.card })}>
+            <Card variant="page" loading={false}
                 card={preview.card}
                 entityType={preview.entityType}
                 story={story}
+                onClose={closePreview}
                 statItemsToPageContent={preview.statItemsToPageContent}
-                extraContent={preview.loginPage && !preview.inModal ? googleLoginPanel(true) : null}
+                extraContent={preview.loginPage ? googleLoginPanel(true) : null}
               />
+          </FadeIn>
         : guestLoginPage
           // a guest page shown unasked loads Google only on click (privacy rule): no autoStart here
           ? <Card variant="page" card={guestPageCard} entityType="login" story={story} loading={false}
@@ -405,11 +405,6 @@ export default function StartMatchFlow({ story, config, storyId }) {
         </div>
       }
     />
-    {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
-    <CardPreviewModal preview={preview ? { card: preview.card, type: preview.entityType,
-      additionalProps: { extraContent: preview.loginPage && preview.inModal ? googleLoginPanel(true) : null } } : null}
-      story={story} />
-    </>
   )
 }
 

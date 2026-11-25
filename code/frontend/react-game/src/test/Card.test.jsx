@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -172,3 +172,87 @@ describe('Card — page navigation test ids', () => {
     expect(screen.getByTestId('page-forward')).toHaveAttribute('data-tip', screen.getByTestId('page-forward').getAttribute('aria-label'))
   })
 })
+
+describe('Card — step 14 faces', () => {
+  const front = c => c.querySelector('.pg-card > .pg-card__face.pg-card__front')
+  const back = c => c.querySelector('.pg-card > .pg-card__face.pg-card__back')
+
+  it('a non-page card: the front with today\'s content, then an aria-hidden back with only the d20', () => {
+    const { container } = render(<Card card={{ title: 'Mage' }} selected additionalCardClasses="story-netflix-card extra" />)
+    const root = container.firstChild
+    expect(root).toHaveClass('pg-card', 'pg-card--grid', 'config-card-selected', 'story-netflix-card', 'extra')
+    expect(root.children).toHaveLength(2)
+    expect(root.children[0]).toBe(front(container))
+    expect(root.children[1]).toBe(back(container))
+    expect(front(container)).toHaveTextContent('Mage')
+    expect(back(container)).toHaveAttribute('aria-hidden', 'true')
+    expect(back(container).children).toHaveLength(1)
+    expect(back(container).querySelector('svg.pg-d20')).toBeInTheDocument()
+    expect(back(container).textContent).toBe('')
+  })
+
+  it('every special component lives in the front, none in the back', async () => {
+    let done
+    const onAction = vi.fn(() => new Promise(r => { done = r }))
+    const { container } = render(
+      <Card card={{ title: 'Hero', urlImage: 'h.png' }} entityType="class" testId="hero"
+        statistics={[{ key: 'dex', value: 1 }]} flagShowFullStatistics titleStatistics={[{ key: 'x', value: 1 }]}
+        childrenIntoImage={<span data-testid="overlay">o</span>}
+        onPreview={vi.fn()} flagInformationCard onAction={onAction} actionLabel="Go"
+        actionsList={[{ label: 'Drop', icon: 'fa-trash', onAction: vi.fn(), testId: 'drop' }]}>
+        <span data-testid="child">c</span>
+      </Card>,
+    )
+    const f = front(container)
+    expect(f.querySelector('.gc-title .gc-type-badge')).toHaveTextContent('class')
+    expect(f.querySelectorAll('[data-testid="bonus-list"]')).toHaveLength(2)
+    expect(f).toContainElement(screen.getByTestId('overlay'))
+    expect(f).toContainElement(screen.getByTestId('child'))
+    expect(f).toContainElement(screen.getByAltText('Hero'))
+    expect(f).toContainElement(screen.getByLabelText('card.info'))
+    expect(f).toContainElement(screen.getByTestId('hero-action'))
+    expect(f).toContainElement(screen.getByTestId('drop'))
+    await act(async () => { fireEvent.click(screen.getByTestId('hero-action')) })
+    expect(f.querySelector('.gc-footer .fa-spinner')).toBeInTheDocument()
+    await act(async () => { done() })
+    const b = back(container)
+    expect(b.querySelector('.gc-title, .gc-footer, img, button, [data-testid]')).toBeNull()
+  })
+
+  it('the locked label and the select button (selected state) sit in the front', () => {
+    const locked = render(<Card card={{ title: 'L' }} locked lockedIcon="fas fa-lock" lockInfo={{ label: 'Soon' }} />)
+    const lockLabel = locked.container.querySelector('.pg-card__front .gc-footer__cards-buttons')
+    expect(lockLabel).toHaveTextContent('Soon')
+    expect(lockLabel.querySelector('.fa-lock')).toBeInTheDocument()
+    locked.unmount()
+    const { container } = render(<Card card={{ title: 'S' }} onSelect={vi.fn()} selected selectLabel="Pick" testId="opt" />)
+    const select = screen.getByTestId('opt-select')
+    expect(front(container)).toContainElement(select)
+    expect(select).toHaveClass('gc-footer__btn--selected')
+  })
+
+  it('the page variant has no faces and no back', () => {
+    const { container } = render(<Card variant="page" card={{ title: 'Page', description: 'D' }} />)
+    expect(container.firstChild).toHaveClass('book-page-content')
+    expect(container.querySelector('.pg-card__face, .pg-back, .pg-card')).toBeNull()
+    expect(container.querySelector('h2.book-page-title')).toHaveTextContent('Page')
+  })
+
+  it('titleTag sets the page title element (default h2)', () => {
+    render(<Card variant="page" card={{ title: 'Welcome' }} titleTag="h1" />)
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveClass('book-page-title')
+    expect(h1).toHaveTextContent('Welcome')
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull()
+  })
+
+  it('afterDescription rides inside the page description, right after its text', () => {
+    const { container } = render(<Card variant="page" card={{ title: 'Welcome', description: 'Intro text' }}
+      afterDescription={<p data-testid="after-desc">Checked</p>} extraContent={<span>foot</span>} />)
+    const desc = container.querySelector('.book-page-desc')
+    expect(desc).toContainElement(screen.getByTestId('after-desc'))
+    expect(desc).toHaveTextContent(/^Intro text\s*Checked$/)
+    expect(container.querySelector('.book-page-extra [data-testid="after-desc"]')).toBeNull()
+  })
+})
+

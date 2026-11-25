@@ -1,6 +1,8 @@
 @import './variables.css';
 @import './book.css';
+@import './animations.css';
 @import './mobile.css';
+@import './preferences.css';
 @import './abbrev.css';
 
 @tailwind base;
@@ -12,11 +14,31 @@
    All cards share a 2 : 3 aspect ratio.
    small  → 100 × 150 px  (fixed width)
    medium → 150 × 225 px  (fixed width)
-   home   → 225 × 337 px  (story catalog)
    large  → 100% × ratio  (fills container)
    grid   → flex:1 × ratio (config 2×3 grid)
    ═══════════════════════════════════════════ */
-.pg-card , .book-page-img {
+/* v1.14.0 — root: size, hover lift and deal (no overflow/opacity/filter: 3D deal); look: the front face. */
+.pg-card {
+  position: relative;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: transform 0.3s ease;
+}
+.pg-card__front {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: inherit;
+  border: 2px solid var(--color-gold-dark);
+  background: linear-gradient(145deg, var(--color-brown-warm) 0%, var(--color-brown-dark) 100%);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.book-page-img {
   position: relative;
   border-radius: 10px;
   border: 2px solid var(--color-gold-dark);
@@ -30,16 +52,21 @@
 .pg-card--small  { width: 100px; flex: 0 0 100px; aspect-ratio: 2 / 3; }
 .pg-card--medium { width: 150px; flex: 0 0 150px; aspect-ratio: 2 / 3; }
 .pg-card--medium2 { width: 175px; flex: 0 0 175px; aspect-ratio: 2 / 3; }
-.pg-card--home   { width: 225px; flex: 0 0 225px; aspect-ratio: 2 / 3; }
 .pg-card--large  { width: 100%;  flex: 1; min-height: 0; aspect-ratio: 2 / 3; }
 .pg-card--grid   { flex: 1; min-width: 0;          aspect-ratio: 2 / 3; }
 
-.pg-card:not(.pg-card--no-hover):hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.65), 0 0 14px rgba(200,150,10,0.22);
-  border-color: var(--color-gold);
-  z-index: 10;
-  position: relative;
+/* Step 16 — lift and zoom only where a pointer hovers: on touch a tapped card would stay lifted. */
+@media (hover: hover) {
+  .pg-card:not(.pg-card--no-hover):hover {
+    transform: translateY(-3px) scale(1.03);
+    z-index: 10;
+    position: relative;
+  }
+  /* v1.14.0 — tight dark drop shadow and a gold glow: stronger, and it fits the grid's edge room (animations.css). */
+  .pg-card:not(.pg-card--no-hover):hover > .pg-card__front {
+    box-shadow: 0 10px 14px -4px rgba(0,0,0,0.75), 0 0 9px 1px rgba(255,215,0,0.55);
+    border-color: var(--color-gold-light);
+  }
 }
 
 /* entityType badge — small pill shown in the title bar / credits bar */
@@ -99,7 +126,9 @@
   height: 100%;
   transition: transform 0.5s ease;
 }
-.pg-card:not(.pg-card--no-hover):hover .pg-card__img--fill { transform: scale(1.07); }
+@media (hover: hover) {
+  .pg-card:not(.pg-card--no-hover):hover .pg-card__img--fill { transform: scale(1.07); }
+}
 
 .pg-card__overlay-body {
   position: absolute;
@@ -168,7 +197,9 @@
   transition: transform 0.3s ease;
   z-index: 2;
 }
-.pg-card:not(.pg-card--no-hover):hover .pg-card__play { transform: translate(-50%, -60%) scale(1); }
+@media (hover: hover) {
+  .pg-card:not(.pg-card--no-hover):hover .pg-card__play { transform: translate(-50%, -60%) scale(1); }
+}
 
 /* === GLOBAL === */
 *, *::before, *::after { box-sizing: border-box; }
@@ -193,6 +224,20 @@ main.app-main {
 ::-webkit-scrollbar-track { background: var(--color-brown-dark); }
 ::-webkit-scrollbar-thumb { background: var(--color-brown-mid); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-gold-dark); }
+/* v1.14.0 — inside the book: a dark gold, rounded bar on the tan paper (dark see-through track, brighter gold on hover). */
+.book-page ::-webkit-scrollbar { width: 10px; height: 10px; }
+.book-page ::-webkit-scrollbar-track { background: rgba(46, 21, 8, 0.28); border-radius: 10px; }
+.book-page ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-gold-dark), var(--color-gold-deep));
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 10px;
+}
+.book-page ::-webkit-scrollbar-thumb:hover { background: var(--color-gold); background-clip: padding-box; }
+.book-page ::-webkit-scrollbar-corner { background: transparent; }
+@supports not selector(::-webkit-scrollbar) {
+  .book-page, .book-page * { scrollbar-width: thin; scrollbar-color: var(--color-gold-deep) rgba(46, 21, 8, 0.28); }
+}
 
 /* ═══════════════════════════════════════════
    NAVBAR
@@ -464,84 +509,53 @@ main.app-main {
 
 .gold-light { color: var(--color-gold-light); }
 
-/* ═══════════════════════════════════════════
-   HERO SECTION — Netflix full-width banner
-   ═══════════════════════════════════════════ */
-.hero-section {
-  position: relative;
-  height: clamp(260px, 38vh, 480px);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  overflow: hidden;
-}
-
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(10,4,0,0.25) 0%,
-    rgba(10,4,0,0.1) 40%,
-    rgba(26,10,2,0.85) 85%,
-    rgba(26,10,2,1) 100%
-  );
+/* v1.14.0 — the Home intro card (left page): the anti-bot result under the text, the tutorial button at the foot. */
+.home-intro-extra {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 24px 32px;
+  gap: 10px;
   text-align: center;
 }
-
-.hero-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vw, 3rem);
-  color: var(--color-gold-light);
-  text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 0 30px rgba(200,150,10,0.3);
-  margin-bottom: 8px;
+.home-intro-extra:empty { display: none; }
+.home-intro-antibot {
+  margin-top: 12px;
+  font-style: normal;
+  text-align: center;
 }
-
-.hero-sub {
-  font-family: var(--font-heading);
-  color: var(--color-parchment-dark);
-  font-size: 1.05rem;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+.book-page-extra .home-tutorial-btn {
+  display: block;
+  margin: 4px auto;
+  padding: 12px 32px;
+  font-size: 1.5rem !important;
+  white-space: normal;
 }
-/* Step 42 — "Play the tutorial" above the hero title. */
-.home-tutorial-btn { margin-bottom: 14px; }
-
-/* v0.37.6 — antibot strip over the hero picture, above the title. */
 .home-antibot-strip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 12px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: rgba(10,4,0,0.55);
-  backdrop-filter: blur(2px);
 }
-.home-antibot-strip .turnstile-checking {
-  color: var(--color-gold-light);
-  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+.home-intro-antibot .turnstile-checking {
+  margin-top: 0 !important;
+  font-size: 1.25rem;
+  color: var(--color-gold-super-deep) !important;
 }
-
-.hero-info-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+.home-antibot-success {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: var(--color-gold-super-deep);
 }
+.home-antibot-success .fa-check-circle { color: #2e8b57; }
+/* It leaves after a few seconds (HomePage): a short fade at the end, none with reduced motion. */
+.home-antibot-success { animation: home-antibot-out 4s ease-in forwards; }
+@keyframes home-antibot-out { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .home-antibot-success { animation: none; } }
+html[data-pg-reduced] .home-antibot-success { animation: none; }
 
 /* ═══════════════════════════════════════════
-   STORY CATALOG (Netflix style)
+   STORY CATALOG — v1.14.0: one dealt grid on the Home's right page
    ═══════════════════════════════════════════ */
-.stories-section {
-  padding: 20px 20px 0;
-  max-width: 1400px;
-  margin: 0 auto;
-  
-}
 .stories-section-center {
   text-align: center;
 }
@@ -555,24 +569,6 @@ main.app-main {
   color:var(--color-gold-light);
 }
 
-.section-label {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  color: var(--color-gold-light);
-  border-left: 3px solid var(--color-gold);
-  padding-left: 10px;
-  margin-bottom: 14px;
-}
-
-.stories-grid {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  padding: 12px 4px 16px;
-  scroll-snap-type: x mandatory;
-}
-
-.stories-grid::-webkit-scrollbar { height: 4px; }
 .stories-empty{
   font-style: italic;
   font-size: 1.5rem;
@@ -585,15 +581,9 @@ main.app-main {
 /* ═══════════════════════════════════════════
    STORY CARD (home) — shared Card, variant "little"
    ═══════════════════════════════════════════ */
-/* Fixed catalog size: it must win over the flex:1 of .pg-card--grid. */
-.story-netflix-card {
-  scroll-snap-align: start;
-  cursor: pointer;
-  width: 225px;
-  flex: 0 0 225px;
-  aspect-ratio: 2 / 3;
-  border-color: var(--color-brown-mid);
-}
+/* v1.14.0 — a normal grid card (no fixed width); its border is the front face's. */
+.story-netflix-card { cursor: pointer; }
+.story-netflix-card > .pg-card__front { border-color: var(--color-brown-mid); }
 /* The overlay box only carries the badges here: no darkening gradient. */
 .story-netflix-card .gc-img__overlay { background: none; }
 /* Badge strip: no height of its own, so it hangs over the top of the picture. */
@@ -602,8 +592,7 @@ main.app-main {
 .story-card--soon { cursor: default; }
 .story-card--soon .gc-img { filter: grayscale(35%) brightness(0.8); }
 
-/* Category badge top-right — hidden for now: the section label already names the category. */
-.story-netflix-card .story-card-badge { display: none; }
+/* Category badge top-right: v1.14.0 — shown, the catalog has no category rows any more. */
 
 .story-card-badge {
   position: absolute;
@@ -1095,7 +1084,7 @@ main.app-main {
   inset: 0;
   z-index: 5;
   /*background: var(--book-page-background);*/
-  animation: fadeIn 0.18s ease;
+  /* step 15: no fade of its own, the Book fades the page (phones: FadeIn) */
   overflow: hidden;
 }
 .card-preview-overlay {
@@ -1213,7 +1202,9 @@ main.app-main {
   transition: filter 0.2s, transform 0.15s;
   white-space: nowrap;
 }
-.btn-start-game:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+@media (hover: hover) {
+  .btn-start-game:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+}
 .btn-start-game:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* StartGameView footer: Back + Start side by side. */
@@ -1289,7 +1280,7 @@ main.app-main {
   cursor: not-allowed;
 }
 
-.config-card-selected  {
+.config-card-selected > .pg-card__front {
   border-color: var(--color-gold-shine) !important;
   box-shadow: 0 0 16px rgba(255,215,0,0.4), 0 0 6px rgba(255,215,0,0.2);
 }
@@ -1327,7 +1318,9 @@ main.app-main {
   display: block;
   transition: transform 0.4s ease;
 }
-.config-card-cover:not(.config-card-disabled):hover .config-cover-img { transform: scale(1.07); }
+@media (hover: hover) {
+  .config-card-cover:not(.config-card-disabled):hover .config-cover-img { transform: scale(1.07); }
+}
 
 .config-cover-badge {
   position: absolute;
@@ -1544,15 +1537,6 @@ main.app-main {
   color: var(--color-gold-super-deep);
   margin: 0;
 }
-/* Mobile picker: the back arrow the picker itself no longer draws. */
-.book-mobile-back {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: var(--color-gold-light);
-  font-size: 1.5rem;
-  padding: 4px 10px;
-}
 
 /* Trait picker: the cost used/max badges are the whole header now — centred over the list. */
 .trait-budget-info {
@@ -1577,18 +1561,18 @@ main.app-main {
 .pg-card--phase-pending .gc-placeholder,
 .pg-card--phase-pending .gc-footer__cards-buttons { color: var(--color-ash); opacity: 0.5; }
 /* A finished thing — a completed start phase, a done mission or step — reads green. */
-.pg-card--phase-complete, .pg-card--done { border-color: #2ecc71 !important; }
+.pg-card--phase-complete > .pg-card__front, .pg-card--done > .pg-card__front { border-color: #2ecc71 !important; }
 .pg-card--phase-complete .gc-placeholder,
 .pg-card--phase-complete .gc-footer__cards-buttons,
 .pg-card--done .gc-placeholder,
 .pg-card--done .gc-footer__cards-buttons { color: #2ecc71; opacity: 1; }
-.pg-card--phase-inProgress {
+.pg-card--phase-inProgress > .pg-card__front {
   border-color: var(--color-gold-shine) !important;
   box-shadow: 0 0 18px rgba(255,215,0,0.55), 0 0 6px rgba(255,215,0,0.3);
 }
 .pg-card--phase-inProgress .gc-placeholder,
 .pg-card--phase-inProgress .gc-footer__cards-buttons { color: var(--color-gold-shine); opacity: 1; }
-.pg-card--phase-failed { border-color: #e74c3c !important; }
+.pg-card--phase-failed > .pg-card__front { border-color: #e74c3c !important; }
 /* v1.2.0 — the login card of a Google user: green "Logged" check */
 .pg-card--logged .gc-footer__cards-buttons { color: #2ecc71; opacity: 1; }
 .pg-card--phase-failed .gc-placeholder,
@@ -1611,13 +1595,14 @@ main.app-main {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden; /* v1.14.0 — a dealt card flying in never adds a horizontal bar */
   padding: 6px 4px 10px;
 }
 
-/* legacy 3-col grid (kept for any remaining usages) */
+/* Every card grid; v1.14.0 — its columns come from --cards-cols (variables.css). */
 .selection-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cards-cols), minmax(0, 1fr));
   grid-auto-rows: auto;
   align-content: start;
   align-items: start;
@@ -1655,9 +1640,6 @@ main.app-main {
   border-bottom: 2px solid var(--color-gold-dark);
   flex-shrink: 0;
   border-radius: 8px 8px 0 0;
-}
-.stories-grid .gc-title__text{
-  font-size: 1.25rem;
 }
 .gc-title__text {
   flex: 0 0 auto;      /* v0.38.2 — the title never gives way to the badges */
@@ -1894,7 +1876,9 @@ main.app-main {
   display: block;
   transition: transform 0.45s ease;
 }
-.card-big:not(.config-card-disabled):hover .card-big__img { transform: scale(1.07); }
+@media (hover: hover) {
+  .card-big:not(.config-card-disabled):hover .card-big__img { transform: scale(1.07); }
+}
 
 /* icon placeholder when no image */
 .card-big__placeholder {
@@ -2001,7 +1985,9 @@ main.app-main {
   overflow: hidden;
 }
 
-.choice-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+@media (hover: hover) {
+  .choice-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+}
 
 .choice-card.selected-card {
   border-color: var(--color-gold-shine);
@@ -2027,7 +2013,9 @@ main.app-main {
   display: block;
   transition: transform 0.4s ease;
 }
-.choice-card:hover .choice-card-img { transform: scale(1.07); }
+@media (hover: hover) {
+  .choice-card:hover .choice-card-img { transform: scale(1.07); }
+}
 .choice-card-img-overlay {
   position: absolute;
   inset: 0;
@@ -2501,16 +2489,7 @@ main.app-main {
   margin-top: 8px;
 }
 
-@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  .start-match-wrapper {
-    flex-direction: column;
-    height: auto;
-    width: 100%;
-    max-width: 500px;
-  }
-  .start-match-wrapper .book-page { width: 100%; height: auto; min-height: 280px; }
-  .start-match-wrapper .book-spine { display: none; }
-}
+/* v1.14.0 — phones: the start-match book stacks like every other book (mobile.css). */
 
 
 /* ═══════════════════════════════════
@@ -2521,7 +2500,9 @@ main.app-main {
   flex-direction: column;
   height: 100%;
   padding: 0.5rem 0.25rem;
-  overflow: hidden;
+  /* v1.14.0 — the wrap scrolls, not the dealt list inside it (animations.css). */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .matches-list-title {
   display:none;
@@ -2638,38 +2619,6 @@ main.app-main {
 }
 .match-info-close:hover { color: var(--color-gold); }
 
-/* ═══════════════════════════════════
-   CARD PREVIEW MODAL (mobile "big card" from the (i) lens)
-   ═══════════════════════════════════ */
-.card-preview-modal-content {
-  position: relative;
-  background: transparent;
-  border: none;
-  pointer-events: auto;
-}
-.card-preview-modal-body {
-  padding: 0;
-  height: min(88vh, 680px);
-  display: flex;
-  flex-direction: column;
-  pointer-events: auto;
-}
-.card-preview-modal-body .book-page-content {
-  flex: 1;
-  min-height: 0;
-  pointer-events: auto;
-}
-.card-preview-modal-body a,
-.card-preview-modal-body .gc-credits__link {
-  cursor: pointer;
-  pointer-events: auto;
-}
-.card-preview-modal-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 5;
-}
 
 /* ═══════════════════════════════════
    GAME MAP (Step 0.28.5) — MapPage on the left book page
@@ -2860,8 +2809,8 @@ main.app-main {
    zero — the map was invisible. Pin an explicit height so it shows and stays
    pannable (drag + the +/−/◎ buttons; no wheel on touch). */
 @media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  .book-mobile-layout .game-map-page { height: auto; }
-  .book-mobile-layout .game-map-canvas {
+  .book-wrapper .game-map-page { height: auto; }
+  .book-wrapper .game-map-canvas {
     flex: none;
     height: clamp(300px, 55vh, 460px);
   }
@@ -2871,9 +2820,9 @@ main.app-main {
      with absolute left/top in px, stayed put — lines drawn off their circles.
      The world is a pan/zoom plane in graph coordinates: it must keep its own
      size and let .game-map-canvas do the clipping. */
-  .book-mobile-layout .game-map-world,
-  .book-mobile-layout .game-map-svg,
-  .book-mobile-layout .game-map-node { max-width: none; }
+  .book-wrapper .game-map-world,
+  .book-wrapper .game-map-svg,
+  .book-wrapper .game-map-node { max-width: none; }
 }
 
 /* ── Match history (Step 28.7 logs API) ──────────────────────────────────────
@@ -3197,7 +3146,7 @@ main.app-main {
   overflow: hidden;
 }
 .match-card-cancelled-note { font-style: italic; }
-.pg-card--match-highlight { box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 14px var(--color-gold-deep); }
+.pg-card--match-highlight > .pg-card__front { box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 14px var(--color-gold-deep); }
 .story-card-status--cancelled { opacity: 0.85; }
 .start-match-account-hint {
   margin: 0.025rem 0;
@@ -3213,7 +3162,7 @@ main.app-main {
   overflow: hidden;
 }
 /* v1.8.0 — guest login card: no artwork, the hint fills the card and its text follows the card width */
-.pg-card--login-guest { container-type: inline-size; }
+.pg-card--login-guest > .pg-card__front { container-type: inline-size; }
 .pg-card--login-guest .gc-placeholder { display: none; }
 .pg-card--login-guest .book-page-extra {
   flex: 1 1 auto;
@@ -3264,3 +3213,13 @@ main.app-main {
 @media (hover: none) {
   [data-tip] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 }
+
+/* ═══ TAP FEEDBACK (step 16) — touch has no hover: a pressed button shrinks a little, no grey tap flash ═══ */
+.gc-footer__btn,
+.book-bookmark,
+.lang-btn,
+.btn-start-game { -webkit-tap-highlight-color: transparent; }
+.gc-footer__btn:active,
+.book-bookmark:not(.is-active):not(.is-disabled):active,
+.lang-btn:active:not(:disabled),
+.btn-start-game:active:not(:disabled) { transform: scale(0.96); }

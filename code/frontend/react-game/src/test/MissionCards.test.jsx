@@ -48,3 +48,11 @@ describe('MissionCards (Step 37)', () => {
     expect(screen.getByText('game.missions.empty')).toBeTruthy()
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('MissionCards — dealt grid (step 14)', () => {
+  it('the list carries pg-dealt', () => {
+    const { container } = render(<MissionCards missions={[{ uuid: 'a', name: 'Alpha', status: 'ACTIVE' }]} />)
+    expect(container.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

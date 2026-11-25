@@ -15,7 +15,11 @@ const guestCtx = {
   matches: null,
 }
 vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => guestCtx }))
-vi.mock('../components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
+vi.mock('../components/book/Book', () => ({
+  default: ({ left, right, pageKey, direction }) => (
+    <div data-testid="book" data-key={pageKey} data-direction={direction ?? 'none'}>{left}{right}</div>
+  ),
+}))
 vi.mock('../components/layout/Card', () => ({
   default: ({ card, onClose }) => (
     <div data-testid="bpc">
@@ -25,9 +29,10 @@ vi.mock('../components/layout/Card', () => ({
   ),
 }))
 vi.mock('@/features/guest-user/UserMatchesList', () => ({
-  default: ({ onPreviewCard, preloadedMatches }) => (
+  default: ({ onPreviewCard, preloadedMatches, onOpenPreferences }) => (
     <>
       <span data-testid="preloaded">{preloadedMatches ? preloadedMatches.length : 'none'}</span>
+      <button onClick={onOpenPreferences}>open-preferences</button>
       <button onClick={() => onPreviewCard({ card: { title: 'Prev' }, story: { title: 'S' } })}>preview</button>
       <button onClick={() => onPreviewCard({
         card: { title: 'Prev' }, story: { title: 'S' }, match: { uuid: 'm1' },
@@ -76,6 +81,9 @@ vi.mock('@/components/layout/LoadingCard', () => ({
   default: () => <div data-testid="loading-card" />,
 }))
 vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div /> }))
+vi.mock('@/features/preferences/PreferencesEditor', () => ({
+  default: ({ onBack }) => <div data-testid="preferences-editor"><button onClick={onBack}>prefs-back</button></div>,
+}))
 vi.mock('../components/ui/TurnstileWidget', () => ({
   default: ({ onSuccess, onError, onExpire }) => (
     <div>
@@ -99,6 +107,23 @@ describe('PlayerBook (antibot + preview)', () => {
     fireEvent.click(screen.getByText('startMatch.retry'))
     // retry → back to checking
     expect(screen.getByText('antibot.verifying')).toBeInTheDocument()
+  })
+
+  it('step 16 — the preferences card opens the editor on the right page (forward), its back arrow turns back', () => {
+    render(<PlayerBook />)
+    fireEvent.click(screen.getByText('ts-success'))
+    const before = Number(screen.getByTestId('book').dataset.key)
+    fireEvent.click(screen.getByText('open-preferences'))
+    expect(screen.getByTestId('preferences-editor')).toBeInTheDocument()
+    expect(screen.queryByText('preview-match')).not.toBeInTheDocument()
+    expect(screen.getByTestId('book')).toHaveAttribute('data-direction', 'forward')
+    expect(Number(screen.getByTestId('book').dataset.key)).toBe(before + 1)
+    // the left page (the user card) stays
+    expect(screen.getByText('guest_x')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('prefs-back'))
+    expect(screen.queryByTestId('preferences-editor')).not.toBeInTheDocument()
+    expect(screen.getByText('preview-match')).toBeInTheDocument()
+    expect(screen.getByTestId('book')).toHaveAttribute('data-direction', 'back')
   })
 
   // v0.37.4 — (i) on a match: story card left, the match's MISSIONS right, the history a
@@ -199,5 +224,46 @@ describe('PlayerBook (antibot + preview)', () => {
   it('v1.13.0 — always renders: the /player route decides when it shows', () => {
     const { container } = render(<PlayerBook />)
     expect(container.firstChild).not.toBeNull()
+  })
+})
+
+// Step 15 — the player page turns: a match, a mission, the history forward; every back arrow back; a step (i) fades.
+describe('PlayerBook — page turns', () => {
+  const book = () => screen.getByTestId('book')
+
+  it('forward into a match, its mission and the history; back out one page at a time; a step fades', () => {
+    missionsState.missions = [{ uuid: 'q1', name: 'Quest' }]
+    missionsState.loading = false
+    render(<PlayerBook />)
+    fireEvent.click(screen.getByText('ts-success'))
+    expect(book().dataset).toMatchObject({ key: '0', direction: 'none' })
+    fireEvent.click(screen.getByText('preview-match'))
+    expect(book().dataset).toMatchObject({ key: '1', direction: 'forward' })
+    fireEvent.click(screen.getByText('open:Quest'))
+    expect(book().dataset).toMatchObject({ key: '2', direction: 'forward' })
+    fireEvent.click(screen.getByText('step-info'))
+    expect(book().dataset).toMatchObject({ key: '3', direction: 'fade' })
+    fireEvent.click(screen.getAllByText('bpc-close').at(-1))
+    expect(book().dataset).toMatchObject({ key: '4', direction: 'fade' })
+    fireEvent.click(screen.getAllByText('bpc-close')[0])
+    expect(book().dataset).toMatchObject({ key: '5', direction: 'back' })
+    fireEvent.click(screen.getByText('history-card'))
+    expect(book().dataset).toMatchObject({ key: '6', direction: 'forward' })
+    fireEvent.click(screen.getByText('log-back'))
+    expect(book().dataset).toMatchObject({ key: '7', direction: 'back' })
+    fireEvent.click(screen.getAllByText('bpc-close')[0])
+    expect(book().dataset).toMatchObject({ key: '8', direction: 'back' })
+  })
+
+  it('missions loading → loaded is no turn', () => {
+    missionsState.missions = []
+    missionsState.loading = true
+    const { rerender } = render(<PlayerBook />)
+    fireEvent.click(screen.getByText('ts-success'))
+    fireEvent.click(screen.getByText('preview-match'))
+    expect(screen.getByTestId('loading-card')).toBeInTheDocument()
+    missionsState.loading = false
+    rerender(<PlayerBook />)
+    expect(book().dataset).toMatchObject({ key: '1', direction: 'forward' })
   })
 })

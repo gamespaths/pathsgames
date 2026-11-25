@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({
@@ -9,12 +9,13 @@ const bookProps = vi.hoisted(() => ({ last: null }))
 vi.mock('../components/book/Book', () => ({
   default: (props) => {
     bookProps.last = props
-    return <div data-testid="book">{props.left}{props.right}{props.mobile}</div>
+    return <div data-testid="book">{props.left}{props.right}</div>
   },
 }))
 vi.mock('../components/layout/Card', () => ({
-  default: ({ card, loading }) => (
-    <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title ?? card?.name}</div>
+  default: ({ card, loading, onAction, actionLabel }) => (
+    <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title ?? card?.name}
+      {onAction && <span data-testid="page-action">{actionLabel}</span>}</div>
   ),
 }))
 
@@ -55,22 +56,21 @@ describe('EndGameBook', () => {
     expect(pages.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('renders the close button in mobile layout', () => {
+  it('the end card carries the home action (one tree: no separate close button)', () => {
     wrap()
-    expect(screen.getByText('game.endGameClose')).toBeInTheDocument()
+    expect(screen.getByTestId('page-action')).toHaveTextContent('game.endGameClose')
+    expect(document.querySelector('.end-game-actions')).toBeNull()
   })
 
-  it('stacks the story and end-game cards in the mobile layout too', () => {
+  it('v1.14.0 — one tree: the story and the end-game pages are rendered once each', () => {
     wrap()
-    // desktop left + right + mobile story + mobile end-game = 4 page cards
-    expect(screen.getAllByTestId('book-page').length).toBeGreaterThanOrEqual(4)
+    expect(screen.getAllByTestId('book-page')).toHaveLength(2)
+    expect(bookProps.last.mobile).toBeUndefined()
   })
 
-  it('navigates to home when close button is clicked', () => {
-    wrap()
-    fireEvent.click(screen.getByText('game.endGameClose'))
-    // After click the MemoryRouter should have navigated to '/'
-    // No crash = navigation succeeded
+  it('the missions branch keeps the plain wrapper (the end card goes on top on phones only at the ending)', () => {
+    wrap({ missions: [{ uuid: 'm1', status: 'OPEN', card: { title: 'M1' } }] })
+    expect(bookProps.last.wrapperClass ?? 'book-wrapper').toBe('book-wrapper')
   })
 
   it('renders without endGameCard gracefully', () => {

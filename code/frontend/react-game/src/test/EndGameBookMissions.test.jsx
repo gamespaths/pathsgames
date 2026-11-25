@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, renderHook, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({ useTranslation: () => ({ t: (k) => k }) }))
 vi.mock('@/i18n/context', () => ({ useTranslation: () => ({ t: (k) => k }) }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right }) => <div data-testid="book">{left}{right}</div>,
+  default: ({ left, right, pageKey, direction, wrapperClass }) => (
+    <div data-testid="book" data-key={pageKey} data-direction={direction ?? 'none'} className={wrapperClass}>{left}{right}</div>
+  ),
 }))
 // One mock for every Card: the title, a back arrow and an (i), so the flow is driven by clicks.
 vi.mock('@/components/layout/Card', () => ({
@@ -20,7 +22,7 @@ vi.mock('@/components/layout/Card', () => ({
   ),
 }))
 
-import EndGameBook from '../features/gameplay/EndGameBook'
+import EndGameBook, { useEndGamePages } from '../features/gameplay/EndGameBook'
 
 const STORY = { title: 'Epic Quest', card: { title: 'Epic Quest' } }
 const END_CARD = { title: 'Victory!' }
@@ -102,5 +104,38 @@ describe('EndGameBook — missions first (v0.37.4)', () => {
       .toEqual(['Epic Quest', 'Victory!'])
     wrap({ missions: null })
     expect(screen.queryByText('game.missions.title')).toBeNull()
+  })
+})
+
+// Step 15 — the end game pages turn: grid → steps forward, steps → grid and missions → ending back, a step (i) fades.
+describe('useEndGamePages — page turns', () => {
+  const book = () => screen.getByTestId('book')
+
+  it('turns forward into a mission, fades a step in and out, turns back to the grid and to the ending', () => {
+    wrap()
+    expect(book().dataset).toMatchObject({ key: '0', direction: 'none' })
+    expect(book()).toHaveClass('book-wrapper')
+    expect(book()).not.toHaveClass('end-game-wrapper')
+    fireEvent.click(screen.getByText('info:Find the key'))
+    expect(book().dataset).toMatchObject({ key: '1', direction: 'forward' })
+    fireEvent.click(screen.getByText('info:Climb the peak'))
+    expect(book().dataset).toMatchObject({ key: '2', direction: 'fade' })
+    fireEvent.click(screen.getByText('back:Climb the peak'))
+    expect(book().dataset).toMatchObject({ key: '3', direction: 'fade' })
+    fireEvent.click(screen.getByText('back:Find the key'))
+    expect(book().dataset).toMatchObject({ key: '4', direction: 'back' })
+    fireEvent.click(screen.getByText('back:game.missions.title'))
+    expect(book().dataset).toMatchObject({ key: '5', direction: 'back' })
+    expect(book()).toHaveClass('end-game-wrapper')
+  })
+
+  it('enter() goes back to the first reading with ONE forward turn (GameBook calls it at the game end)', () => {
+    const { result } = renderHook(() => useEndGamePages({ story: STORY, endGameCard: END_CARD, missions: MISSIONS }),
+      { wrapper: MemoryRouter })
+    act(() => { result.current.left.props.onClose() })
+    expect(result.current.wrapperClass).toBe('book-wrapper end-game-wrapper')
+    act(() => { result.current.enter() })
+    expect(result.current.wrapperClass).toBe('book-wrapper')
+    expect(result.current).toMatchObject({ pageKey: 2, direction: 'forward' })
   })
 })

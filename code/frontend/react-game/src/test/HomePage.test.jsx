@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 
 // Controllable Turnstile mock: on mount it fires onSuccess (human) by default,
 // or onError when `ts.behavior` is flipped to 'bot' before render.
-const ts = vi.hoisted(() => ({ behavior: 'success' }))
+const ts = vi.hoisted(() => ({ behavior: 'success', pass: null }))
 vi.mock('@marsidev/react-turnstile', async () => {
   const { useEffect } = await import('react')
   return {
@@ -12,6 +12,7 @@ vi.mock('@marsidev/react-turnstile', async () => {
       useEffect(() => {
         if (ts.behavior === 'bot') onError?.()
         else if (ts.behavior === 'pending') { /* v0.37.6 — never answers */ }
+        else if (ts.behavior === 'manual') ts.pass = onSuccess
         else onSuccess?.('test-token')
       }, [])
       return <div data-testid="turnstile-mock" />
@@ -240,10 +241,11 @@ describe('HomePage — story click with active match check', () => {
     expect(await screen.findByText('Forest Path')).toBeInTheDocument()
     expect(screen.getByTestId('turnstile-mock')).toBeInTheDocument()
     expect(screen.getByText('antibot.verifying')).toBeInTheDocument()
-    // The strip overlays the hero picture, above the title.
-    const strip = document.querySelector('.hero-overlay > .home-antibot-strip')
+    // Step 14 — the strip sits right under the intro text (left page), not at the card's foot.
+    const strip = document.querySelector('.book-page-left .book-page-desc > .home-intro-antibot > .home-antibot-strip')
     expect(strip).toContainElement(screen.getByTestId('turnstile-mock'))
-    expect(strip.nextElementSibling).toHaveClass('hero-title')
+    expect(strip.closest('.book-page-desc')).toHaveTextContent(/^home\.heroSub/)
+    expect(document.querySelector('.home-intro-extra .home-antibot-strip')).toBeNull()
     await waitFor(() => expect(listMatches).toHaveBeenCalledTimes(1))
     expect(screen.getByTestId('footer-state').textContent).toBe('loading')
     expect(screen.getByTestId('home-error').textContent).toBe('none')
@@ -445,10 +447,11 @@ describe('HomePage v1.2.0 — after a Google logout with no guest to resume', ()
   })
 })
 
-describe('HomePage v1.13.0 — interim policy chapter host (until step 14)', () => {
+describe('HomePage — step 14, the Home is a book', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ts.behavior = 'pending'
+    ts.pass = null
     guest.user = mockUser
     guest.error = null
     guest.sessionIdle = false
@@ -457,27 +460,121 @@ describe('HomePage v1.13.0 — interim policy chapter host (until step 14)', () 
     listMatches.mockResolvedValue([])
   })
 
-  it('no chapter: no Book, the hero and the catalog as usual', async () => {
+  it('intro card on the left page, the stories on the right, no home tab', async () => {
     const { container } = wrap(<HomePage />)
     await screen.findByText('Forest Path')
-    expect(container.querySelector('.book-stage')).toBeNull()
-    expect(container.querySelector('.home-page')).not.toHaveClass('book-content--covered')
+    expect(container.querySelector('.book-stage.home-book-stage > .book-shell > .book-wrapper.home-book')).toBeInTheDocument()
+    expect(container.querySelector('.book-stage')).toHaveClass('book-stage--no-tabs')
+    expect(container.querySelector('.book-bookmark--home')).toBeNull()
+    expect(container.querySelector('.book-page-left')).toHaveTextContent('home.heroTitle')
+    expect(container.querySelector('.book-page-right')).toContainElement(screen.getByText('Forest Path'))
+    // no hero banner and no mobile copy any more
+    expect(container.querySelector('.hero-section')).toBeNull()
+    expect(container.querySelector('.book-mobile-layout')).toBeNull()
   })
 
-  it('a chapter covers the hero and the catalog (kept mounted, Turnstile running) under a tab-less Book', async () => {
+  it('the intro card: the Home title is the h1, the subtitle its text, the home photo credited', async () => {
+    const images = (await import('../data/images.json')).default
+    const home = images.find(x => x.id === 'home')
+    const { container } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveClass('book-page-title')
+    expect(h1).toHaveTextContent('home.heroTitle')
+    expect(container.querySelector('.book-page-left .book-page-desc')).toHaveTextContent('home.heroSub')
+    expect(container.querySelector('.book-page-left img').getAttribute('src')).toBe(home.urlImage)
+    // no tip and no type badge: only the picture credit in the bar
+    expect(container.querySelector('.book-page-left [data-testid="credit-image"]')).toBeInTheDocument()
+    expect(container.querySelector('.book-page-left [data-testid="credit-tip"]')).toBeNull()
+    expect(container.querySelector('.book-page-left .gc-type-badge-credits')).toBeNull()
+  })
+
+  it('the strip while checking, then a success line under the intro text that leaves after 4 s', async () => {
+    ts.behavior = 'manual'
+    const { container } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    const desc = container.querySelector('.book-page-left .book-page-desc')
+    expect(desc).toContainElement(screen.getByTestId('turnstile-mock'))
+    expect(screen.queryByTestId('antibot-success')).toBeNull()
+    vi.useFakeTimers()
+    try {
+      await act(async () => { ts.pass('tok') })
+      expect(screen.queryByTestId('turnstile-mock')).toBeNull()
+      expect(desc).toContainElement(screen.getByTestId('antibot-success'))
+      expect(screen.getByTestId('antibot-success')).toHaveTextContent('antibot.success')
+      expect(container.querySelector('.home-intro-extra [data-testid="antibot-success"]')).toBeNull()
+      act(() => { vi.advanceTimersByTime(3999) })
+      expect(screen.getByTestId('antibot-success')).toBeInTheDocument()
+      act(() => { vi.advanceTimersByTime(1) })
+      expect(screen.queryByTestId('antibot-success')).toBeNull()
+      expect(container.querySelector('.home-intro-antibot')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('no success line when no check ran on this visit (recent pass cookie)', async () => {
+    document.cookie = 'pathsgames.turnstilePass=1; path=/'
+    listMatches.mockResolvedValue([])
+    const { container } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    expect(screen.queryByTestId('turnstile-mock')).toBeNull()
+    expect(screen.queryByTestId('antibot-success')).toBeNull()
+    expect(container.querySelector('.home-intro-antibot')).toBeNull()
+  })
+
+  it('a blocked check shows nothing on the card: the navbar says it', async () => {
+    ts.behavior = 'bot'
+    const { container } = wrap(<HomePage />)
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('antibot'))
+    expect(container.querySelector('.home-antibot-strip')).toBeNull()
+    expect(screen.queryByTestId('antibot-success')).toBeNull()
+  })
+
+  it('keeps the stories heading in the markup, hidden by CSS', async () => {
+    const { container } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    const heading = container.querySelector('.book-page-right h2.book-cards-heading')
+    expect(heading).toHaveTextContent('home.stories')
+  })
+
+  it('loading: the game loading page on the right page', async () => {
+    getStories.mockReturnValue(new Promise(() => {}))
+    const { container } = wrap(<HomePage />)
+    const right = container.querySelector('.book-page-right')
+    expect(right.querySelector('.book-page-content .book-page-loading')).toBeInTheDocument()
+    expect(right).toHaveTextContent('game.loadingCard.title')
+    expect(screen.queryByTestId('tutorial-btn')).toBeNull()
+  })
+
+  it('fetch error: the yellow sign on the right page', async () => {
+    getStories.mockRejectedValue(new Error('down'))
+    const { container } = wrap(<HomePage />)
+    const alert = await screen.findByRole('alert')
+    expect(container.querySelector('.book-page-right')).toContainElement(alert)
+  })
+
+  it('is rendered once: one Turnstile widget, one book, one catalog', async () => {
+    const { container } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    expect(screen.getAllByTestId('turnstile-mock')).toHaveLength(1)
+    expect(container.querySelectorAll('.book-wrapper')).toHaveLength(1)
+    expect(screen.getAllByText('Forest Path')).toHaveLength(1)
+  })
+
+  it('a policy chapter covers both pages, kept mounted with the widget running', async () => {
     const { PolicyBookProvider, usePolicyBook } = await import('../context/PolicyBookContext')
     function Opener() { const { openPolicyBook } = usePolicyBook(); return <button onClick={() => openPolicyBook('privacy')}>open-privacy</button> }
     const { container } = render(<PolicyBookProvider>{tree(<><Opener /><HomePage /></>)}</PolicyBookProvider>)
     await screen.findByText('Forest Path')
     fireEvent.click(screen.getByText('open-privacy'))
-    const stage = container.querySelector('.book-stage')
-    expect(stage).toHaveClass('book-stage--no-tabs')
+    expect(container.querySelector('.book-stage')).toHaveClass('book-stage--no-tabs')
     expect(container.querySelector('.book-bookmark--home')).toBeNull()
-    expect(container.querySelector('.book-content--chapter')).toBeInTheDocument()
-    const home = container.querySelector('.home-page')
-    expect(home).toHaveClass('book-content--covered')
-    expect(home).toHaveAttribute('aria-hidden', 'true')
-    expect(screen.getByTestId('turnstile-mock')).toBeInTheDocument()
-    expect(screen.getByText('Forest Path')).toBeInTheDocument()
+    expect(container.querySelector('.book-page-left .book-content--chapter')).toBeInTheDocument()
+    const covered = container.querySelectorAll('.book-wrapper .book-content--covered')
+    expect(covered).toHaveLength(2)
+    covered.forEach(el => expect(el).toHaveAttribute('aria-hidden', 'true'))
+    expect(covered[0]).toContainElement(screen.getByTestId('turnstile-mock'))
+    expect(covered[1]).toContainElement(screen.getByText('Forest Path'))
   })
 })

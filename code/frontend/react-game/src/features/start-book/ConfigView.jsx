@@ -5,6 +5,7 @@ import { aggregateBonusTotals, buildConfigStatistics } from '../../utils/bonusSt
 import { buildStatisticsCard, buildNoTraitsCard, buildCharacterAttributesCard } from '@/utils/loadoutCards'
 import { traitBudgetItems } from '../../utils/traitBudget'
 import { hasChoiceForType } from './startBookOptions'
+import DealtList from '@/components/layout/DealtList'
 
 export default function ConfigView({ config, story, onChangeClick, onInfoClick, onPreview, onProceed }) {
   const { t } = useTranslation()
@@ -37,7 +38,7 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
   return (
     <div className="config-view-wrap config-view--config">
 
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
             selection list + preview together (handled by onChangeClick). */}
         <Card card={config.class?.card} entityType="class" {...selectableProps('class')} story={story} />
@@ -56,7 +57,7 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
 
 
         { /* <Card type="login"      value={loginValue}    locked onPreview={onPreview} /> */ }
-      </div>
+      </DealtList>
       {/* totalItems.length > 0 && (
         <BonusBadgeList className="config-total-bonus" items={totalItems} />
       )*/ }

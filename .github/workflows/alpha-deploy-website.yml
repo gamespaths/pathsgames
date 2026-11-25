@@ -62,6 +62,13 @@ jobs:
           VITE_ADD_COMING_SOON_STORIES: ${{ vars.VITE_ADD_COMING_SOON_STORIES }}
           VITE_HIDE_STORIES: ${{ vars.VITE_HIDE_STORIES }}
           VITE_TUTORIAL_CATEGORY: ${{ vars.VITE_TUTORIAL_CATEGORY }}
+          VITE_ANIM_DEAL: ${{ vars.VITE_ANIM_DEAL }}
+          VITE_ANIM_DEAL_FACEDOWN: ${{ vars.VITE_ANIM_DEAL_FACEDOWN }}
+          VITE_ANIM_PLAY: ${{ vars.VITE_ANIM_PLAY }}
+          VITE_ANIM_TURN: ${{ vars.VITE_ANIM_TURN }}
+          VITE_ANIM_TURN_MODE: ${{ vars.VITE_ANIM_TURN_MODE }}
+          VITE_ANIM_SPEED: ${{ vars.VITE_ANIM_SPEED }}
+          VITE_ANIM_DECK: ${{ vars.VITE_ANIM_DECK }}
         run: |
           : > .env.alpha
           for key in $(sed -n 's/^\(VITE_[A-Za-z0-9_]*\)=.*/\1/p' .env.example | sort -u); do

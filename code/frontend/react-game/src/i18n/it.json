@@ -17,7 +17,7 @@
   },
   "home": {
     "heroTitle": "Avventure Epiche ti Aspettano",
-    "heroSub": "Narrazioni ramificate. Scelte infinite.",
+    "heroSub": "Narrazioni ramificate. Scelte infinite. Ogni decisione apre un nuovo sentiero: esplora mondi vivi, affrontane i pericoli e scrivi una storia che è solo tua.",
     "stories": "Storie",
     "loading": "Caricamento storie…",
     "noStories": "Nessuna storia disponibile.",
@@ -37,7 +37,8 @@
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
     "verifying": "Verifica che tu sia umano…",
-    "error": "Verifica non riuscita — tocca per riprovare."
+    "error": "Verifica non riuscita — tocca per riprovare.",
+    "success": "Verifica superata! Sei umano."
   },
   "book": {
     "updateMatch": "Aggiornamento partita",
@@ -643,7 +644,7 @@
       "controllerTitle": "1. Chi siamo",
       "controllerBody": "Il titolare del trattamento è Paths Games. Cerchiamo di rispettare la normativa UE e USA applicabile in materia di protezione dei dati. Per qualsiasi richiesta o domanda sulla privacy, contattaci a paths.games@proton.me.",
       "dataTitle": "2. Dati che raccogliamo",
-      "dataBody": "Come ospite non chiediamo nome, email o dati di pagamento. Trattiamo un identificativo ospite anonimo (un UUID casuale e un nome utente generato automaticamente), token di sessione e di refresh che ti mantengono autenticato (conservati sui nostri server solo come hash SHA-256), i tuoi progressi di gioco collegati a tale identificativo e — solo con il tuo consenso — statistiche d'uso anonime tramite Google Analytics. Se accedi con Google trattiamo anche i dati dell'account descritti nella sezione 2.1. I nostri fornitori di hosting e content delivery trattano inoltre dati tecnici come l'indirizzo IP e il tipo di dispositivo o browser, in modo transitorio, per erogare e proteggere il servizio.",
+      "dataBody": "Come ospite non chiediamo nome, email o dati di pagamento. Trattiamo un identificativo ospite anonimo (un UUID casuale e un nome utente generato automaticamente), token di sessione e di refresh che ti mantengono autenticato (conservati sui nostri server solo come hash SHA-256), i tuoi progressi di gioco collegati a tale identificativo e — solo con il tuo consenso — statistiche d'uso anonime tramite Google Analytics. Se accedi con Google trattiamo anche i dati dell'account descritti nella sezione 2.1. I nostri fornitori di hosting e content delivery trattano inoltre dati tecnici come l'indirizzo IP e il tipo di dispositivo o browser, in modo transitorio, per erogare e proteggere il servizio. Le tue preferenze di visualizzazione (tema, dimensione del testo, colonne di carte, animazioni, vibrazione) restano nel browser e non vengono mai inviate ai nostri server.",
       "accountTitle": "2.1 Accesso con Google",
       "accountBody": "Se scegli di accedere con Google, Google Identity Services ci consegna un token firmato con l'identificativo del tuo account Google (il soggetto del provider), il tuo indirizzo email (accettiamo solo indirizzi Gmail verificati), nome e cognome, l'indirizzo della tua immagine del profilo e la tua lingua. Il tuo account è identificato dall'email e dal soggetto del provider insieme. Usiamo l'email solo per identificare il tuo account e per l'assistenza: non viene mai usata per comunicazioni commerciali senza un tuo consenso separato e non viene mai scritta nei nostri log. Il tuo nickname viene creato una sola volta dalla parte dell'email prima della '@' ed è mostrato nel gioco; nome, cognome, immagine e lingua vengono aggiornati a ogni accesso. L'immagine del profilo viene caricata direttamente da googleusercontent.com, quindi il tuo browser invia a Google il tuo indirizzo IP quando l'immagine è mostrata. Quando accedi, le partite della sessione ospite che usavi su quel dispositivo vengono collegate al tuo account.",
       "purposesTitle": "3. Perché trattiamo i dati e la base giuridica",
@@ -664,7 +665,7 @@
       "securityBody": "Adottiamo misure come HTTPS/TLS, cookie di sessione HttpOnly e controlli di accesso per proteggere i dati. Nessun metodo di trasmissione o archiviazione è completamente sicuro e il gioco è attualmente in fase di sviluppo alpha.",
       "changesTitle": "11. Modifiche a questa informativa",
       "changesBody": "Potremmo aggiornare questa informativa con l'evoluzione del gioco; le modifiche rilevanti saranno indicate dalla data di 'ultimo aggiornamento' qui sotto, mostrate agli utenti autenticati al loro accesso successivo e, ove richiesto, seguite da una nuova richiesta di consenso.",
-      "updated": "Ultimo aggiornamento: Ottobre 2026"
+      "updated": "Ultimo aggiornamento: Novembre 2026"
     },
     "terms": {
       "title": "Termini di Servizio",
@@ -705,7 +706,7 @@
       "title": "Cookie Policy",
       "intro": "Questa Cookie Policy spiega come Paths Games utilizza i cookie e tecnologie simili in questo gioco. Un cookie è un piccolo file di testo memorizzato sul tuo dispositivo. Raggruppiamo i cookie nelle categorie seguenti; puoi accettare o rifiutare i cookie non essenziali in qualsiasi momento.",
       "necessaryTitle": "1. Cookie strettamente necessari",
-      "necessaryBody": "Mantengono attiva la tua sessione e ricordano le tue scelte sui cookie. Sono essenziali, quindi sempre attivi e non richiedono consenso: pathsgames.guestcookie (180 giorni), pathsgames.refreshToken (250 giorni, rinnovato a ogni visita; 180 giorni per un ospite), pathsgames.cookiesConsent (6 mesi) e pathsgames.turnstilePass (fino a 50 ore, una verifica anti-bot recente). Il gioco conserva anche alcuni valori necessari e non personali nella memoria del browser, mai inviati come cookie: pathsgames.lang e pathsgames.highContrast (la lingua e il contrasto scelti), pg_game_server (il server di gioco) e, fino alla chiusura della scheda, pathsgames.googleNonce (un tentativo di accesso) e pg_story:* (i testi delle storie già caricati). Lo script Google Identity Services (accounts.google.com) viene caricato solo quando clicchi 'Accedi con Google', come parte strettamente necessaria dell'accesso che richiedi; Google può impostare i propri cookie nella finestra di accesso, secondo la propria cookie policy. Dopo un accesso Google Identity Services conserva anche g_state su questo sito (6 mesi): ricorda solo lo stato della richiesta di accesso ed è strettamente necessario per questa.",
+      "necessaryBody": "Mantengono attiva la tua sessione e ricordano le tue scelte sui cookie. Sono essenziali, quindi sempre attivi e non richiedono consenso: pathsgames.guestcookie (180 giorni), pathsgames.refreshToken (250 giorni, rinnovato a ogni visita; 180 giorni per un ospite), pathsgames.cookiesConsent (6 mesi) e pathsgames.turnstilePass (fino a 50 ore, una verifica anti-bot recente). Il gioco conserva anche alcuni valori necessari e non personali nella memoria del browser, mai inviati come cookie: pathsgames.lang e pathsgames.highContrast (la lingua e il contrasto scelti), pathsgames.preferences (le tue scelte di visualizzazione: tema, dimensione del testo, colonne di carte, animazioni, vibrazione), pg_game_server (il server di gioco) e, fino alla chiusura della scheda, pathsgames.googleNonce (un tentativo di accesso) e pg_story:* (i testi delle storie già caricati). Lo script Google Identity Services (accounts.google.com) viene caricato solo quando clicchi 'Accedi con Google', come parte strettamente necessaria dell'accesso che richiedi; Google può impostare i propri cookie nella finestra di accesso, secondo la propria cookie policy. Dopo un accesso Google Identity Services conserva anche g_state su questo sito (6 mesi): ricorda solo lo stato della richiesta di accesso ed è strettamente necessario per questa.",
       "analyticsTitle": "2. Cookie analitici (facoltativi)",
       "analyticsBody": "Con il tuo consenso usiamo Google Tag Manager / Google Analytics (_ga, _ga_*, fino a 2 anni) per misurare l'utilizzo in forma anonima e migliorare il gioco. Grazie a Google Consent Mode v2 restano disattivati finché non accetti e nessun cookie analitico viene scritto prima di allora.",
       "legalTitle": "3. Base giuridica",
@@ -716,7 +717,7 @@
       "thirdPartyBody": "I cookie analitici sono forniti da Google. Google fornisce anche l'accesso facoltativo, e la tua immagine del profilo è caricata da googleusercontent.com (il tuo browser invia a Google il tuo indirizzo IP quando viene mostrata). Google potrebbe trattare i dati al di fuori dello Spazio Economico Europeo; tali trasferimenti sono coperti dalle Clausole Contrattuali Standard della Commissione Europea. Non vendiamo i tuoi dati personali.",
       "rightsTitle": "6. I tuoi diritti",
       "rightsBody": "Ai sensi del GDPR puoi accedere, rettificare o cancellare i tuoi dati, opporti o limitarne il trattamento, richiederne la portabilità e revocare il consenso in qualsiasi momento. Puoi inoltre presentare reclamo all'autorità di controllo competente. Per richieste, contattaci a paths.games@proton.me.",
-      "updated": "Ultimo aggiornamento: Ottobre 2026",
+      "updated": "Ultimo aggiornamento: Novembre 2026",
       "manage": "Impostazioni cookie"
     },
     "credits": {
@@ -859,5 +860,67 @@
       "generic": "Qualcosa è andato storto, riprova."
     },
     "activeSessions": "Dispositivi usati negli ultimi 30 giorni: {count}"
+  },
+  "preferences": {
+    "title": "Preferenze",
+    "change": "Cambia",
+    "intro": "Le tue scelte di visualizzazione per questo dispositivo: valgono subito e restano in questo browser, mai sui nostri server.",
+    "sections": {
+      "display": "Aspetto",
+      "animations": "Animazioni"
+    },
+    "rows": {
+      "language": "Lingua",
+      "theme": "Tema",
+      "size": "Dimensione del testo",
+      "columns": "Colonne di carte",
+      "deal": "Distribuzione",
+      "dealFaceDown": "Distribuzione coperta",
+      "play": "Giocata",
+      "turn": "Giro pagina",
+      "turnMode": "Stile del giro",
+      "speed": "Velocità",
+      "deck": "Mazzo",
+      "vibration": "Vibrazione"
+    },
+    "theme": {
+      "medieval": "Medievale",
+      "parchment": "Pergamena"
+    },
+    "size": {
+      "small": "Piccolo",
+      "normal": "Normale",
+      "large": "Grande"
+    },
+    "sizeShort": {
+      "small": "P",
+      "normal": "M",
+      "large": "G"
+    },
+    "speed": {
+      "quarter": "¼×",
+      "half": "½×",
+      "one": "1×"
+    },
+    "turnMode": {
+      "full": "Completo",
+      "simple": "Semplice"
+    },
+    "deck": {
+      "under": "Sotto il libro",
+      "over": "Sopra il libro"
+    },
+    "on": "Attivo",
+    "off": "Spento",
+    "columnsAuto": "Auto",
+    "reducedNote": "Il dispositivo chiede movimento ridotto: le animazioni restano spente.",
+    "reset": "Torna ai valori predefiniti",
+    "badges": {
+      "language": "Lingua",
+      "theme": "Tema",
+      "size": "Testo",
+      "animations": "Animazioni",
+      "columns": "Colonne"
+    }
   }
 }

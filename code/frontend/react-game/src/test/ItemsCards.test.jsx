@@ -112,3 +112,11 @@ describe('ItemsCards', () => {
     expect(props.previewSide).toBe('right')
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('ItemsCards — dealt grid (step 14)', () => {
+  it('the list carries pg-dealt', () => {
+    const { container } = render(<ItemsCards playerStats={{ items: [ROW('r1')] }} onPreview={vi.fn()} />)
+    expect(container.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})

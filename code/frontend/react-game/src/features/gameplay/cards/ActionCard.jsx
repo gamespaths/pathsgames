@@ -45,6 +45,8 @@ export default function ActionCard({
     urlImage: action?.urlImage, awesomeIcon: action?.awesomeIcon,
   }
   const actionIcon = action?.awesomeIcon ?? action?.card?.awesomeIcon ?? 'fas fa-bolt'
+  // Step 15 — the action plays from its reading page (the small card only opens it).
+  const playId = action?.uuid ? `action:${action.uuid}` : null
 
   async function handleExecute() {
     if (running || !matchUuid || !action?.uuid) return
@@ -92,7 +94,7 @@ export default function ActionCard({
         stats: [],
         side: previewSide,
         props: available
-          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon, testId: 'action',
+          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon, testId: 'action', playId,
               actionLabelChildren: costBadge }
           : { extraContent: (<>{lockInfoFull}<RegistryLockInfo lock={registryLock} target="action" />
               <div className='display-inline-flex'>{costBadge}</div></>) },

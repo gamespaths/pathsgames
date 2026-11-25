@@ -9,14 +9,17 @@ import { sortMatchesForList } from '@/utils/matchStatus'
 import { useGuestUser } from './GuestUserContext'
 import UserStatsCard from './UserStatsCard'
 import { toEpochMs } from '@/utils/dates'
+import DealtList from '@/components/layout/DealtList'
+import PreferencesCard from '@/features/preferences/PreferencesCard'
 
 /**
  * UserMatchesList — fetches the current user's matches and story cards,
  * then renders a scrollable grid of MatchCard items.
  * v1.7.0 step 9 — active first, then last played; the matches the last login cancelled are highlighted once.
  * v1.8.0 — the user's statistics card opens the grid; cancelled and banned matches are always listed.
+ * Step 16 — with `onOpenPreferences` the preferences card follows the statistics card.
  */
-export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory }) {
+export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory, onOpenPreferences }) {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const [matches,  setMatches]  = useState([])
@@ -83,8 +86,9 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
       </h3>
 
       {/* v1.8.0 — the user's small card always opens the grid, so an empty list needs no text */}
-      <div className=" selection-list">
+      <DealtList className=" selection-list">
           <UserStatsCard />
+          {onOpenPreferences && <PreferencesCard onOpen={onOpenPreferences} />}
           {visible.map(match => (
             <MatchCard
               key={match.uuid}
@@ -96,7 +100,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
               onHistory={onOpenHistory}
             />
           ))}
-      </div>
+      </DealtList>
     </div>
   )
 }

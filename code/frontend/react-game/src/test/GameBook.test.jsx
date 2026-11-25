@@ -57,8 +57,10 @@ vi.mock('../components/layout/Card', () => ({
 }))
 vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-testid="clock-widget" /> }))
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
-vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
-vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
+vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" />,
+  // Step 15 — GameBook reads the end-game pages through the hook, in its own Book.
+  useEndGamePages: () => ({ left: <div data-testid="end-game-book" />, right: null, wrapperClass: 'book-wrapper end-game-wrapper',
+    pageKey: 0, direction: null, enter: () => {} }) }))
 vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   default: ({ onSlept }) => (
     <div data-testid="go-to-sleep-card">
@@ -69,6 +71,8 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 
 import GameBook, { lastEffectCard, statChangeItems, grantedItemUuids, itemCardForUuid } from '../features/gameplay/GameBook'
 import { endMatch, sleepCharacter, startMovement, executeEvent, getMatchWeather, getInventory } from '../api/matches'
+// Step 16 — the status card is off by default (sticky pills); these suites drive the board through it (env true).
+vi.mock('@/constants/features', async (orig) => ({ ...(await orig()), SHOW_MOBILE_CARD_CHARACTERISTICS: true }))
 
 const GAME_DATA = {
   actualLocationCard: { name: 'Entrance', title: 'Entrance' },
@@ -212,7 +216,7 @@ describe('GameBook', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(
-      sel => (sel === '.book-mobile-right' ? { scrollIntoView } : realQS(sel)))
+      sel => (sel === '.book-page-right' ? { scrollIntoView } : realQS(sel)))
     try {
       render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
       fireEvent.click(screen.getByTestId('book-close'))       // opens the close overlay (previewRight)
@@ -230,7 +234,7 @@ describe('GameBook', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(
-      sel => (sel === '.book-mobile-left' ? { scrollIntoView: scrollTo } : realQS(sel)))
+      sel => (sel === '.book-page-left' ? { scrollIntoView: scrollTo } : realQS(sel)))
     try {
       const props = { matchUuid: 'm1', story: STORY, onReload: vi.fn(), onClose: vi.fn() }
       const { rerender } = render(<GameBook gameData={GAME_DATA} {...props} />)
@@ -241,7 +245,7 @@ describe('GameBook', () => {
       // The parent delivers a fresh board (new gameData reference).
       rerender(<GameBook gameData={{ ...GAME_DATA }} {...props} />)
       // v1.13.0 — the document scrolls: the top of the stacked column comes into view
-      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ block: 'start', behavior: 'smooth' }))
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ block: 'start', behavior: 'instant' }))
     } finally {
       raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
     }
@@ -725,7 +729,7 @@ describe('GameBook v1.13.0 — home tab, policy chapter and error page', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(
-      sel => (sel === '.book-mobile-right' ? { scrollIntoView: () => order.push('scrollIntoView') } : realQS(sel)))
+      sel => (sel === '.book-page-right' ? { scrollIntoView: () => order.push('scrollIntoView') } : realQS(sel)))
     const onClose = vi.fn()
     try {
       render(<PolicyBookProvider><Probe /><GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={onClose} /></PolicyBookProvider>)
@@ -766,11 +770,11 @@ describe('GameBook v1.13.0 — home tab, policy chapter and error page', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(
-      sel => (sel === '.book-mobile-right' ? { scrollIntoView } : realQS(sel)))
+      sel => (sel === '.book-page-right' ? { scrollIntoView } : realQS(sel)))
     try {
       render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()}
         error={{ status: 500 }} onErrorClose={vi.fn()} />)
-      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
     } finally {
       raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
     }

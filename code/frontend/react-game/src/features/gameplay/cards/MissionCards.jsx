@@ -1,6 +1,7 @@
 import MissionStepCard from './MissionStepCard'
 import { orderedMissions } from '@/utils/missions'
 import { useTranslation } from '@/i18n/context'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * MissionCards — Step 37. The missions page: one card per mission the match has reached, on
@@ -20,7 +21,7 @@ export default function MissionCards({ missions, story, onPreview, onOpenMission
 
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {rows.length === 0
           ? <p className="game-empty">{t('game.missions.empty')}</p>
           : rows.map(mission => (
@@ -29,7 +30,7 @@ export default function MissionCards({ missions, story, onPreview, onOpenMission
           ))}
         {/* v0.37.4 — a caller's own cards close the grid (the profile book adds the history). */}
         {children}
-      </div>
+      </DealtList>
     </div>
   )
 }

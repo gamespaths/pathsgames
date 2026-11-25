@@ -32,8 +32,10 @@ vi.mock('../components/book/Book', () => ({
     </div>
   ),
 }))
-vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
-vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
+vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" />,
+  // Step 15 — GameBook reads the end-game pages through the hook, in its own Book.
+  useEndGamePages: () => ({ left: <div data-testid="end-game-book" />, right: null, wrapperClass: 'book-wrapper end-game-wrapper',
+    pageKey: 0, direction: null, enter: () => {} }) }))
 vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/matches/MatchLogCard', () => ({
   default: ({ onBack }) => (
@@ -80,6 +82,8 @@ vi.mock('../components/layout/Card', () => ({
 
 import GameBook from '../features/gameplay/GameBook'
 import { dropItem, executeEvent, getInventory, getMatchLocations, getMatchWeather, selectChoice, useItem } from '../api/matches'
+// Step 16 — the status card is off by default (sticky pills); these suites drive the board through it (env true).
+vi.mock('@/constants/features', async (orig) => ({ ...(await orig()), SHOW_MOBILE_CARD_CHARACTERISTICS: true }))
 
 const STORY = { uuid: 's1', title: 'Test Story', card: { title: 'Test Story' } }
 

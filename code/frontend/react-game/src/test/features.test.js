@@ -22,12 +22,12 @@ describe('constants/features', () => {
     for (const on of ['true', '1', 'yes', 'whatever']) expect(parseFlag(on, false)).toBe(true)
   })
 
-  it('ships the bookmarks on, and the status card on mobile only', () => {
+  it('ships the bookmarks on and the status card off, on phones too (step 16: the sticky pills carry it)', () => {
     expect(SHOW_BOOK_BOOKMARKS).toBe(true)
     // Inside the book the bookmarks carry the same news, so the card sits that copy out.
     expect(SHOW_CARD_CHARACTERISTICS).toBe(false)
-    // The mobile stack has no bookmarks at all: without the card the news would be lost.
-    expect(SHOW_MOBILE_CARD_CHARACTERISTICS).toBe(true)
+    // Step 16 — phones show the same bookmarks as sticky pills; VITE_SHOW_MOBILE_CARD_CHARACTERISTICS=true brings it back.
+    expect(SHOW_MOBILE_CARD_CHARACTERISTICS).toBe(false)
   })
 
   it('exposes the home flags as booleans read from the build env', () => {

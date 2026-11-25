@@ -7,6 +7,8 @@ function EndGameCard({ story, action, handleEndGamePreviewFull, handleEndGame ,
     const { t } = useTranslation()
     // The board's little card says "End Game" instead of "Info"; it still opens the page first.
     const little = variant === 'little'
+    // Step 15 — ending the match plays the card like any other answer of the board.
+    const playId = action?.uuid ? `end:${action.uuid}` : null
     return (<Card key={action.uuid} card={action.card} entityType="action" variant={variant} onClose={onBack}
         infoLabel={little ? t('game.endGame') : undefined}
         infoIconClassName={little ? 'fas fa-flag-checkered' : undefined}
@@ -16,12 +18,13 @@ function EndGameCard({ story, action, handleEndGamePreviewFull, handleEndGame ,
             props: {
                 onAction: () => handleEndGame(action),
                 actionLabel: t('game.endGame'),
-                actionIcon: 'fa-flag-checkered'
+                actionIcon: 'fa-flag-checkered',
+                playId,
             }
         })}
         onAction={() => handleEndGame(action)}
         actionLabel={ t('game.endGameShort')}  actionIcon={ 'fa-flag-checkered'}
-        story={story} flagInformationCard={true}
+        story={story} flagInformationCard={true} playId={playId}
         actionOnlyIfPreview={true} actionWithInfo={true}
     />);
 }

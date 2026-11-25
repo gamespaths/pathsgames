@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 
@@ -7,7 +7,9 @@ vi.mock('../i18n/context', () => ({
 }))
 vi.mock('../api/stories', () => ({ getStoryDetail: vi.fn(), getStories: vi.fn() }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, mobile }) => <div data-testid="book">{left}{right}{mobile}</div>,
+  default: ({ left, right, pageKey, direction }) => (
+    <div data-testid="book" data-key={pageKey} data-direction={direction ?? 'none'}>{left}{right}</div>
+  ),
 }))
 vi.mock('../components/layout/Card', () => ({
   default: ({ card, loading, onClose }) => (
@@ -35,15 +37,6 @@ vi.mock('../features/start-book/OptionPicker', () => ({
         <button key={i} onClick={() => onSelect(o)}>pick:{o.name}</button>
       ))}
       <button onClick={onBack}>back</button>
-    </div>
-  ),
-}))
-vi.mock('../features/start-book/StartBookMobile', () => ({
-  default: ({ onPreview }) => (
-    <div data-testid="mobile">
-      <button data-testid="mobile-preview" onClick={() => onPreview?.({ title: 'Preview' }, 'character')}>
-        preview
-      </button>
     </div>
   ),
 }))
@@ -178,19 +171,12 @@ describe('StartBook', () => {
     expect(await screen.findByTestId('config-view')).toBeInTheDocument()
   })
 
-  it('calls handlePreviewModal via mobile onPreview prop', async () => {
-    const show = vi.fn()
-    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue({ show }) } }
-    const el = document.createElement('div')
-    el.id = 'cardPreviewModal'
-    document.body.appendChild(el)
+  it('v1.14.0 — one tree: the story page and the loadout are rendered once (no mobile column)', async () => {
     wrap()
     await screen.findByTestId('config-view')
-    fireEvent.click(screen.getByTestId('mobile-preview'))
-    // handlePreviewModal is called — the Bootstrap modal show is attempted
-    expect(window.bootstrap.Modal.getOrCreateInstance).toHaveBeenCalled()
-    delete window.bootstrap
-    document.body.removeChild(el)
+    expect(screen.getAllByTestId('config-view')).toHaveLength(1)
+    expect(screen.queryByTestId('mobile')).toBeNull()
+    expect(document.querySelector('.book-mobile-layout, .book-mobile-back')).toBeNull()
   })
 
   it('handleSelectionPreview sets preview to null when entity is falsy', async () => {
@@ -258,6 +244,45 @@ describe('StartBook', () => {
     expect(await screen.findByText('start-match-page:true:Fighter')).toBeInTheDocument()
     fireEvent.click(screen.getByText('browser-back'))
     expect(await screen.findByTestId('saved')).toHaveTextContent('Fighter')
+  })
+})
+
+// Step 15 — the turns of the story set-up book (step file 6.4, other books).
+describe('StartBook — page turns', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStoryDetail.mockResolvedValue({ ...STORY, classes: [{ uuid: 'c1', name: 'Fighter', card: { title: 'Fighter card' } }] })
+  })
+  afterEach(() => { delete window.matchMedia; vi.restoreAllMocks() })
+  const book = () => screen.getByTestId('book')
+
+  it('"Change" opens the picker forward; its back arrow and a chosen option turn back', async () => {
+    wrap()
+    await screen.findByTestId('config-view')
+    expect(book().dataset.key).toBe('0')
+    fireEvent.click(screen.getByText('change-class'))
+    expect(book().dataset).toMatchObject({ key: '1', direction: 'forward' })
+    fireEvent.click(screen.getByText('back'))
+    expect(book().dataset).toMatchObject({ key: '2', direction: 'back' })
+    fireEvent.click(screen.getByText('change-class'))
+    fireEvent.click(screen.getByText('pick:Fighter'))
+    expect(book().dataset).toMatchObject({ key: '4', direction: 'back' })
+  })
+
+  it('a single-option detail fades in and out', async () => {
+    wrap()
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('info-class'))
+    expect(book().dataset).toMatchObject({ key: '1', direction: 'fade' })
+    fireEvent.click(screen.getAllByText('page-back').at(-1))
+    expect(book().dataset).toMatchObject({ key: '2', direction: 'fade' })
+  })
+
+  it('loading → loaded is no turn (same Book, same key)', async () => {
+    wrap()
+    expect(book().dataset.key).toBe('0')
+    await screen.findByTestId('config-view')
+    expect(book().dataset).toMatchObject({ key: '0', direction: 'none' })
   })
 })
 

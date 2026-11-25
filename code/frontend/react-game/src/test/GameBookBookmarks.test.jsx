@@ -36,8 +36,10 @@ vi.mock('../features/gameplay/cards/LocationCard', () => ({ default: () => <div 
 vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-testid="clock-widget" /> }))
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
-vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
-vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
+vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" />,
+  // Step 15 — GameBook reads the end-game pages through the hook, in its own Book.
+  useEndGamePages: () => ({ left: <div data-testid="end-game-book" />, right: null, wrapperClass: 'book-wrapper end-game-wrapper',
+    pageKey: 0, direction: null, enter: () => {} }) }))
 vi.mock('@/components/layout/Map', () => ({
   default: ({ onClose }) => (
     <div data-testid="map-page"><button data-testid="map-back" onClick={onClose}>back</button></div>
@@ -205,7 +207,10 @@ describe('GameBook — the book bookmarks', () => {
   describe('the position tab', () => {
     it('is the pin alone: the page it returns to names the location in full', () => {
       renderBook()
-      expect(tab('game.bookmarks.position').textContent).toBe('')
+      // Step 16 — the active tab carries its name for the phone pills only (hidden on desktop by book.css).
+      const label = tab('game.bookmarks.position').querySelector('.book-bookmark__label')
+      expect(label).toHaveAttribute('aria-hidden', 'true')
+      expect(tab('game.bookmarks.position').textContent).toBe(label.textContent)
     })
 
     it('is lit and inert while the board is what is already showing', () => {

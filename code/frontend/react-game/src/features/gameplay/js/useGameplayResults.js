@@ -6,9 +6,15 @@ import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils
 import { scrollBookToTop } from './mobileView'
 import { buildTrainedCard } from '@/utils/loadoutCards'
 import { missionCard, missionCompletedBadge, missionPageStats } from '@/utils/missions'
+import { useAnimationSettings } from '@/context/AnimationContext'
+import { turnsActive } from '@/components/book/pageTurn'
 
 // v0.37.6 — a drop-item answer carries no clock: read as "time did not move".
 const DROP_ANSWER = Object.freeze({ timeEnded: false })
+// Step 15 — a reload still running this long after the landing turns to the loading page.
+export const SLOW_RELOAD_MS = 1000
+// Step 15 — a hold never lasts longer than this (BookPages drops its copy at the same time).
+export const HOLD_MAX_MS = 10000
 
 /**
  * useGameplayResults — everything the board does with the ANSWER of a gameplay call
@@ -18,12 +24,23 @@ const DROP_ANSWER = Object.freeze({ timeEnded: false })
  * The priority is the same for every path and lives here once: an edge state (coma, sadness
  * overflow) outranks a granted item, which outranks the effect narrative. A pending choice
  * short-circuits all of it — nothing was applied yet.
+ * Step 15 — a played answer lands (`play`), the old pages are held while the board reloads, then ONE page turns.
  */
 export default function useGameplayResults({
   matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather, clock,
-  view, viewActions, refreshChrome, onReload, onError,
+  view, viewActions, refreshChrome, onReload, onError, play = null,
 }) {
   const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
+  useEffect(() => { loadingRef.current = loading }, [loading])
+  // Step 15 — the animation settings read when an answer lands; the chrome of the latest reload.
+  const anim = useAnimationSettings()
+  const animRef = useRef(anim)
+  animRef.current = anim
+  const chromeRef = useRef(null)
+  const holdSeqRef = useRef(0)
+  // Step 15 — the hold to release once the answer has landed: { seq, direction } (see the effect after the weather).
+  const [releaseAsk, setReleaseAsk] = useState(null)
   const [choiceInFlight, setChoiceInFlight] = useState(false)
   // v0.37.4 — the reload in flight, numbered: only the LATEST one may put the loading page away.
   const reloadSeqRef = useRef(0)
@@ -93,6 +110,15 @@ export default function useGameplayResults({
     })
   }, [weather]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Step 15 — released after the answer's news effects (weather, missions) dispatched: they land inside the ONE turn.
+  useEffect(() => {
+    if (!releaseAsk) return undefined
+    const id = setTimeout(() => {
+      if (holdSeqRef.current === releaseAsk.seq) viewActions.releaseTurn(releaseAsk.direction)
+    }, 0)
+    return () => clearTimeout(id)
+  }, [releaseAsk]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Reload the board and every side payload time may have changed, and put the open pages
   // away. The news the answer carries is written by the caller, right after.
   // v0.37.4 — resolves when the NEW board has landed (or the reload failed): the loading page
@@ -103,13 +129,49 @@ export default function useGameplayResults({
   const reloadBoard = useCallback((result = null) => {
     const seq = ++reloadSeqRef.current
     startLoading()
-    refreshChrome(chromeScopeFor(result, clockRef.current))
+    chromeRef.current = refreshChrome(chromeScopeFor(result, clockRef.current))
     scrollTopAfterReloadRef.current = true
     const reload = Promise.resolve().then(() => onReload?.()).catch(() => {})
       .then(() => { if (seq === reloadSeqRef.current) setLoading(false) })
     viewActions.resetForReload()
     return reload
   }, [startLoading, refreshChrome, onReload, viewActions])
+
+  // Step 15 — ONE turn once board and chrome settled, or 1 s after the landing while still loading; a newer hold wins.
+  const releaseWhenLanded = useCallback((seq, direction, reload) => {
+    let done = false
+    let slow = null
+    let safety = null
+    const release = () => {
+      if (done) return
+      done = true
+      clearTimeout(slow)
+      clearTimeout(safety)
+      setReleaseAsk({ seq, direction })
+    }
+    slow = setTimeout(() => { if (loadingRef.current) release() }, SLOW_RELOAD_MS)
+    safety = setTimeout(release, HOLD_MAX_MS)
+    Promise.all([reload, chromeRef.current]).catch(() => {}).then(release)
+  }, [])
+
+  // Step 15 — land, then hold + end + reload in ONE commit (the hold copies the emptied page); no play, no turn: sync.
+  const played = useCallback((direction, apply) => {
+    const landing = play?.land?.() ?? null
+    const turning = turnsActive(animRef.current)
+    if (!landing && !turning) {
+      play?.end?.()
+      return apply()
+    }
+    return (async () => {
+      if (landing) await landing
+      const seq = turning ? ++holdSeqRef.current : 0
+      if (turning) viewActions.holdTurn()
+      play?.end?.()
+      const reload = apply()
+      if (turning) releaseWhenLanded(seq, direction, reload)
+      return reload
+    })()
+  }, [play, viewActions, releaseWhenLanded])
 
   /**
    * Step 30 — an edge state outranks the narrative: falling into a coma or being crushed by
@@ -248,7 +310,7 @@ export default function useGameplayResults({
    * `result.card`, and an author who wrote no per-effect card still deserves a narrative.
    * Left null for events on purpose: there `result.card` is the EVENT card.
    */
-  const handleEventExecuted = useCallback((result, fallbackCard = null) => {
+  const applyEvent = useCallback((result, fallbackCard = null) => {
     const reload = reloadBoard(result)
     if (result?.status === 'CHOICES_PENDING') {
       applyChoicesPending(result)
@@ -315,21 +377,25 @@ export default function useGameplayResults({
   }, [reloadBoard, applyChoicesPending, applyEdgeState, stopLoading, playerStats, playerUuid,
     t, viewActions, matchUuid, accessToken, lang, gameData, timeEndTail])
 
+  // Step 15 — an executed event answers with ONE forward turn.
+  const handleEventExecuted = useCallback((result, fallbackCard = null) =>
+    played('forward', () => applyEvent(result, fallbackCard)), [played, applyEvent])
+
   // Step 33 — a movement answers with what the destination did about the arrival.
   // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
   // covers the arrival's own card rather than the other way round.
-  const handleMovementDone = useCallback(result => {
+  const handleMovementDone = useCallback(result => played('forward', () => {
     const reload = reloadBoard(result)
     const fired = showAutomaticEvents(result?.automaticEvents, timeEndTail(result))
     const edge = applyEdgeState(result?.edgeState)
     // v0.37.4 — same rule as an event: no news, the loading page stays until the destination lands.
     if (fired || edge) stopLoading()
     return reload
-  }, [reloadBoard, showAutomaticEvents, applyEdgeState, stopLoading, timeEndTail])
+  }), [played, reloadBoard, showAutomaticEvents, applyEdgeState, stopLoading, timeEndTail])
 
   // Step 33 — a sleep answers with the location counters that ran out while the party slept,
   // already filtered for this player. Empty is the normal case and renders nothing.
-  const handleSlept = useCallback(result => {
+  const handleSlept = useCallback(result => played('forward', () => {
     const reload = reloadBoard(result)
     const fired = result?.counterZero ?? []
     viewActions.setCounterZero(fired.length ? fired : null)
@@ -337,7 +403,7 @@ export default function useGameplayResults({
     // up comatose with nothing on screen to say why was the whole complaint.
     applyEdgeState(result?.edgeState)
     return reload
-  }, [reloadBoard, viewActions, applyEdgeState])
+  }), [played, reloadBoard, viewActions, applyEdgeState])
 
   // Step 34 — dropping applies nothing and narrates nothing. The bag stays open on purpose:
   // dropping is a tidying gesture and usually comes in a run, so the list the player is
@@ -345,22 +411,22 @@ export default function useGameplayResults({
   const handleItemDropped = useCallback(() => {
     // A drop touches the bag and the weight only: nothing of the chrome moves.
     const reload = reloadBoard(DROP_ANSWER)
-    viewActions.openItems()
+    // Step 15 — the bag reopens on itself: no turn.
+    viewActions.openItems(null)
     return reload
   }, [reloadBoard, viewActions])
 
   // Step 35 — using an item closes the bag: the row is consumed, and what matters now is the
   // effect it applied — which narrates on the very page the item list was covering.
-  const handleItemUsed = useCallback(result => {
-    return handleEventExecuted(result, result?.card ?? null)
-  }, [handleEventExecuted])
+  // Step 15 — the bag closes: ONE back turn.
+  const handleItemUsed = useCallback(result =>
+    played('back', () => applyEvent(result, result?.card ?? null)), [played, applyEvent])
 
   // Step 38 — buying a point closes the training page: the answer carries its two
   // statChanges (+1 stat, -cost exp) in the execute-event shape, so the event handler
   // narrates it under the "trained" card with the badges it already has.
-  const handleExpUsed = useCallback(result => {
-    return handleEventExecuted(result, buildTrainedCard(t))
-  }, [handleEventExecuted, t])
+  const handleExpUsed = useCallback(result =>
+    played('back', () => applyEvent(result, buildTrainedCard(t))), [played, applyEvent, t])
 
   /**
    * Step 32 — picking an option: POST select-choice, then narrate what it did. The board
@@ -368,48 +434,51 @@ export default function useGameplayResults({
    * written a key), which puts the LEFT page back on the current location; the RIGHT page
    * then shows the linked event's card when the option ran one, else the effect narrative.
    */
+  const applyChoice = useCallback(result => {
+    const reload = reloadBoard(result)
+    // A linked choice-event: the story chained one choice onto another, so the options
+    // list is re-armed rather than closed.
+    if (result?.status === 'CHOICES_PENDING') {
+      applyChoicesPending(result)
+      return reload
+    }
+    viewActions.closeChoices()
+    const tail = timeEndTail(result)
+    // The event an effect ran inline wins over the last effect card: the roadmap asks for
+    // "la card del evento" on the right page.
+    const narrative = result?.choiceEventCard ?? lastEffectCard(result)
+    eventEffectActiveRef.current = !!narrative
+    if (narrative) {
+      // An option writes the registry as an event effect does, so its outcome card says so
+      // the same way — the badges live on the OUTCOME, whichever door reached it.
+      const registryBadges = registryChangeItems(result, gameData?.info?.registry)
+      const badgeProps = registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null
+      viewActions.openPreview({ card: narrative, type: 'event',
+        stats: [...statChangeItems(result, playerUuid, t), ...registryBadges], side: 'right',
+        props: tail ? { ...(badgeProps ?? {}), onClose: undefined, onForward: tail } : badgeProps })
+    } else {
+      tail?.()
+    }
+    applyEdgeState(result?.edgeState)
+    return reload
+  }, [reloadBoard, applyChoicesPending, applyEdgeState, playerUuid, t, viewActions, gameData, timeEndTail])
+
   const handleSelectChoice = useCallback(async choice => {
     if (!choice?.uuid || choiceInFlight) return
     setChoiceInFlight(true)
     try {
       const result = await selectChoice(matchUuid, choice.uuid, accessToken, lang)
-      const reload = reloadBoard(result)
-      // A linked choice-event: the story chained one choice onto another, so the options
-      // list is re-armed rather than closed.
-      if (result?.status === 'CHOICES_PENDING') {
-        applyChoicesPending(result)
-        await reload
-        return
-      }
-      viewActions.closeChoices()
-      const tail = timeEndTail(result)
-      // The event an effect ran inline wins over the last effect card: the roadmap asks for
-      // "la card del evento" on the right page.
-      const narrative = result?.choiceEventCard ?? lastEffectCard(result)
-      eventEffectActiveRef.current = !!narrative
-      if (narrative) {
-        // An option writes the registry as an event effect does, so its outcome card says so
-        // the same way — the badges live on the OUTCOME, whichever door reached it.
-        const registryBadges = registryChangeItems(result, gameData?.info?.registry)
-        const badgeProps = registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null
-        viewActions.openPreview({ card: narrative, type: 'event',
-          stats: [...statChangeItems(result, playerUuid, t), ...registryBadges], side: 'right',
-          props: tail ? { ...(badgeProps ?? {}), onClose: undefined, onForward: tail } : badgeProps })
-      } else {
-        tail?.()
-      }
-      applyEdgeState(result?.edgeState)
       // The option stays "in flight" until the new board has landed, not just until answered.
-      await reload
+      await played('forward', () => applyChoice(result))
     } catch (e) {
-      // The option stays on screen: the cycle is still open, so retrying is legal.
+      // Step 15 — the lifted option is put down; it stays on screen: the cycle is still open.
+      play?.cancel?.()
       onError?.(e?.response?.data?.error || e?.message || 'select-choice-failed')
     } finally {
       setChoiceInFlight(false)
       stopLoading()
     }
-  }, [choiceInFlight, matchUuid, accessToken, lang, reloadBoard, applyChoicesPending,
-    applyEdgeState, stopLoading, playerUuid, t, viewActions, onError, gameData, timeEndTail])
+  }, [choiceInFlight, matchUuid, accessToken, lang, played, applyChoice, play, stopLoading, onError])
 
   return {
     loading, startLoading, stopLoading, choiceInFlight,

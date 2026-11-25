@@ -54,11 +54,12 @@ export default function useMatchChrome(matchUuid, accessToken, lang) {
   }, [matchUuid, accessToken, lang])
 
   // v0.37.6 — `scope` says which of the three to ask again (default: all); see chromeScope.js.
-  const refresh = useCallback((scope = CHROME_ALL) => {
-    if (scope.clock) refreshClock()
-    if (scope.weather) refreshWeather()
-    if (scope.locations) refreshLocations()
-  }, [refreshClock, refreshWeather, refreshLocations])
+  // Step 15 — resolves once all of them settled: the page turn waits for a weather change of the same answer.
+  const refresh = useCallback((scope = CHROME_ALL) => Promise.all([
+    scope.clock ? refreshClock() : null,
+    scope.weather ? refreshWeather() : null,
+    scope.locations ? refreshLocations() : null,
+  ]), [refreshClock, refreshWeather, refreshLocations])
 
   // v0.37.6 — the mount-time load runs once per match/token/lang: StrictMode re-runs the
   // effect on its second mount and used to fire the three requests twice. A later

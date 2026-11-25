@@ -6,6 +6,7 @@ import RegistryCard from './cards/RegistryCard'
 import MissionCard from './cards/MissionCard'
 import PlayerCards from './cards/PlayerCards'
 import { bagSummaryProps, missionsSummaryProps, registrySummaryProps } from './js/boardProps'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * PageRightInfo — the (i) view's RIGHT page: the weather, the way to sleep, and the doors
@@ -17,7 +18,7 @@ export default function PageRightInfo({
 }) {
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         <WeatherCard weather={weather} story={storyFull} onPreview={onPreview} previewSide="right" />
         <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData}
           playerStats={playerStats} onPreview={onPreview} previewSide="right"
@@ -29,7 +30,7 @@ export default function PageRightInfo({
         <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
           gameData={gameData} onPreview={onPreview} previewSide="right"
           onOpenHistory={onOpenHistory} />
-      </div>
+      </DealtList>
     </div>
   )
 }

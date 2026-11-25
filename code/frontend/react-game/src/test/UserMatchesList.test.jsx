@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({
@@ -59,6 +59,20 @@ describe('UserMatchesList', () => {
     await screen.findByText('matches.title')
     expect(container.querySelector('.user-stats-card')).toBeTruthy()
     expect(screen.queryByText('matches.noMatches')).toBeNull()
+  })
+
+  it('step 16 — with onOpenPreferences the preferences card follows the statistics card and opens the editor', async () => {
+    listMatches.mockResolvedValue([])
+    const onOpenPreferences = vi.fn()
+    const { container } = wrap(<UserMatchesList accessToken="tok" onOpenPreferences={onOpenPreferences} />)
+    await screen.findByText('matches.title')
+    const stats = container.querySelector('.user-stats-card')
+    expect(stats.nextElementSibling).toHaveClass('preferences-card')
+    fireEvent.click(screen.getByTestId('preferences-card-action'))
+    expect(onOpenPreferences).toHaveBeenCalledOnce()
+    const without = wrap(<UserMatchesList accessToken="tok" />)
+    await waitFor(() => expect(without.container.querySelector('.user-stats-card')).toBeTruthy())
+    expect(without.container.querySelector('.preferences-card')).toBeNull()
   })
 
   it('shows error message when API fails', async () => {
@@ -154,5 +168,20 @@ describe('UserMatchesList — payloads that are not a list, and an early unmount
     wrap(<UserMatchesList accessToken="tok" preloadedMatches={MATCHES} />)
     await screen.findByText('matches.title')
     expect(listMatches).not.toHaveBeenCalled()
+  })
+})
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('UserMatchesList — dealt grid (step 14)', () => {
+  beforeEach(() => {
+    listMatches.mockResolvedValue(MATCHES)
+    getStory.mockResolvedValue(STORY)
+  })
+  it('the matches list carries pg-dealt, each match card dealt from its wrapper slot', async () => {
+    const { container } = wrap(<UserMatchesList accessToken="tok" />)
+    await screen.findAllByText('Dragon Keep')
+    const list = container.querySelector('.matches-list-wrap > .selection-list.pg-dealt')
+    expect(list).toBeInTheDocument()
+    expect(list.querySelector(':scope > .match-card-wrap > .pg-card')).toHaveAttribute('data-deal', 'landed')
   })
 })

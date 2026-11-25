@@ -5,11 +5,11 @@ import Book from '../../components/book/Book'
 import Card from '../../components/layout/Card'
 import LoadingCard from '../../components/layout/LoadingCard'
 import ErrorCard from '../../components/layout/ErrorCard'
-import GameBookMobile from '../gameplay/GameBookMobile'
 import ConfigView from './ConfigView'
 import OptionPicker from './OptionPicker'
-import StartBookMobile from './StartBookMobile'
-import CardPreviewModal from '../../components/modals/CardPreviewModal'
+import FadeIn, { previewKey } from '../../components/layout/FadeIn'
+import useBookTurn from '../../hooks/useBookTurn'
+import { scrollMobileIntoView } from '../gameplay/js/mobileView'
 import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, fitTraitsToBudget, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait, traitCostItems } from '../../utils/traitBudget'
@@ -35,6 +35,7 @@ function buildInitialConfig(story) {
 /**
  * StartBook — v1.13.0: the book of `/story/:storyId` (was StartBookModal). `story` shows while the detail loads;
  * without it an unknown or failing story shows the ErrorCard page. `initialConfig`: a loadout to reopen with.
+ * Step 15 — "Change" turns forward to a picker, back out of it; an (i) or a single-option detail fades.
  */
 export default function StartBook({ story = null, storyId = null, initialConfig = null }) {
   const navigate = useNavigate()
@@ -51,6 +52,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
   const [selectionType, setSelectionType] = useState(null)
   const [preview, setPreview] = useState(null) // { entity, type } or null
   const [detailType, setDetailType] = useState(null) // single-option card whose detail fills the right page
+  const { pageKey, direction, turnTo } = useBookTurn()
 
   useEffect(() => {
     if (!uuid) {
@@ -86,7 +88,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
     const right = failed
       ? <ErrorCard message={t('errors.storyNotFound')} onClose={() => navigate('/')} />
       : <LoadingCard story={story} />
-    return <Book left={left} right={right} mobile={<GameBookMobile left={left} right={right} />} />
+    return <Book left={left} right={right} pageKey={pageKey} direction={direction} />
   }
 
   const activeStory = detail ?? story
@@ -133,6 +135,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
     })
     setSelectionType(null)
     setPreview(null)
+    turnTo('back')
   }
 
   /** A trait's page badges: its budgeted cost first, then its stats — the picker's order. */
@@ -145,6 +148,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
   // currently-selected option (left page) — for traits, of the FIRST selected one.
   function handleChangeFromConfig(type) {
     setSelectionType(type)
+    turnTo('forward')
     const entity = selectedEntityForType(type, config)
     setPreview(entity
       ? { entity, type, statItemsToPageContent: type === 'trait' ? traitPageStats(entity) : undefined }
@@ -156,6 +160,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
   function handleInfoFromConfig(type) {
     if (!selectedEntityForType(type, config)) return
     setDetailType(type)
+    turnTo('fade')
   }
 
   // From OptionPicker / ConfigView: clicking the magnifying glass on an option
@@ -163,15 +168,9 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
   function handleSelectionPreview(entity, type , lockedReason , statItemsToPageContent) {
     //console.log("entity", entity, "type", type, "lockedReason", lockedReason, "statItemsToPageContent", statItemsToPageContent);
     setPreview(entity ? { entity, type, lockedReason, statItemsToPageContent } : null)
-  }
-
-  // Mobile has no left page, so the (i) lens opens the big card in a modal.
-  function handlePreviewModal(entity, type, lockedReason, statItemsToPageContent) {
-    setPreview(entity ? { entity: entity, type, lockedReason, statItemsToPageContent } : null)
-    if (typeof window === 'undefined') return
-    const el = document.getElementById('cardPreviewModal')
-    const Modal = window.bootstrap?.Modal
-    if (el && Modal) Modal.getOrCreateInstance(el).show()
+    turnTo('fade')
+    // Phones: the preview takes the top card's place; the page scrolls to it.
+    if (entity) scrollMobileIntoView('.book-page-left')
   }
 
   // Any "back" / "close" action — on either the preview or the selection list —
@@ -180,6 +179,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
     setPreview(null)
     setSelectionType(null)
     setDetailType(null)
+    turnTo(selectionType ? 'back' : 'fade')
   }
 
   // "Start Game": the loadout is saved in this entry first (Back finds it), then the start-match page.
@@ -190,8 +190,8 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
   }
 
   //console.log("preview",preview);
-  const leftContent = preview ? ( 
-     <CardPreviewOverlay
+  const leftContent = preview ? (
+    <FadeIn key={previewKey({ type: preview.type, card: preview.entity?.card ?? preview.entity })}><CardPreviewOverlay
       card={preview?.entity?.card}
       entity={preview?.entity}
       entityType={preview?.type}
@@ -199,7 +199,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
       onClose={handleBackOrClose}
       lockedReason={preview?.lockedReason}
       statItemsToPageContent={preview?.statItemsToPageContent}
-    />
+    /></FadeIn>
   ) : (
     // The picker's own back arrow is gone: while a list is open the left page carries it,
     // even with nothing previewed (a trait picker opened on an empty selection).
@@ -245,29 +245,12 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
   }
 
   return (
-    <>
-      <Book
-        left={leftContent}
-        right={rightContent}
-        mobile={
-          <StartBookMobile
-            activeStory={activeStory}
-            config={config}
-            loadingDetail={loadingDetail}
-            selectionType={selectionType}
-            detailType={detailType}
-            onChangeClick={handleChangeFromConfig}
-            onInfoClick={handleInfoFromConfig}
-            onPreview={handlePreviewModal}
-            onProceed={handleStartGame}
-            onSelect={handleSelect}
-            onBackSelection={handleBackOrClose}
-            getOptionsForType={(type) => getOptionsForType(type, activeStory)}
-          />
-        }
-      />
-      <CardPreviewModal preview={preview} story={activeStory} />
-    </>
+    <Book
+      left={leftContent}
+      right={rightContent}
+      pageKey={pageKey}
+      direction={direction}
+    />
   )
 }
 

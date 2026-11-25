@@ -49,7 +49,7 @@ Alpha values: `VITE_API_URL=https://api-alpha.paths.games`,
 `VITE_DEFAULT_SERVERS='[{"label":"Alpha","url":"https://api-alpha.paths.games"}]'`,
 `VITE_ENV_BADGE=alpha` (the header badge), the production `VITE_CF_TURNSTILE_KEY` and `VITE_GTM_ID`,
 and the game options (`VITE_MATCH_START_DELAY`, `VITE_TURNSTILE_*`, `VITE_RESUME_WITHOUT_MODAL`,
-`VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`).
+`VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`, and since v1.14.0 the seven animation keys `VITE_ANIM_DEAL`, `VITE_ANIM_DEAL_FACEDOWN`, `VITE_ANIM_PLAY`, `VITE_ANIM_TURN`, `VITE_ANIM_TURN_MODE`, `VITE_ANIM_SPEED`, `VITE_ANIM_DECK`).
 
 ## 4. IAM configuration
 
@@ -121,6 +121,7 @@ Lambda writes the catalog with its own role, so it is unaffected):
 - `VITE_MATCH_START_DELAY`, `VITE_TURNSTILE_DELAY_BEFORE_START`, `VITE_TURNSTILE_PASS_TTL_MINUTES`
 - `VITE_TURNSTILE_APPEARANCE_HOME`, `VITE_TURNSTILE_APPEARANCE_START`, `VITE_TURNSTILE_APPEARANCE_GUEST`
 - `VITE_RESUME_WITHOUT_MODAL`, `VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`
+- `VITE_ANIM_DEAL`, `VITE_ANIM_DEAL_FACEDOWN`, `VITE_ANIM_PLAY`, `VITE_ANIM_TURN`, `VITE_ANIM_TURN_MODE`, `VITE_ANIM_SPEED`, `VITE_ANIM_DECK` (v1.14.0; defaults `true`, `true`, `true`, `true`, `full`, `0.25`, `under`)
 
 Every `VITE_*` variable must be **non-empty**: the website workflow writes only the non-empty ones
 to `.env.alpha` and the deploy script then refuses to build if one is missing.

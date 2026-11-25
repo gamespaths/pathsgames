@@ -1,9 +1,13 @@
+import { PREFERENCES_VERSION, sanitizePreferences } from '@/preferences/settings'
+
 /**
  * v1.7.0 — the preferences kept on this device (localStorage): the only store of a guest, a cache of
  * the profile for a Google user. The language key is written by the i18n context.
+ * Step 16 — `pathsgames.preferences`: the display choices of the device, never sent to the server.
  */
 export const LANG_KEY = 'pathsgames.lang'
 export const HIGH_CONTRAST_KEY = 'pathsgames.highContrast'
+export const PREFERENCES_KEY = 'pathsgames.preferences'
 
 function read(key) {
   try {
@@ -42,4 +46,32 @@ export function devicePreferencesBody() {
   if (language) body.language = language
   if (highContrast !== undefined) body.highContrast = highContrast
   return Object.keys(body).length > 0 ? body : null
+}
+
+/** Step 16 — the display choices of this device, whitelisted; {} when none, broken or unreadable. */
+export function devicePreferences() {
+  try {
+    return sanitizePreferences(JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? 'null'))
+  } catch {
+    return {}
+  }
+}
+
+/** Step 16 — stores the display choices (whitelisted); false when the storage refuses (private mode). */
+export function setDevicePreferences(prefs) {
+  try {
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify({ v: PREFERENCES_VERSION, ...sanitizePreferences(prefs) }))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Step 16 — forgets the display choices (the language stays). */
+export function clearDevicePreferences() {
+  try {
+    localStorage.removeItem(PREFERENCES_KEY)
+  } catch {
+    // private mode: nothing was kept
+  }
 }

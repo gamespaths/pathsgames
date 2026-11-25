@@ -155,7 +155,7 @@ export default function ItemCard({
       stats: descriptionBadges,
       side: previewSide,
       props: usable
-        ? { onAction: handleUse, actionLabel: useLabel, actionIcon,
+        ? { onAction: handleUse, actionLabel: useLabel, actionIcon, playId: `item:${item?.uuid}`,
             actionsList: [dropAction], actionListClass: 'display-grid2' }
         // A comatose character keeps the page — the reason is what it is there to say — but
         // not the bin: dropping is an action too, and the engine refuses it just the same.

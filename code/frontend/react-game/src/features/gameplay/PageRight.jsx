@@ -1,4 +1,5 @@
 import Card from '@/components/layout/Card'
+import FadeIn, { previewKey } from '@/components/layout/FadeIn'
 import WeatherCard from './cards/WeatherCard'
 import CloseGameCard from './cards/CloseGameCard'
 import EndGameCard from './cards/EndGameCard'
@@ -45,8 +46,9 @@ function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken
     case 'sad':
       return <SadnessCard story={story} lifeLost={playerStats?.constitution ?? null}
         onBack={onBack} onForward={previewRight.onForward} />
+    // Step 15 — a right-page preview keeps its place (phones: below the location) and fades in there.
     case 'preview':
-      return <Card variant="page"
+      return <FadeIn key={previewKey(previewRight)}><Card variant="page"
         card={previewRight.card}
         entity={previewRight.entity}
         entityType={previewRight.type}
@@ -56,7 +58,7 @@ function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken
         lockedReason={previewRight.lockedReason}
         statItemsToPageContent={previewRight.statItemsToPageContent}
         {...previewRight.additionalProps}
-      />
+      /></FadeIn>
     default:
       return null
   }

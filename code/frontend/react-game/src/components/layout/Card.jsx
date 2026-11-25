@@ -7,10 +7,12 @@ import SafeHtml from '../ui/SafeHtml'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
 import { useState } from 'react'
 import CardButtons from './CardButtons'
+import CardBack from './CardBack'
 import TipNote from '../ui/TipNote'
 import { isTutorialStory } from '../../constants/features'
 import { CREDIT_ICONS, creditNotes, creditText } from '../../utils/cardCredits'
 import { usePolicyBook } from '../../context/PolicyBookContext'
+import { usePlayState } from '../../features/gameplay/play/PlayContext'
 
 /**
  * Card — unified card component (formerly GameCard + GameCardWrapper).
@@ -21,6 +23,8 @@ import { usePolicyBook } from '../../context/PolicyBookContext'
  * variant="medium"  → medium card
  * variant="big"     → tall portrait card (2:3 ratio)
  * variant="page"    → book reading page (parchment description, no footer)
+ * Step 14 — every non-page variant has two faces: today's content on the front, CardBack behind.
+ * Step 15 — `playId` names what the card plays: lifted while played, the other small cards dim and fall.
  *
  * Card is a "dumb" display component: callers pass card/name/icon/onSelect/
  * onAction/onPreview … directly. 
@@ -79,14 +83,18 @@ export default function Card({
   /* page variant (variant="page" — the book reading page) */
   loading, onClose, onForward, entity, entityType,
   extraContent=null, extraContentClassName=null, statItemsToPageContent=null, descriptionTag=false,
+  titleTag: TitleTag = 'h2', // step 14: the Home's intro page is the page's h1
+  afterDescription = null, // step 14: shown right under the description text (the Home's anti-bot result)
   positionBonusBadge = 'overlay', /* 'desc' | 'overlay' | 'extra' */
   additionalCardClasses,
   testId, // base of the footer buttons' data-testid (see CardButtons)
+  playId = null, // step 15: e.g. `movement:<uuid>`; its main action (or "Do") plays the card
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
   const { t } = useTranslation()
   const isPage = variant === 'page'
   const [previewOpened, setPreviewOpened] = useState(false);
+  const playClass = playClassOf(usePlayState(), playId, isPage)
 
   function onPreviewClick(e) {
     e.stopPropagation();
@@ -168,8 +176,8 @@ export default function Card({
     selected    ? 'config-card-selected' : '',
   ].filter(Boolean).join(' ')
   
-  return (
-    <div className={`${cardClasses} ${additionalCardClasses ?? ''}`}>
+  const content = (
+    <>
       {isPage && loading && (
         <div className="book-page-loading">
           <i className="fas fa-spinner fa-spin fa-5x" style={{ color: 'var(--color-gold-shine)' }} />
@@ -188,7 +196,7 @@ export default function Card({
         }
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
-      { isPage && <h2 className="book-page-title">
+      { isPage && <TitleTag className="book-page-title">
           { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')} data-tip={t('card.back')} data-testid="page-back">
           <i className="fas fa-arrow-left" />
         </button>}
@@ -197,7 +205,7 @@ export default function Card({
           <i className="fas fa-arrow-right" />
         </button>}
         <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
-      </h2>}
+      </TitleTag>}
 
       {/* ── children Into Image ── */}
       { (childrenIntoImage || (statistics!=null && statistics.length > 0) )&& (
@@ -242,6 +250,7 @@ export default function Card({
         <div className="book-page-desc">
           {positionBonusBadge === 'desc' && bonusBadgeNode}
           <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} halfBlankLines />
+          {afterDescription}
           {tipOpen && <TipNote text={noteText} hideLabel={t('card.hideTip')} onHide={hideTip}
             focusKey={tipSameCard ? tipState.focus : 0} icon={CREDIT_ICONS[noteKind]} link={noteLink}
             singleLine={noteKind !== 'tip'} />}
@@ -264,6 +273,7 @@ export default function Card({
             flagInformationCard={flagInformationCard}
             infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 
             actionsList={actionsList} actionListClass={actionListClass} testId={testId}
+            playId={playId}
           />
 
       {viewLink}
@@ -272,6 +282,25 @@ export default function Card({
           hides its artwork still credits the story. */}
       {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel}
         tip={tipText ? { label: t('card.tip'), onOpen: openTip } : null} onOpenCredit={openNote} />}
+    </>
+  )
+
+  return (
+    <div className={`${cardClasses} ${additionalCardClasses ?? ''}${playClass}`}>
+      {isPage ? content : (
+        <>
+          <div className="pg-card__face pg-card__front">{content}</div>
+          <CardBack className="pg-card__face pg-card__back" />
+        </>
+      )}
     </div>
   )
+}
+
+/** Step 15 — the play class of a card: the played one lifts then hides; a small-card play dims then drops the others. */
+export function playClassOf(play, playId, isPage) {
+  if (!play) return ''
+  if (playId && play.playId === playId && isPage === !play.small) return play.phase === 'land' ? ' is-played' : ' is-playing'
+  if (play.small && !isPage) return play.phase === 'land' ? ' is-discarded' : ' is-dimmed'
+  return ''
 }

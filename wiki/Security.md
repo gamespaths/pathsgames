@@ -169,7 +169,7 @@ Full detail: [Step20](documentation_v0/Step20_GameWebSiteFirstRun.md).
   into the `analytics` category. Strictly-necessary, consent-exempt cookies:
   `pathsgames.guestcookie`, `pathsgames.refreshToken`, `pathsgames.cookiesConsent`,
   `pathsgames.turnstilePass`, `g_state` (set by Google Identity Services on the site after a
-  sign-in; remembers the sign-in prompt state, 6 months), plus the `pathsgames.lang` localStorage key.
+  sign-in; remembers the sign-in prompt state, 6 months), plus the `pathsgames.lang` and `pathsgames.preferences` (display choices, never sent to the server) localStorage keys.
 
 - **Smoke test Lambda (V1 step 1, AWS)**: no new code path in the public Lambdas and no route; the
   smoke function is not reachable from the internet (Scheduler and IAM invoke only). It creates its
@@ -290,7 +290,7 @@ across environments.
 - **npm**: react-game `dompurify` 3.4.17 and `axios` 1.21.0, react-admin `axios` 1.21.0. Open audit items: `follow-redirects` (Node only) and `react-router` (v7 migration planned later).
 
 # Version Control
-- **Document Version**: 1.11.0
+- **Document Version**: 1.14.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -303,8 +303,9 @@ across environments.
   | 1.7.0 | Session limits, bans, suspensions and cookie rules | October 23, 2026 |
   | 1.10.0 | Security review fixes and proxy settings | October 28, 2026 |
   | 1.11.0 | Owner-only match reads, safer links and tokens; cookie list | October 29, 2026 |
+  | 1.14.0 | Display preferences stored in the browser | November 25, 2026 |
 
-- **Last Updated**: October 29, 2026 (v1.11.0)
+- **Last Updated**: November 25, 2026 (v1.14.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

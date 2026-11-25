@@ -1,6 +1,6 @@
 # Step 15 — Play and page turn
 
-**Status: analysis complete (November 24, 2026), version 1.13.0 — no open doubts, ready for development.**
+**Status: developed (November 25, 2026, version 1.14.0, react-game only, unit tests green), waiting for owner's test; owner test list: [test/Step15_PlayAndPageTurn.md](./test/Step15_PlayAndPageTurn.md).**
 Roadmap line: *choosing a card and changing page are animated* ([Roadmap](./Roadmap.md) step 15).
 Book UI chain: [Step 13](./Step13_BookLayoutWithoutModals.md) (layout, routes, no modals) ·
 [Step 14](./Step14_HomeBookAndCardFaces.md) (card faces, animation config, deal) · **Step 15** ·
@@ -81,9 +81,10 @@ None: no Flyway migration (SQLite, PostgreSQL), no DynamoDB item, no localStorag
   `GoToSleepCard`, `ItemCard` (use only), `ExperienceStatCard`, `EndGameCard`.
 - Lift: small card `translateY(-14px) scale(1.08)`, gold pulse and light sweep on its front face
   (`.pg-card__front`, step 14); reading page: its picture lifts and glows, the page stays still.
-  The button spinner stays. `onPlayStart` runs synchronously inside the click (user activation).
+  The button spinner stays. **Owner's decision after the test (November 25, 2026):** on a reading page the whole
+  card lifts and flies (`.book-page-content`), not only its picture. `onPlayStart` runs synchronously inside the click (user activation).
 - `land()`: siblings fall (small-card play only; WAAPI, stagger `--j` capped at 8, random tilt) and a fixed clone of
-  the card (reading page: of its picture) flies in an arc to the left page picture
+  the card (reading page: the whole card, owner's decision) flies in an arc to the left page picture
   (`.book-page-left .book-page-img`, else the left page centre); on mobile to the top centre,
   below the always-visible navbar of step 13. Resolves when both end; the clone is removed, also on unmount.
   End states live in classes (`is-discarded`, played card hidden), not in WAAPI fills: the
@@ -259,14 +260,57 @@ No open doubts. Owner decisions (November 24, 2026): two-step flow kept (6.1), g
 keep their place (6.5), news chain arrows fade (6.4), Card special components kept (6.1), home
 tab from a policy chapter in a match opens the close card (6.4).
 
+Fixes after the first test (November 25, 2026, owner): the flying copy is a child of `body`
+(`body > .flying-card`, it was off screen under `main.css` rules); a reading-page play flies the
+whole card (6.1). News arriving in the same answer lands inside the one turn, and the Book root is
+`inert` with `aria-busy` while a card plays, turns or holds. Details in
+[test/Step15_PlayAndPageTurn.md](./test/Step15_PlayAndPageTurn.md) §3.
+
+## 9. To do
+
+Owner's request after the first test round (November 25, 2026), not developed yet.
+
+**No page turn when a play does not change the location.** Today every play answer lands, holds
+the old pages while the board reloads and then turns ONE page with a fixed direction
+(`useGameplayResults`, `played(direction, …)`). A play that leaves the character where it is
+(a sleep, most actions and choices) must not turn the page: the held copy **fades** out instead
+(step 15's `fade` strategy, `timings.fade`; on phones step 16's mobile strategy already only fades
+the copy). The card flight and the hold stay as they are; the news of the same answer (weather,
+missions) still lands inside the fade.
+
+- How the client knows: the answers already say it, no backend change. Movement: `toLocationUuid`
+  (always a move). Execute event, select choice (it extends `ExecuteEventResponse`) and use item:
+  `movementApplied: true` or a non-empty `locationChanges[]` (forced movement). Sleep and use exp
+  never move. The same rule is in `chromeScope.js` (`moved`): extract it as `movedBy(result)` and
+  reuse it in both places.
+- Turns per play:
+
+  | Play | Today | After |
+  |---|---|---|
+  | Movement | forward | forward (always moves) |
+  | Event / action ("Do") | forward | forward when `movedBy`, else fade |
+  | Choice | forward | forward when `movedBy`, else fade |
+  | Sleep | forward | fade |
+  | Use item | back | **back, kept** (the bag is on the left page) |
+  | Use exp (training) | back | **back, kept** (the training page is on the left page) |
+
+- Unchanged: navigation turns (tabs, bag, map, missions, choices list, match history), the end
+  game pages, the hold safety and the release order.
+- Multiplayer (V4+): `locationChanges` lists every moved character; then check the player's own
+  `characterUuid` among them.
+- Tests: `movedBy` (movement, forced movement, no move, empty answer), `useGameplayResultsPlay`
+  and `GameBookTurns` (sleep and a non-moving action release with a fade, a forced-movement event
+  turns forward, item and exp still turn back); owner's test list items 5–9 updated.
+
 # Version Control
-- **Document Version**: 1.13.0
+- **Document Version**: 1.14.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.13.0 | Play and page turn analysed, owner choices recorded | November 24, 2026 |
+  | 1.14.0 | Developed; waiting for owner's test | November 25, 2026 |
 
-- **Last Updated**: November 24, 2026 (v1.13.0)
+- **Last Updated**: November 25, 2026 (v1.14.0)
 
 
 # &lt; Paths Games /&gt;

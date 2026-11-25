@@ -17,7 +17,7 @@
   },
   "home": {
     "heroTitle": "Epic Adventures Await",
-    "heroSub": "Branching narratives. Infinite choices.",
+    "heroSub": "Branching narratives. Infinite choices. Every decision opens a new path: explore living worlds, face their dangers and write a story that is yours alone.",
     "stories": "Stories",
     "loading": "Loading stories…",
     "noStories": "No stories available.",
@@ -37,7 +37,8 @@
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
     "verifying": "Checking you're human…",
-    "error": "Verification didn't go through."
+    "error": "Verification didn't go through.",
+    "success": "Success! You are human."
   },
   "book": {
     "updateMatch": "Match update",
@@ -643,7 +644,7 @@
       "controllerTitle": "1. Who we are",
       "controllerBody": "The data controller is Paths Games. We aim to comply with applicable EU and US data-protection law. For any privacy request or question, contact us at paths.games@proton.me.",
       "dataTitle": "2. Data we collect",
-      "dataBody": "As a guest we do not ask for your name, email or payment details. We process an anonymous guest identifier (a random UUID and an auto-generated username), session and refresh tokens that keep you signed in (stored on our servers only as SHA-256 hashes), your in-game progress linked to that identifier, and — only if you consent — anonymous usage statistics via Google Analytics. If you sign in with Google we also process the account data described in section 2.1. Our hosting and content-delivery providers also process technical data such as your IP address and device or browser type transiently to deliver and secure the service.",
+      "dataBody": "As a guest we do not ask for your name, email or payment details. We process an anonymous guest identifier (a random UUID and an auto-generated username), session and refresh tokens that keep you signed in (stored on our servers only as SHA-256 hashes), your in-game progress linked to that identifier, and — only if you consent — anonymous usage statistics via Google Analytics. If you sign in with Google we also process the account data described in section 2.1. Our hosting and content-delivery providers also process technical data such as your IP address and device or browser type transiently to deliver and secure the service. Your display preferences (theme, text size, card columns, animations, vibration) stay in your browser and are never sent to our servers.",
       "accountTitle": "2.1 Signing in with Google",
       "accountBody": "If you choose to sign in with Google, Google Identity Services gives us a signed token with your Google account identifier (the provider subject), your email address (only verified Gmail addresses are accepted), your name and surname, the address of your profile picture and your locale. Your account is identified by the email and the provider subject together. We use the email only to identify your account and for support: it is never used for commercial communications without your separate consent, and it is never written to our logs. Your nickname is created once from the part of the email before '@' and is shown in the game; name, surname, picture and locale are refreshed at every sign-in. Your profile picture is loaded directly from googleusercontent.com, so your browser sends your IP address to Google when the picture is shown. When you sign in, the matches of the guest session you were using on that device are linked to your account.",
       "purposesTitle": "3. Why we process it and the legal basis",
@@ -664,7 +665,7 @@
       "securityBody": "We use measures such as HTTPS/TLS, HttpOnly session cookies and access controls to protect data. No method of transmission or storage is completely secure, and the game is currently in an alpha development phase.",
       "changesTitle": "11. Changes to this policy",
       "changesBody": "We may update this policy as the game evolves; material changes will be reflected by the 'last updated' date below, shown to signed-in users at their next sign-in and, where required, followed by a renewed consent request.",
-      "updated": "Last updated: October 2026"
+      "updated": "Last updated: November 2026"
     },
     "terms": {
       "title": "Terms of Service",
@@ -705,7 +706,7 @@
       "title": "Cookies Policy",
       "intro": "This Cookies Policy explains how Paths Games uses cookies and similar technologies in this game. A cookie is a small text file stored on your device. We group cookies into the categories below; you can accept or reject non-essential cookies at any time.",
       "necessaryTitle": "1. Strictly necessary cookies",
-      "necessaryBody": "These keep your session active and remember your cookie choice. They are essential, so they are always on and do not require consent: pathsgames.guestcookie (180 days), pathsgames.refreshToken (250 days, renewed at every visit; 180 days for a guest), pathsgames.cookiesConsent (6 months) and pathsgames.turnstilePass (up to 50 hours, a recent anti-bot check). The game also keeps a few necessary, non-personal values in your browser storage, never sent as cookies: pathsgames.lang and pathsgames.highContrast (your language and contrast choice), pg_game_server (the game server) and, until the tab is closed, pathsgames.googleNonce (one sign-in attempt) and pg_story:* (story texts already loaded). The Google Identity Services script (accounts.google.com) is loaded only when you click 'Sign in with Google', as a strictly necessary part of the sign-in you ask for; Google may set its own cookies in the sign-in popup, under Google's cookie policy. After a sign-in Google Identity Services also keeps g_state on this site (6 months): it only remembers the state of the sign-in prompt and is strictly necessary for it.",
+      "necessaryBody": "These keep your session active and remember your cookie choice. They are essential, so they are always on and do not require consent: pathsgames.guestcookie (180 days), pathsgames.refreshToken (250 days, renewed at every visit; 180 days for a guest), pathsgames.cookiesConsent (6 months) and pathsgames.turnstilePass (up to 50 hours, a recent anti-bot check). The game also keeps a few necessary, non-personal values in your browser storage, never sent as cookies: pathsgames.lang and pathsgames.highContrast (your language and contrast choice), pathsgames.preferences (your display choices: theme, text size, card columns, animations, vibration), pg_game_server (the game server) and, until the tab is closed, pathsgames.googleNonce (one sign-in attempt) and pg_story:* (story texts already loaded). The Google Identity Services script (accounts.google.com) is loaded only when you click 'Sign in with Google', as a strictly necessary part of the sign-in you ask for; Google may set its own cookies in the sign-in popup, under Google's cookie policy. After a sign-in Google Identity Services also keeps g_state on this site (6 months): it only remembers the state of the sign-in prompt and is strictly necessary for it.",
       "analyticsTitle": "2. Analytics cookies (optional)",
       "analyticsBody": "With your consent we use Google Tag Manager / Google Analytics (_ga, _ga_*, up to 2 years) to measure usage anonymously and improve the game. Thanks to Google Consent Mode v2 these stay disabled until you accept, and no analytics cookie is written before then.",
       "legalTitle": "3. Legal basis",
@@ -716,7 +717,7 @@
       "thirdPartyBody": "Analytics cookies are provided by Google. Google is also the provider of the optional sign-in, and your profile picture is loaded from googleusercontent.com (your browser sends your IP address to Google when it is shown). Google may process data outside the European Economic Area; such transfers are covered by the European Commission's Standard Contractual Clauses. We do not sell your personal data.",
       "rightsTitle": "6. Your rights",
       "rightsBody": "Under the GDPR you may access, rectify or erase your data, object to or restrict processing, request portability, and withdraw consent at any time. You may also lodge a complaint with your local data protection authority. For requests, contact us at paths.games@proton.me.",
-      "updated": "Last updated: October 2026",
+      "updated": "Last updated: November 2026",
       "manage": "Cookie settings"
     },
     "credits": {
@@ -859,5 +860,67 @@
       "generic": "Something went wrong, please try again."
     },
     "activeSessions": "Devices used in the last 30 days: {count}"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "change": "Change",
+    "intro": "Your display choices for this device: they apply at once and stay in this browser, never on our servers.",
+    "sections": {
+      "display": "Display",
+      "animations": "Animations"
+    },
+    "rows": {
+      "language": "Language",
+      "theme": "Theme",
+      "size": "Text size",
+      "columns": "Card columns",
+      "deal": "Deal",
+      "dealFaceDown": "Face-down deal",
+      "play": "Play",
+      "turn": "Page turn",
+      "turnMode": "Turn style",
+      "speed": "Speed",
+      "deck": "Deck",
+      "vibration": "Vibration"
+    },
+    "theme": {
+      "medieval": "Medieval",
+      "parchment": "Parchment"
+    },
+    "size": {
+      "small": "Small",
+      "normal": "Normal",
+      "large": "Large"
+    },
+    "sizeShort": {
+      "small": "S",
+      "normal": "M",
+      "large": "L"
+    },
+    "speed": {
+      "quarter": "¼×",
+      "half": "½×",
+      "one": "1×"
+    },
+    "turnMode": {
+      "full": "Full",
+      "simple": "Simple"
+    },
+    "deck": {
+      "under": "Under the book",
+      "over": "Over the book"
+    },
+    "on": "On",
+    "off": "Off",
+    "columnsAuto": "Auto",
+    "reducedNote": "Your device asks for reduced motion: the animations stay off.",
+    "reset": "Back to defaults",
+    "badges": {
+      "language": "Language",
+      "theme": "Theme",
+      "size": "Text size",
+      "animations": "Animations",
+      "columns": "Columns"
+    }
   }
 }

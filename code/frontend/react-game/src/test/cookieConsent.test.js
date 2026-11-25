@@ -55,6 +55,21 @@ describe('cookieConsent config', () => {
     }
   })
 
+  it('step 16 — pathsgames.preferences in the strictly necessary table (EN/IT), the revision still 2', async () => {
+    const { initCookieConsent } = await import('../consent/cookieConsent')
+    initCookieConsent('en')
+    const cfg = run.mock.calls[0][0]
+    expect(cfg.revision).toBe(2)
+    const rowOf = lang => cfg.language.translations[lang].preferencesModal.sections[0].cookieTable.body
+      .find(r => r.name.startsWith('pathsgames.preferences'))
+    expect(rowOf('en')).toEqual({ name: 'pathsgames.preferences (browser storage)',
+      description: 'Remembers your display choices: theme, text size, card columns, animations, vibration',
+      expiration: 'Persistent (until cleared)' })
+    expect(rowOf('it').name).toBe('pathsgames.preferences (memoria del browser)')
+    expect(rowOf('it').description).toContain('tema, dimensione del testo, colonne di carte, animazioni, vibrazione')
+    expect(rowOf('it').expiration).toBe('Persistente (fino a cancellazione)')
+  })
+
   it('v1.11.0 turnstilePass shows the configured lifetime and g_state is listed', async () => {
     const { initCookieConsent, turnstilePassExpiration } = await import('../consent/cookieConsent')
     expect(turnstilePassExpiration('en', 3000)).toBe('50 hours')

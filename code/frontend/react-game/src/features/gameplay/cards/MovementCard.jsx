@@ -32,6 +32,8 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
   const [moving, setMoving] = useState(false)
 
   const cost = totalEnergyCost ?? location?.energyCost ?? 0
+  // Step 15 — the small card, its reading page and the map page play the same move.
+  const playId = location?.uuid ? `movement:${location.uuid}` : null
   const testId = `movement-${String(location?.direction ?? 'none').toLowerCase()}`   // e.g. movement-north
   const energy = playerStats?.energy ?? 0
   // The backend now ships its own verdict on every neighbor of match-info: `available` is what
@@ -115,7 +117,7 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
     <Card variant={variant }
       card={location?.card ?? { title: location?.name, description: location?.description,
         urlImage: location?.urlImage, awesomeIcon: location?.awesomeIcon }}
-      entityType="movement" testId={testId}
+      entityType="movement" testId={testId} playId={playId}
       
       onAction={canMove ? handleMove : undefined}
       actionLabel={t('game.movement.action')}
@@ -132,7 +134,7 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
         stats: null,
         side: previewSide,
         props: canMove
-          ? { onAction: handleMove, actionLabel: t('game.movement.action'), testId,
+          ? { onAction: handleMove, actionLabel: t('game.movement.action'), testId, playId,
               actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
               , actionLabelChildren: costBadge
               , /* extraContent: moveInfo, extraContentClassName: '' */ }

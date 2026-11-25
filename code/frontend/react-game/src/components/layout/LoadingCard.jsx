@@ -11,11 +11,8 @@ import { buildLoadingCard } from '@/utils/loadoutCards'
  * `story` is optional: when it carries a card, its picture and description
  * take over the fixed ones (the photo credits follow the image, so the right
  * author is credited). The title stays the "Loading…" one.
- *
- * `maxWidth` (a CSS size, e.g. "300px") caps the card's width and centers it
- * in its container; unset, the card fills all the available space.
  */
-export default function LoadingCard({ variant = 'page', story = null, maxWidth = null }) {
+export default function LoadingCard({ variant = 'page', story = null }) {
   const { t } = useTranslation()
   const card = buildLoadingCard(t)
   if (story?.card?.urlImage) {
@@ -25,12 +22,11 @@ export default function LoadingCard({ variant = 'page', story = null, maxWidth =
     card.styleImageLarge = story.card.styleImageLarge ?? ''
   }
   if (story?.card?.description) card.description = story.card.description
-  const page = (
+  return (
     <Card variant={variant}
       card={card}
       entityType="loading"
       loading={true}
     />
   )
-  return maxWidth ? <div style={{ maxWidth, margin: '0 auto', padding: '1rem' }}>{page}</div> : page
 }

@@ -4,21 +4,11 @@
     font-size: 0.8rem !important;
   }
 }
-@media (max-width: 991px) {
-  .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-}
+/* v1.14.0 — the card columns come from --cards-cols (variables.css). */
 @media (max-width: 550px) {
-  .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
   .nav-user-btn__label { display: none; }
 }
 @media (max-width: 1120px) {
-  .selection-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
   .btn-start-game{
     font-size: 1rem !important;
   }
@@ -32,9 +22,6 @@
 @media (max-width: 330px) {
   .stat-badge{
     font-size: 1rem !important;
-  }
-  .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
   }
   .start-match-actions {
     display: grid !important;
@@ -53,165 +40,43 @@
   font-size: 1.5rem !important;     /* titolo storia su mobile */
 }
 
-/* ── Mobile book modal layout (StartBook) ── */
-.book-mobile-layout {
-  display: none;
-  flex-direction: column;
-  gap: 5px;
-  padding: 0px;
-  max-width: 500px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* Story card (image + title) — still used by EndGameBook / GameBookMobile. */
-.book-mobile-story-card {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 2px solid var(--color-gold-dark);
-  background: var(--color-brown-dark);
-}
-
-.book-mobile-story-img {
-  width: 100%;
-  height: 200px;          /* ← altezza immagine storia su mobile */
-  object-fit: cover;
-}
-
-.book-mobile-story-body {
-  padding: 12px 14px;
-}
-
-.book-mobile-story-title {
-  font-family: var(--font-display);
-  font-size: 1.05rem;     /* ← titolo storia su mobile */
-  color: var(--color-gold-light);
-  margin: 0 0 6px;
-}
-
-.book-mobile-story-desc {
-  font-size: 0.88rem;     /* ← descrizione storia su mobile */
-  color: var(--color-parchment-dark);
-  font-style: italic;
-  line-height: 1.55;
-  margin: 0;
-}
-
-/* Full-width hero card (story title + image + (i) + Start Game button).
-   Reuses Card but overrides the portrait grid sizing to a wide banner. */
-.book-mobile-hero-card .pg-card {
-  width: 100%;
-  flex: none;
-  aspect-ratio: auto;
-}
-.book-mobile-hero-card .gc-img {
-  flex: none;
-  height: 180px;          /* ← altezza immagine storia (hero) su mobile */
-}
-.book-mobile-hero-card .gc-title__text {
-  font-size: 1.05rem;     /* ← titolo storia su mobile */
-}
-/* Make the card's primary action read as the gold "Start Game" CTA. */
-.book-mobile-hero-card .gc-footer__btn:not(.gc-footer__btn--icon) {
-  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
-  color: var(--color-brown-deep);
-  font-weight: 700;
-}
-
-/* ── Shared start-book views (ConfigView / StartGameView / SelectionView)
-   reused inside the mobile layout: let them flow naturally and lay the
-   GameCards out 2 per row. ── */
-.book-mobile-layout .config-view-wrap { height: auto; }
-.book-mobile-layout .config-cards-area,
-.book-mobile-layout .start-match-cards {
-  flex: none;
-  overflow: visible;
-  padding: 6px 0 0;
-}
-.book-mobile-layout .selection-scroll {
-  flex: none;
-  overflow: visible;
-  padding: 6px 0 10px;
-}
-.book-mobile-layout .selection-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  overflow: visible;
-}
-/* v0.37.3 — the status card's shortcuts read one per row, icon then name: the mobile stack
-   has no bookmarks, so this row is the only place those four names appear. */
-.book-mobile-layout .card-status .gc-actions {
-  grid-template-columns: 1fr;
-}
-.book-mobile-layout .card-status .gc-footer__btn {
-  justify-content: flex-start;
-}
-
-/* Enlarge the small (little) card titles on mobile for readability; allow them
-   to wrap rather than truncate at the bigger size. */
-.book-mobile-layout .selection-list .gc-title__text {
-  font-size: clamp(1rem, 3.2vw, 1rem);
-  /* white-space: normal; */
-}
-/* The Start Game CTA lives on the hero card on mobile, so ConfigView's own
-   footer button would be a duplicate — hide it (StartGameView keeps its
-   footer, which carries the antibot check + final Start). */
-.book-mobile-layout .config-view--config .page-footer {
-  display: none;
-}
-
-/* GuestUserModal reused on mobile: the big user/story card and the matches
-   list flow naturally (their desktop rules use height:100% + overflow:hidden,
-   which would collapse/clip inside the auto-height mobile column). */
-.book-mobile-layout .book-page-content { height: auto; overflow: visible; }
-.book-mobile-layout .book-page-desc    { overflow: visible; }
-/* Page image = 33% of the screen: every page the same, whatever the image. */
-.book-mobile-layout .book-page-img-wrapper { max-height: none; }
-.book-mobile-layout .book-page-img,
-.book-mobile-layout .book-page-img-wrapper .book-page-img { height: 33svh; max-height: none; }
-.book-mobile-layout .matches-list-wrap { height: auto; overflow: visible; }
+/* v1.14.0 — one tree: phones stack the same Book (left page on top) and the document scrolls it (MOBILE_MQ). */
 
 /* Phone turned sideways: a page with image and description shows them side by side. */
-@media (orientation: landscape) and (max-height: 500px) and (min-width: 500px) {
-  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) {
+@media (min-width: 500px) and (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .book-wrapper .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) {
     display: grid;
     grid-template-columns: 40% minmax(0, 1fr);
   }
-  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > * {
+  .book-wrapper .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > * {
     grid-column: 1 / -1;
   }
-  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > :is(.book-page-img-wrapper, .book-page-img) {
+  .book-wrapper .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > :is(.book-page-img-wrapper, .book-page-img) {
     grid-column: 1;
     min-height: 60svh;
   }
   /* The image follows the row height and never pushes it with its own size. */
-  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-img-wrapper > .book-page-img {
+  .book-wrapper .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-img-wrapper > .book-page-img {
     position: absolute;
     inset: 0;
     height: 100%;
   }
-  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-img {
+  .book-wrapper .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-img {
     height: 100%;
     contain: size;
   }
-  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-desc {
+  .book-wrapper .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-desc {
     grid-column: 2;
     border-top: none;
     border-left: 2px solid var(--color-gold-dark);
   }
 }
 
-/* ── Home hero on mobile ── */
-/* (overrides hero height defined in main.css) */
-
 /* ── Responsive overrides ── */
 @media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .config-view-wrap{
     overflow-y: unset !important;
   }
-  /* Show mobile layout, hide desktop book */
-  .book-wrapper      { display: none !important; }
-  .book-mobile-layout { display: flex !important; }
-
   /* Kill any horizontal scroll/tap drift on the whole page on mobile: nothing
      in the game/book modal should ever be wider than the device. */
   /* v1.13.0 — clip, not hidden: hidden makes body a scroll box and the sticky navbar stops sticking. */
@@ -227,56 +92,159 @@
   }
   .book-shell.book-shell { display: contents; }
 
-  /* The home tab sits at the top-right of the stage, above the stacked column. */
-  .book-mobile-home.book-mobile-home {
-    display: flex;
-    justify-content: flex-end;
-    padding: 6px 14px 0;
+  /* v1.14.0 — the vertical book: the left page on top, the right page below. Step 16: bound on its left edge. */
+  .book-wrapper.book-wrapper {
+    flex-direction: column;
+    width: auto;
+    height: auto;
+    max-width: none;
+    margin: 8px 8px 0;
+    padding: 8px 8px 10px 20px;
+    scroll-margin-top: var(--navbar-h);
   }
-  .book-mobile-home .book-bookmarks {
+  /* The spine with its binding thread along the left edge, a dark gold headband at each end. */
+  .book-wrapper .book-spine {
+    left: 5px;
+    top: 34px;
+    height: auto;
+    bottom: 34px;
+    width: 10px;
+    transform: none;
+  }
+  .book-wrapper .book-headband { left: 3px; width: 14px; height: 6px; transform: none; }
+  .book-wrapper .book-headband--top { top: 30px; }
+  .book-wrapper .book-headband--bottom { bottom: 30px; }
+  .book-wrapper .book-ribbon { left: auto; right: 46px; }
+  /* The corners over the tab row while it rests on the cover (it scrolls away from them once stuck). */
+  .book-wrapper .book-corner { z-index: 31; }
+  /* clip does not stop position: sticky; visible is the fallback for old Safari. */
+  .book-wrapper .book-page { width: 100%; height: auto; min-height: 0; overflow: visible; overflow: clip; }
+  /* Both pages: gutter shading on the bound left edge, stacked page edges on the right. */
+  .book-wrapper .book-page-left,
+  .book-wrapper .book-page-right {
+    box-shadow:
+      inset 4px 0 12px rgba(0, 0, 0, 0.4),
+      2px 1px 0 -1px var(--color-parchment-dark),
+      4px 2px 0 -2px var(--color-brown-tan),
+      6px 3px 0 -3px var(--color-parchment-dark);
+  }
+  .book-wrapper .book-page-left::after,
+  .book-wrapper .book-page-right::after {
+    left: 0;
+    right: auto;
+    width: 28px;
+    background: linear-gradient(to right, rgba(46, 21, 8, 0.35), transparent);
+  }
+  .book-wrapper .book-page-left  { border-radius: 12px 12px 0 0; }
+  .book-wrapper .book-page-right { border-radius: 0 0 12px 12px; }
+  /* The ending: the end card on top, the story card below (the missions keep the normal order). */
+  .end-game-wrapper .book-page-right { order: -1; border-radius: 12px 12px 0 0; }
+  .end-game-wrapper .book-page-left  { border-radius: 0 0 12px 12px; }
+  /* A scrolled-to page is not hidden under the sticky navbar and the sticky tab row. */
+  .book-wrapper .book-page { scroll-margin-top: calc(var(--navbar-h) + var(--book-pills-h)); }
+  .book-stage--no-tabs .book-wrapper .book-page { scroll-margin-top: var(--navbar-h); }
+
+  /* Step 16 — the bookmarks as one sticky row of pills under the navbar, scrolling sideways; the home tab ends it. */
+  .book-wrapper .book-bookmarks-row {
+    position: sticky;
+    top: var(--navbar-h);
+    z-index: 30;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    height: var(--book-pills-h);
+    margin: 0 0 8px;
+    padding: 0 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    background: rgba(26, 10, 2, 0.95);
+    border-bottom: 1px solid var(--color-gold-dark);
+    border-radius: 8px 8px 0 0;
+  }
+  .book-wrapper .book-bookmarks-row::-webkit-scrollbar { display: none; }
+  .book-wrapper .book-bookmarks {
     position: static;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
     transform: none;
     pointer-events: auto;
   }
-  .book-mobile-home .book-bookmark { margin-bottom: 0; padding: 4px 12px 6px; font-size: 1.25rem; }
+  /* Pinned: the other pills scroll under it (the row padding compensated), so it stays on narrow phones. */
+  .book-wrapper .book-bookmarks--right {
+    position: sticky;
+    right: -8px;
+    z-index: 1;
+    align-self: stretch;
+    margin-left: auto;
+    padding: 0 8px 0 6px;
+    background: rgba(26, 10, 2, 0.95);
+  }
+  .book-wrapper .book-bookmark {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 4px 10px;
+    border: 2px solid var(--color-brown-warm);
+    border-radius: 999px;
+    font-size: 1rem;
+    line-height: 1.2;
+    box-shadow: none;
+    white-space: nowrap;
+  }
+  .book-wrapper .book-bookmark .stat-badge { padding: 1px 5px; font-size: 0.68rem; }
+  .book-wrapper .book-bookmark.is-active .book-bookmark__label {
+    display: inline;
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
 
-  /* A scrolled-to column is not hidden under the sticky navbar. */
-  .book-mobile-left,
-  .book-mobile-right { scroll-margin-top: var(--navbar-h); }
+  /* Step 16 — the page deck rides the bottom of the screen while the right page holds a dealt grid. */
+  .book-page-right:has(.book-content:not(.book-content--covered) .pg-dealt) > .deck {
+    display: block;
+    position: sticky;
+    right: auto;
+    bottom: 12px;
+    margin: 4px 14px 12px auto;
+  }
 
-  /* Keep the single-column game layout within the device width: cap the layout
-     and its left/right wrappers, and stop flex/grid children from forcing a
-     wider track (min-width:auto default overflows on long words / wide cards). */
-  .book-mobile-layout,
-  .book-mobile-left,
-  .book-mobile-right { max-width: 100%; min-width: 0; }
-  .book-mobile-layout * { /* min-width: 0;*/ max-width: 100%; }
-  .book-mobile-layout img { height: auto; }
+  /* Every scroller inside the pages flows: the document scrolls the stacked book. */
+  .book-wrapper .page-inner,
+  .book-wrapper .book-page-content,
+  .book-wrapper .config-view-wrap,
+  .book-wrapper .config-cards-area,
+  .book-wrapper .selection-scroll,
+  .book-wrapper .selection-list,
+  .book-wrapper .matches-list-wrap,
+  .book-wrapper .start-match-cards { height: auto; overflow: visible; }
+  .book-wrapper .book-page-desc { overflow: visible; }
+  .book-wrapper .config-cards-area,
+  .book-wrapper .start-match-cards { flex: none; padding: 6px 0 0; }
+  .book-wrapper .selection-scroll { flex: none; padding: 6px 0 10px; }
+  .book-wrapper .selection-scroll > .selection-list,
+  .book-wrapper .start-match-cards > .selection-list { gap: 1rem; }
+  /* A left preview takes the place of the top card (no overlay over a page that has no height of its own). */
+  .book-wrapper .card-preview-overlay { position: relative; inset: auto; padding: 0; }
 
-  .book-mobile-left{
-    padding-top:10px;
-    padding-left:10px;
-    padding-right:10px;
-  }
-  .book-mobile-hero-card:has(.book-page-content)  {
-    padding:10px;
-  }
-  .book-mobile-right:has(.book-page-content)  {
-    padding:10px;
-  }
-  .book-mobile-layout:has(.selection-scroll)  {
-    padding:10px;
-  }
-  .book-mobile-layout > DIV > .selection-scroll > .selection-list  {
-    gap:1rem;
-  }
-  .book-mobile-layout > .start-match-cards > .selection-list{
-    gap:1rem;
-  }
-  .start-match-stage > .book-mobile-layout,
-  .start-match-stage > .book-content > .book-mobile-layout {
-    padding:10px;
-  }
+  /* Page image = 33% of the screen: every page the same, whatever the image. */
+  .book-wrapper .book-page-img-wrapper { max-height: none; }
+  .book-wrapper .book-page-img,
+  .book-wrapper .book-page-img-wrapper .book-page-img { height: 33svh; max-height: none; }
+
+  /* Keep the column within the device width: flex/grid children never force a wider track. */
+  .book-wrapper .book-page { max-width: 100%; min-width: 0; }
+  .book-wrapper .book-page * { max-width: 100%; }
+  .book-wrapper img { height: auto; }
+
+  /* v0.37.3 — the status card's shortcuts one per row, with names (step 16: shown only with VITE_SHOW_MOBILE_CARD_CHARACTERISTICS). */
+  .book-wrapper .card-status .gc-actions { grid-template-columns: 1fr; }
+  .book-wrapper .card-status .gc-footer__btn { justify-content: flex-start; }
+
+  /* The small card titles a little bigger for readability. */
+  .book-wrapper .selection-list .gc-title__text { font-size: 1rem; }
 
   /* Game page: stack pages vertically */
   .game-book-wrapper {
@@ -287,20 +255,6 @@
   .game-book-wrapper .book-page        { width: 100%; height: auto; min-height: 240px; }
   .game-book-wrapper .book-page-left   { border-radius: 12px 12px 0 0; }
   .game-book-wrapper .book-page-right  { border-radius: 0 0 12px 12px; }
-
-  /* Hero shorter on mobile */
-  .hero-section { height: clamp(180px, 32vw, 280px); }
-
-  .hero-title {
-    font-size: clamp(1.1rem, 5vw, 1.8rem);   /* ← titolo hero mobile */
-  }
-
-  .hero-sub {
-    font-size: clamp(0.75rem, 3vw, 1rem);    /* ← sottotitolo hero mobile */
-  }
-
-  /* Catalog padding */
-  .stories-section { padding: 12px 12px 0; }
 
   /* Navbar: hide brand text, show only icon */
   /*.navbar-brand-text { display:none }*/
@@ -314,18 +268,9 @@
     background: rgba(139, 26, 26, 0.9) !important;
   }
 
-  /* Catalog grid: smaller gap on mobile */
-  .stories-grid { gap: 10px; padding: 10px 4px 14px; }
-
   /* Game cards slightly smaller on mobile */
   .pg-card--medium { width: 130px; flex: 0 0 130px; }
-  .pg-card--home   { width: 180px; flex: 0 0 180px; }
 
-  /* Catalog cards narrower on mobile */
-  .story-netflix-card { width: 180px; flex: 0 0 180px; }
-
-  /* Section labels */
-  .section-label    { font-size: 0.88rem; }
   .game-section-label { font-size: 0.78rem; }
 
   /* Player stats badges */
@@ -382,12 +327,14 @@
     font-size: 1rem !important;
   }
 
-  .card-preview-modal-content{
-    width: 100%;
-  }
 }
 
 /* Small phones: the navbar has no room for the env badge (the footer keeps it). */
 @media (max-width: 442px) {
   .navbar-medieval .env-badge {display:none !important;}
+}
+
+/* Step 16 — a phone turned sideways: the pills show icons only (and their badges). */
+@media (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  .book-wrapper .book-bookmark.is-active .book-bookmark__label { display: none; }
 }

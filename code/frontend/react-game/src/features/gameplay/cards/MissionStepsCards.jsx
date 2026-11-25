@@ -1,6 +1,7 @@
 import Card from '@/components/layout/Card'
 import { useTranslation } from '@/i18n/context'
 import { missionStatusBadge } from '@/utils/missions'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * MissionStepsCards — v0.37.1. The steps of ONE mission, on the RIGHT page, while the mission's
@@ -26,7 +27,7 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
 
   return (
     <div className="config-view-wrap config-view--config">
-      <div className="config-cards-area selection-list">
+      <DealtList className="config-cards-area selection-list">
         {steps.length === 0
           ? <p className="game-empty">{t('game.missions.stepsEmpty')}</p>
           : steps.map((step, index) => {
@@ -53,7 +54,7 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
               />
             )
           })}
-      </div>
+      </DealtList>
     </div>
   )
 }

@@ -16,22 +16,19 @@ import { RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES, HIDE_STORIES } from '../
 import { withComingSoonStories } from '../utils/comingSoonStories'
 import { withoutHiddenStories } from '../utils/hiddenStories'
 import LoadingCard from '@/components/layout/LoadingCard'
+import Card from '@/components/layout/Card'
 import { useHomeStatus } from '@/context/HomeStatusContext'
-import { usePolicyBook } from '@/context/PolicyBookContext'
 import { RATE_LIMITED } from '@/utils/rateLimit'
+import { buildImageCard } from '@/utils/loadoutCards'
 
-const HERO_IMG = {
-  url: 'https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80',
-  copyrightText: 'Lili Popper on Unsplash',
-  linkCopyright: 'https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM',
-}
+// How long "Success! You are human." stays under the intro text after the check passed.
+const ANTIBOT_SUCCESS_MS = 4000
 
 export default function HomePage() {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const { user, error: guestError, sessionIdle, ensureGuest } = useGuestUser()
   const { openPlayerPage } = usePlayerPage()
-  const { policyBook } = usePolicyBook()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
   // v0.32.1 — 'loading' | 'ready' | 'error': an unreadable list must NOT look like
@@ -50,6 +47,17 @@ export default function HomePage() {
   // it gates is the card footer (Play/Resume buttons) and the click handler.
   const gate = useAntibot({ cookie: true })
   const { setError: setHomeError } = useHomeStatus()
+  // Step 14 — the success line follows a check passed on this visit, then goes away.
+  const [successShown, setSuccessShown] = useState(false)
+  const lastPhase = useRef(gate.phase)
+  useEffect(() => {
+    const was = lastPhase.current
+    lastPhase.current = gate.phase
+    if (gate.phase !== 'ready' || was !== 'checking') return undefined
+    setSuccessShown(true)
+    const timer = setTimeout(() => setSuccessShown(false), ANTIBOT_SUCCESS_MS)
+    return () => clearTimeout(timer)
+  }, [gate.phase])
 
   // The in-flight catalog request and its language: StrictMode (dev) runs the effect
   // twice on mount, the second run joins the first request instead of repeating it.
@@ -178,58 +186,64 @@ export default function HomePage() {
     }
   }
 
-  return (
-    <>
-      {/* Interim chapter host until step 14: the hero and the catalog stay mounted (Turnstile running). */}
-      {policyBook && <Book left={null} right={null} homeTab={false} />}
-      <div className={policyBook ? 'home-page book-content--covered' : 'home-page'}
-        aria-hidden={policyBook ? 'true' : undefined}>
-        {/* Hero Netflix-style. v0.37.6 — the Turnstile strip sits inside the overlay, above
-            the title, so the check runs over the picture while the catalog loads below;
-            `interaction-only` keeps it invisible unless a challenge is due. */}
-        <section className="hero-section" style={{ backgroundImage: `url(${HERO_IMG.url})` }}>
-          <div className="hero-overlay">
-            {gate.phase === 'checking' && (
-              <div className="home-antibot-strip">
-                <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
-                <div className="mt-2">
-                  <TurnstileWidget
-                    key={gate.attempt}
-                    appearance={TURNSTILE_APPEARANCE.home}
-                    onSuccess={gate.onSuccess}
-                    onError={gate.onError}
-                    onExpire={gate.onExpire}
-                  />
-                </div>
-              </div>
-            )}
-            {!loading && !storiesError && (
-              <TutorialButton stories={stories} matches={matches} footerState={footerState}
-                pendingStoryUuid={pendingStoryUuid} onStoryClick={handleStoryClick} />
-            )}
-            <h1 className="hero-title">{t('home.heroTitle')}</h1>
-            <p className="hero-sub">{t('home.heroSub')}</p>
-          </div>
-        </section>
-
-        {/* Catalog — a failed fetch is the one technical error with nothing to show */}
-        {loading ? (
-          <LoadingCard story={null} maxWidth="500px" />
-        ) : storiesError ? (
-          <div className="stories-section-center stories-loading" role="alert" aria-label={t('home.storiesError')}>
-            {/* The message and the retry live in the navbar (HomeStatusContext): here only the sign. */}
-            <i className="fas fa-exclamation-triangle home-stories-error-icon" title={t('home.storiesError')} />
-          </div>
-        ) : (
-          <StoryCatalog
-            stories={stories}
-            matches={matches}
-            footerState={footerState}
-            pendingStoryUuid={pendingStoryUuid}
-            onStoryClick={handleStoryClick}
-          />
-        )}
+  // Step 14 — anti-bot result under the intro text: the check, then one short-lived line; blocked and error stay in the navbar.
+  const antibotResult = gate.phase === 'checking' ? (
+    <div className="home-antibot-strip">
+      <div className="turnstile-checking"><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
+      <div className="mt-2">
+        <TurnstileWidget
+          key={gate.attempt}
+          appearance={TURNSTILE_APPEARANCE.home}
+          onSuccess={gate.onSuccess}
+          onError={gate.onError}
+          onExpire={gate.onExpire}
+        />
       </div>
+    </div>
+  ) : gate.phase === 'ready' && successShown ? (
+    <p className="home-antibot-success" data-testid="antibot-success">
+      <i className="fas fa-check-circle me-2" aria-hidden="true" />{t('antibot.success')}
+    </p>
+  ) : null
+
+  // Left page: the fixed intro card, the photo credited by the page's credits bar.
+  const intro = (
+    <Card variant="page" titleTag="h1" loading={false}
+      card={buildImageCard('home', t('home.heroTitle'), t('home.heroSub'))}
+      afterDescription={antibotResult && <div className="home-intro-antibot">{antibotResult}</div>}
+      extraContentClassName="home-intro-extra"
+      extraContent={!loading && !storiesError && (
+        <TutorialButton stories={stories} matches={matches} footerState={footerState}
+          pendingStoryUuid={pendingStoryUuid} onStoryClick={handleStoryClick} />
+      )} />
+  )
+
+  // Right page: every story in one dealt grid; the heading stays in the markup (multiplayer messages).
+  const storiesPage = (
+    <>
+      <h2 className="book-cards-heading">{t('home.stories')}</h2>
+      {loading ? (
+        <LoadingCard />
+      ) : storiesError ? (
+        <div className="stories-section-center stories-loading" role="alert" aria-label={t('home.storiesError')}>
+          {/* The message and the retry live in the navbar (HomeStatusContext): here only the sign. */}
+          <i className="fas fa-exclamation-triangle home-stories-error-icon" title={t('home.storiesError')} />
+        </div>
+      ) : (
+        <StoryCatalog
+          stories={stories}
+          matches={matches}
+          footerState={footerState}
+          pendingStoryUuid={pendingStoryUuid}
+          onStoryClick={handleStoryClick}
+        />
+      )}
     </>
+  )
+
+  // No home tab here; an open policy chapter covers both pages, kept mounted (Turnstile keeps running).
+  return (
+    <Book left={intro} right={storiesPage} homeTab={false}
+      stageClass="home-book-stage" wrapperClass="book-wrapper home-book" />
   )
 }

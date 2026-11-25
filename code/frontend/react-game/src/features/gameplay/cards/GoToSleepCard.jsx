@@ -7,6 +7,8 @@ import { buildCardToSleep } from '@/utils/loadoutCards'
 import { resolveSelectionEntity } from '@/utils/gamebook'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
+// Step 15 — the small card (once its page was read) and the reading page play the same sleep.
+const SLEEP_PLAY_ID = 'sleep'
 
 export default function GoToSleepCard({ story, storyFull,gameData,playerStats, onPreview, previewSide='left', matchUuid, accessToken, onSlept, autoPreview=false}) {
   const { t } = useTranslation()
@@ -74,14 +76,14 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
       stats: [],
       side: previewSide,
       props: { onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed',
-        extraContent: sleepSecureContent, extraContentClassName: '' },
+        extraContent: sleepSecureContent, extraContentClassName: '', playId: SLEEP_PLAY_ID },
     })
   }
   useEffect(() => { if (autoPreview) openSleepPreview() }, [autoPreview]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <Card
     card={cardLeft}
-    entityType="sleep"
+    entityType="sleep" playId={SLEEP_PLAY_ID}
     label={t('game.sleep')}
     onAction={handleSleep}
     actionLabel={t('game.sleep.action')}

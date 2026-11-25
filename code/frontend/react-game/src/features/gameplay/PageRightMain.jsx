@@ -10,6 +10,7 @@ import { buildCardCharacteristics, checkShowToSleepCard, movementCostKey } from 
 import { canUseExp } from '@/utils/experience'
 import { expSummaryProps } from './js/boardProps'
 import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereClass } from '@/constants/features'
+import DealtList from '@/components/layout/DealtList'
 
 /**
  * PageRightMain — the RIGHT page when nothing else owns it: the characteristics card, the
@@ -36,7 +37,7 @@ export default function PageRightMain({
   return (
     <>
       <div className="config-view-wrap config-view--config">
-        <div className="config-cards-area selection-list">
+        <DealtList className="config-cards-area selection-list">
           {(SHOW_CARD_CHARACTERISTICS || SHOW_MOBILE_CARD_CHARACTERISTICS) &&
             <Card card={cardCharacteristics} entityType="information" story={story}
               flagInformationCard={true} previewSide="right"
@@ -95,7 +96,7 @@ export default function PageRightMain({
                ItemsCard in the statistics list), so keeping the list here too would show
                every item twice. */ }
           <div className="sleep-action-row" />
-        </div>
+        </DealtList>
       </div>
       {endError && (
         <p className="game-error end-game-error">

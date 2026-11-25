@@ -3,6 +3,7 @@ import Card from '../../components/layout/Card'
 import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, isTraitSelected, traitBudgetItems, traitCostItems } from '../../utils/traitBudget'
+import DealtList from '@/components/layout/DealtList'
 
 export default function OptionPicker({ type, options, selected, story, config, onSelect, onBack, onPreview }) {
   const { t } = useTranslation()
@@ -44,7 +45,7 @@ export default function OptionPicker({ type, options, selected, story, config, o
       </div>
 
       <div className="selection-scroll">
-        <div className="selection-list">
+        <DealtList className="selection-list">
           {options.map((opt, i) => {
             let lockInfo = getOptionLockInfo({ type, option: opt, config, classesById  })
             const optSelected = isTraitPicker
@@ -87,7 +88,7 @@ export default function OptionPicker({ type, options, selected, story, config, o
               statistics={statItemsToPageContent}
             />
           )})}
-        </div>
+        </DealtList>
       </div>
     </div>
   )

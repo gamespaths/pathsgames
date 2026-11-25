@@ -6,6 +6,7 @@ vi.mock('../i18n/context', () => ({
 }))
 
 import CardButtons from '../components/layout/CardButtons'
+import Card from '../components/layout/Card'
 
 describe('CardButtons action spinner', () => {
   it('shows the in-progress spinner while the action runs, then clears it once it settles', async () => {
@@ -200,3 +201,16 @@ describe('CardButtons test ids', () => {
     expect(document.querySelector('[data-testid]')).toBeNull()
   })
 })
+
+describe('CardButtons — step 14: inside the card front', () => {
+  it.each([
+    ['action', { onAction: vi.fn(), actionLabel: 'Go' }, 'x-action'],
+    ['select', { onSelect: vi.fn(), selectLabel: 'Pick' }, 'x-select'],
+    ['info', { onPreview: vi.fn(), flagInformationCard: true }, 'x-info'],
+  ])('the %s button keeps its test id, in the front, never in the back', (_, props, id) => {
+    const { container } = render(<Card card={{ title: 'T' }} testId="x" {...props} />)
+    expect(container.querySelector('.pg-card__front .gc-footer')).toContainElement(screen.getByTestId(id))
+    expect(container.querySelector('.pg-card__back button')).toBeNull()
+  })
+})
+

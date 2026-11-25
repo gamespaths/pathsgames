@@ -1,4 +1,5 @@
 import Card from '@/components/layout/Card'
+import FadeIn, { previewKey } from '@/components/layout/FadeIn'
 import MapPage from '@/components/layout/Map'
 import LocationCard from './cards/LocationCard'
 import ComaCard from './cards/ComaCard'
@@ -80,7 +81,8 @@ export default function PageLeft({
   if (previewLeft) {
     // v0.35.5 — InformationCard only redresses the 'information' page (story title, no
     // image, one row per badge); every other preview type passes straight to Card.
-    return <InformationCard variant="page"
+    // Step 15 — on phones it fades in at the top of the book (the desktop Book fades the page).
+    return <FadeIn key={previewKey(previewLeft)}><InformationCard variant="page"
       card={previewLeft.card}
       entity={previewLeft.entity}
       entityType={previewLeft.type}
@@ -92,7 +94,7 @@ export default function PageLeft({
       lockedReason={previewLeft.lockedReason}
       statItemsToPageContent={previewLeft.statItemsToPageContent}
       {...previewLeft.additionalProps}
-    />
+    /></FadeIn>
   }
   if (actualLocationCard) {
     return <LocationCard locationsActive={gameData?.info?.locationsActive}

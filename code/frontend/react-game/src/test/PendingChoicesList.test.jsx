@@ -71,3 +71,11 @@ describe('PendingChoicesList (Step 31)', () => {
     expect(screen.queryAllByTestId('choice-card')).toHaveLength(0)
   })
 })
+
+// Step 14 — every card grid is a DealtList: its cards are dealt from the deck.
+describe('PendingChoicesList — dealt grid (step 14)', () => {
+  it('the list carries pg-dealt', () => {
+    const { container } = render(<PendingChoicesList story={STORY} choices={CHOICES} onPreview={vi.fn()} onSelect={vi.fn()} />)
+    expect(container.querySelector('.config-cards-area.selection-list.pg-dealt')).toBeInTheDocument()
+  })
+})
