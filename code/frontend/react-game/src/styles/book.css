@@ -79,7 +79,7 @@
   content: '';
   position: absolute;
   inset: 1px;
-  border: 1px dashed rgba(232, 184, 48, 0.4);
+  border: 1px dotted rgba(232, 184, 48, 0.4);
   border-radius: 13px;
   pointer-events: none;
 }
@@ -102,8 +102,13 @@
   width: 12px;
   transform: translateX(-50%);
   background:
+    repeating-linear-gradient(180deg, transparent 0 1px, rgba(232, 184, 48, 0.6) 21px 21px) center / 2px 100% no-repeat,
+    linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 40%, var(--color-brown-dark) 100%);
+/* QUIQUIQUI
+  background:
     repeating-linear-gradient(180deg, transparent 0 9px, rgba(232, 184, 48, 0.6) 9px 13px) center / 2px 100% no-repeat,
     linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 40%, var(--color-brown-dark) 100%);
+*/
   border-radius: 3px;
   z-index: 10;
   box-shadow: 0 0 8px rgba(0,0,0,0.6);
@@ -279,7 +284,7 @@
   box-shadow:
     inset -4px 0 12px rgba(0,0,0,0.4),
     -2px 1px 0 -1px var(--color-parchment-dark),
-    -4px 2px 0 -2px var(--color-brown-tan),
+    -4px 2px -2px -2px var(--color-brown-tan),
     -6px 3px 0 -3px var(--color-parchment-dark);
 }
 
@@ -288,7 +293,7 @@
   box-shadow:
     inset 4px 0 12px rgba(0,0,0,0.4),
     2px 1px 0 -1px var(--color-parchment-dark),
-    4px 2px 0 -2px var(--color-brown-tan),
+    4px 2px -2px -2px var(--color-brown-tan),
     6px 3px 0 -3px var(--color-parchment-dark);
   background: var(--book-page-background-right);
 }
