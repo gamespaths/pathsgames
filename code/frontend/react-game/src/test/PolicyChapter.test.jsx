@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, renderHook, act, waitFor } from '@testing-library/react'
 import { LanguageProvider } from '../i18n/context'
 import { PolicyBookProvider, usePolicyBook, POLICY_KINDS } from '../context/PolicyBookContext'
-import PolicyBook from '../components/modals/PolicyBook'
+import Book from '../components/book/Book'
+import { usePolicyChapter } from '../components/book/PolicyChapter'
 import { creditCard } from '../utils/credits'
 import images from '../data/images.json'
 import shipped from '../data/stories.json'
@@ -19,12 +20,13 @@ function Opener({ kind }) {
   return <button onClick={() => openPolicyBook(kind)}>open-{kind}</button>
 }
 
+// v1.13.0 — the chapter is shown by the current page's Book, over its own (covered) pages.
 function renderBook(kind) {
   const utils = render(
     <LanguageProvider>
       <PolicyBookProvider>
         <Opener kind={kind} />
-        <PolicyBook />
+        <Book left={<span>own-left</span>} right={<span>own-right</span>} />
       </PolicyBookProvider>
     </LanguageProvider>
   )
@@ -56,14 +58,25 @@ describe('PolicyBookContext', () => {
   })
 })
 
-describe('PolicyBook', () => {
+describe('PolicyChapter', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('renders nothing while closed', () => {
+  it('no chapter: the Book shows its own pages, no overlay', () => {
     const { container } = render(
-      <LanguageProvider><PolicyBookProvider><PolicyBook /></PolicyBookProvider></LanguageProvider>
+      <LanguageProvider><PolicyBookProvider><Book left={<span>own-left</span>} right={null} /></PolicyBookProvider></LanguageProvider>
     )
     expect(container.querySelector('.book-overlay')).toBeNull()
+    expect(container.querySelector('.book-content--chapter')).toBeNull()
+    expect(screen.getByText('own-left')).toBeVisible()
+  })
+
+  it('the left page\'s back arrow closes the chapter: the page comes back exactly as it was', () => {
+    const { container } = renderBook('terms')
+    expect(container.querySelector('.book-content--covered')).toBeTruthy()
+    fireEvent.click(container.querySelector('.book-page-left [data-testid="page-back"]'))
+    expect(container.querySelector('.book-content--chapter')).toBeNull()
+    expect(container.querySelector('.book-content--covered')).toBeNull()
+    expect(screen.getByText('own-left')).toBeInTheDocument()
   })
 
   it.each([
@@ -81,7 +94,8 @@ describe('PolicyBook', () => {
     expect(container.querySelector('.book-page-right .book-page-title').textContent).toContain(title)
     expect(container.querySelectorAll('.book-page-left .policy-book-text h6').length).toBe(0)
     expect(container.querySelectorAll('.book-page-right .policy-book-text h6').length).toBe(sections)
-    expect(container.querySelector('.policy-book-overlay')).toBeTruthy()
+    expect(container.querySelector('.policy-book-overlay')).toBeNull()
+    expect(container.querySelector('.book-content--chapter .policy-chapter-mobile')).toBeTruthy()
   })
 
   it('cookies: the manage action opens the consent preferences', () => {
@@ -151,6 +165,79 @@ describe('PolicyBook', () => {
     const credit = card.querySelector('[data-testid="credit-copy"]')
     credit ? expect(credit.textContent).toBe(creditCard(images[idx]).copyrightText)
            : expect(creditCard(images[idx]).copyrightText).toBeNull()
+  })
+})
+
+describe('PolicyBookContext v1.13.0 — the page scroll', () => {
+  let scrollTo
+  beforeEach(() => {
+    scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 420 })
+  })
+  afterEach(() => {
+    scrollTo.mockRestore()
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
+  })
+
+  it('opening stores the scroll and goes to the top; closing restores it', () => {
+    const { result } = renderHook(() => usePolicyBook(), { wrapper: PolicyBookProvider })
+    act(() => result.current.openPolicyBook('privacy'))
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 0)
+    act(() => result.current.closePolicyBook())
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 420)
+  })
+
+  it('a chapter opened from another keeps the first position', () => {
+    const { result } = renderHook(() => usePolicyBook(), { wrapper: PolicyBookProvider })
+    act(() => result.current.openPolicyBook('roadmap'))
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
+    act(() => result.current.openPolicyBook('credits'))
+    expect(scrollTo).toHaveBeenCalledTimes(1)
+    act(() => result.current.closePolicyBook())
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 420)
+  })
+
+  it('a route change closes without restoring; closing nothing scrolls nothing', () => {
+    const { result } = renderHook(() => usePolicyBook(), { wrapper: PolicyBookProvider })
+    act(() => result.current.closePolicyBook())
+    expect(scrollTo).not.toHaveBeenCalled()
+    act(() => result.current.openPolicyBook('terms'))
+    scrollTo.mockClear()
+    act(() => result.current.closePolicyBook({ restoreScroll: false }))
+    expect(result.current.policyBook).toBeNull()
+    expect(scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('an unknown kind closes without any scroll', () => {
+    const { result } = renderHook(() => usePolicyBook(), { wrapper: PolicyBookProvider })
+    act(() => result.current.openPolicyBook('nope'))
+    expect(result.current.policyBook).toBeNull()
+    expect(scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('a scrollTo that throws (no real scroll) is ignored', () => {
+    scrollTo.mockImplementation(() => { throw new Error('not implemented') })
+    const { result } = renderHook(() => usePolicyBook(), { wrapper: PolicyBookProvider })
+    act(() => result.current.openPolicyBook('privacy'))
+    act(() => result.current.closePolicyBook())
+    expect(result.current.policyBook).toBeNull()
+  })
+})
+
+describe('usePolicyChapter', () => {
+  it('null while no chapter is open, or outside a provider', () => {
+    expect(renderHook(() => usePolicyChapter()).result.current).toBeNull()
+    expect(renderHook(() => usePolicyChapter(), { wrapper: PolicyBookProvider }).result.current).toBeNull()
+  })
+
+  it('the deep-link chapter as { kind, left, right, mobile }, keys as text without a language provider', () => {
+    window.history.replaceState(null, '', '/?policy=terms')
+    const { result } = renderHook(() => usePolicyChapter(), { wrapper: PolicyBookProvider })
+    expect(result.current.kind).toBe('terms')
+    expect(result.current.left).toBeTruthy()
+    expect(result.current.right).toBeTruthy()
+    expect(result.current.mobile.props.className).toContain('book-mobile-layout')
+    window.history.replaceState(null, '', '/')
   })
 })
 

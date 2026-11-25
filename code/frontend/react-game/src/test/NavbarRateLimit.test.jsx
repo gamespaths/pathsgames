@@ -18,7 +18,7 @@ vi.mock('@/context/HomeStatusContext', () => ({
 }))
 const guest = vi.hoisted(() => ({ errorRetryAfter: 0 }))
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: null, loading: false, openGuestModal: vi.fn(), errorRetryAfter: guest.errorRetryAfter }),
+  useGuestUser: () => ({ user: null, loading: false, errorRetryAfter: guest.errorRetryAfter }),
 }))
 
 const renderNavbar = () => render(<MemoryRouter><Navbar /></MemoryRouter>)

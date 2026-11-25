@@ -167,5 +167,8 @@ describe('Card — page navigation test ids', () => {
     render(<Card variant="page" card={{ title: 'T' }} onClose={vi.fn()} onForward={vi.fn()} />)
     expect(screen.getByTestId('page-back')).toBeInTheDocument()
     expect(screen.getByTestId('page-forward')).toBeInTheDocument()
+    // v1.13.0 — the arrows' drawn tooltip is their aria-label
+    expect(screen.getByTestId('page-back')).toHaveAttribute('data-tip', screen.getByTestId('page-back').getAttribute('aria-label'))
+    expect(screen.getByTestId('page-forward')).toHaveAttribute('data-tip', screen.getByTestId('page-forward').getAttribute('aria-label'))
   })
 })

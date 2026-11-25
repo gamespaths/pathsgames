@@ -16,7 +16,7 @@ import { toEpochMs } from '@/utils/dates'
  * v1.7.0 step 9 — active first, then last played; the matches the last login cancelled are highlighted once.
  * v1.8.0 — the user's statistics card opens the grid; cancelled and banned matches are always listed.
  */
-export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory, onClose }) {
+export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory }) {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const [matches,  setMatches]  = useState([])
@@ -77,7 +77,8 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
 
   return (
     <div className="matches-list-wrap">
-      <h3 className="matches-list-title">
+      {/* No heading over the cards (v1.13.0): kept for the multiplayer messages, hidden by CSS. */}
+      <h3 className="matches-list-title book-cards-heading">
         <i className="fas fa-scroll me-2" />{t('matches.title')}
       </h3>
 
@@ -90,7 +91,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
               match={match}
               story={storyMap[match.storyUuid] ?? null}
               highlighted={highlightRef.current.has(match.uuid)}
-              onResume={() => { onClose?.(); navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } }) }}
+              onResume={() => navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } })}
               onPreviewCard={onPreviewCard}
               onHistory={onOpenHistory}
             />

@@ -3,6 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import { useGuestUser } from './GuestUserContext'
 import GoogleSignInButton from './GoogleSignInButton'
+import usePlayerPage from './usePlayerPage'
 
 /** The message of an auth error code; an unknown code reads as the generic failure. */
 export function authErrorText(t, code) {
@@ -112,6 +113,19 @@ export function LogoutMenu() {
   )
 }
 
+/** v1.7.0 — the account is gone: its "close" button reloads the home (v1.13.0: closePlayerPage). */
+function AccountDeletedPanel() {
+  const { t } = useTranslation()
+  const { closePlayerPage } = usePlayerPage()
+  return (
+    <div className="user-account-panel" data-testid="user-profile-deleted">
+      <p><strong>{t('profile.delete.doneTitle')}</strong></p>
+      <p>{t('profile.delete.done')}</p>
+      <button type="button" className="lang-btn" onClick={closePlayerPage}>{t('profile.delete.close')}</button>
+    </div>
+  )
+}
+
 /**
  * UserAccountPanel — v1.2.0 the account part of the user's book, inside the parchment body: a guest
  * is invited to sign in with Google to keep its progress; a Google user sees its account and the
@@ -119,17 +133,9 @@ export function LogoutMenu() {
  */
 export default function UserAccountPanel() {
   const { t } = useTranslation()
-  const { user, isGoogleUser, authError, clearAuthError, googleEnabled, accountDeleted, closeGuestModal } = useGuestUser()
+  const { user, isGoogleUser, authError, clearAuthError, googleEnabled, accountDeleted } = useGuestUser()
   const error = authErrorText(t, authError)
-  if (accountDeleted) {
-    return (
-      <div className="user-account-panel" data-testid="user-profile-deleted">
-        <p><strong>{t('profile.delete.doneTitle')}</strong></p>
-        <p>{t('profile.delete.done')}</p>
-        <button type="button" className="lang-btn" onClick={closeGuestModal}>{t('profile.delete.close')}</button>
-      </div>
-    )
-  }
+  if (accountDeleted) return <AccountDeletedPanel />
   return (
     <div className="user-account-panel" data-testid="user-account-panel">
       {error && (

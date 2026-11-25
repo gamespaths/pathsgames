@@ -22,6 +22,7 @@
  *                               cost of 0 is still news) without turning `showZeros` on for all.
  * @param {string}  className  - optional extra class on the wrapper
  * @param {boolean} showZeros  - keep items with value 0/missing (default false)
+ * @param {boolean} withTitle  - v1.13.0: the native title on each badge (false inside a bookmark, whose tip names it)
  */
 
 const STAT_VISUAL = {
@@ -87,7 +88,7 @@ const STAT_VISUAL = {
 const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
 
 
-export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null , littleVersion=false }) {
+export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null , littleVersion=false, withTitle = true }) {
   //console.log("BonusBadgeList", items, className, showZeros , lockedReason , littleVersion);
   if (!items || items.length === 0) return null
   
@@ -113,7 +114,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
   return (
     <div className={['player-stats-bar', 'bonus-badge-list', className].filter(Boolean).join(' ')}>
       {lockedReason && (
-        <span className="stat-badge bonus-badge locked" title={lockedReason} aria-label={lockedReason}>
+        <span className="stat-badge bonus-badge locked" title={withTitle ? lockedReason : undefined} aria-label={lockedReason}>
           <i className="fas fa-lock" /> {lockedReason}
         </span>
       )}
@@ -129,7 +130,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
         // stat twice — a match-log entry that both charged and refunded coins reports
         // both halves — and two spans sharing a key is a React bug waiting to happen.
         return (
-          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") + (item.className ? " " + item.className : "") } title={item.label} aria-label={item.label}>
+          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") + (item.className ? " " + item.className : "") } title={withTitle ? item.label : undefined} aria-label={item.label}>
             {visual.icon && <i className={visual.icon} style={{ color: visual.color }} />}
             {!littleVersion && <span>{item.label}{item.label ? ':' : ''}</span>} 
             <strong>{item.prefix ?? ''}{item.value}</strong>

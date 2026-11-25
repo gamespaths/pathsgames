@@ -1,6 +1,6 @@
 # Step 13 — Book layout without modals
 
-**Status: analysed (November 24, 2026), version 1.13.0. Owner decisions recorded (home tab, also from a policy chapter, drawn tooltip with a long press on touch, book graphics, book close to the navbar, no heading over the cards, trait budget, card components, page picture and text sizes kept, English source texts); no open doubts: ready for development.**
+**Status: developed and tested (November 25, 2026, react-game only, unit tests green), closed by the owner; owner test list: [test/Step13_BookLayoutWithoutModals.md](./test/Step13_BookLayoutWithoutModals.md); analysed (November 24, 2026), version 1.13.0. Owner decisions recorded (home tab, also from a policy chapter, drawn tooltip with a long press on touch, book graphics, book close to the navbar, no heading over the cards, trait budget, card components, page picture and text sizes kept, English source texts); no open doubts: ready for development.**
 Roadmap line: *every page keeps its own book under an always-visible navbar* ([Roadmap](./Roadmap.md) step 13).
 Book UI chain (version 1.13.0): **Step 13** · `Step14_HomeBookAndCardFaces.md` · `Step15_PlayAndPageTurn.md` · `Step16_MobileBookAndPreferences.md`.
 Development order: step 13, then step 16's "one tree on mobile" switch (each page rendered once, the two pages stacked by CSS under `MOBILE_MQ`), then steps 14, 15 and the rest of 16.
@@ -321,9 +321,9 @@ No open doubts.
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.13.0 | Book pages without pop-ups, home tab, tooltips, taller book decided | November 24, 2026 |
+  | 1.13.0 | Book pages without pop-ups, home tab, tooltips, tested and closed | November 24, 2026 |
 
-- **Last Updated**: November 24, 2026 (v1.13.0)
+- **Last Updated**: November 25, 2026 (v1.13.0)
 
 
 # &lt; Paths Games /&gt;

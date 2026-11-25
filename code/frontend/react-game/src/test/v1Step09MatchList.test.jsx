@@ -1,7 +1,7 @@
 // v1.7.0 V1 step 9 — match list envelope, last played, cancelled toggle and style, highlight once.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({ useTranslation: () => ({ t: k => k, lang: 'en', setLang: vi.fn() }) }))
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -134,6 +134,11 @@ const LIST = [
   { uuid: 'm-ban', storyUuid: 's3', status: 'BANNED', tsUpdate: '2026-10-19T00:00:00Z' },
 ]
 
+function PlayStub() {
+  const { pathname, state } = useLocation()
+  return <div data-testid="play-page">{pathname}|{state?.matchUuid}</div>
+}
+
 function renderList(props = {}) {
   return render(<MemoryRouter><UserMatchesList accessToken="tok" preloadedMatches={LIST} {...props} /></MemoryRouter>)
 }
@@ -146,12 +151,18 @@ describe('UserMatchesList', () => {
     expect(screen.queryByTestId('show-cancelled-toggle')).toBeNull()
   })
 
-  it('Resume closes the book and opens the active match', async () => {
-    const onClose = vi.fn()
-    renderList({ onClose })
+  it('v1.13.0 — Resume just navigates to the active match (no book to close)', async () => {
+    render(
+      <MemoryRouter initialEntries={['/player']}>
+        <Routes>
+          <Route path="/player" element={<UserMatchesList accessToken="tok" preloadedMatches={LIST} />} />
+          <Route path="/play/:storyId" element={<PlayStub />} />
+        </Routes>
+      </MemoryRouter>
+    )
     await screen.findByText('T-s1')
     fireEvent.click(screen.getByText('matches.resume'))
-    expect(onClose).toHaveBeenCalled()
+    expect(await screen.findByTestId('play-page')).toHaveTextContent('/play/s1|m-run')
   })
 
   it('v1.8.0 — a list of only cancelled matches still shows them', async () => {

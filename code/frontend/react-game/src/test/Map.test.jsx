@@ -204,10 +204,11 @@ describe('MapPage', () => {
     const { container } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
     const world = container.querySelector('.game-map-world')
     const before = world.style.transform
-    fireEvent.click(screen.getByTitle('game.map.zoomIn'))
+    expect(screen.getByLabelText('game.map.zoomIn')).toHaveAttribute('data-tip', 'game.map.zoomIn')
+    fireEvent.click(screen.getByLabelText('game.map.zoomIn'))
     expect(world.style.transform).not.toBe(before)
-    fireEvent.click(screen.getByTitle('game.map.zoomOut'))
-    fireEvent.click(screen.getByTitle('game.map.center'))
+    fireEvent.click(screen.getByLabelText('game.map.zoomOut'))
+    fireEvent.click(screen.getByLabelText('game.map.center'))
     expect(world.style.transform).toMatch(/translate\(.+\) scale\(.+\)/)
   })
 

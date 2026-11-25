@@ -2,13 +2,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { LanguageProvider } from '../i18n/context'
 import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
-import PolicyBook, { REPO_URL } from '../components/modals/PolicyBook'
+import Book from '../components/book/Book'
+import { REPO_URL } from '../components/book/PolicyChapter'
 import Footer from '../components/layout/Footer'
 import roadmap from '../data/roadmap.json'
 import en from '../i18n/en.json'
 import itDict from '../i18n/it.json'
 
-// Step 40 — the roadmap book opened from the footer Devlog link.
+// Step 40 — the roadmap book opened from the footer Devlog (v1.13.0: the env badge's info icon), as a chapter.
 
 vi.mock('@/consent/cookieConsent', () => ({ openCookiePreferences: vi.fn() }))
 vi.mock('../context/ServerContext', () => ({
@@ -19,13 +20,13 @@ vi.mock('../context/ServerContext', () => ({
 function Spy({ seen }) { const { policyBook } = usePolicyBook(); seen.push(policyBook); return null }
 
 describe('roadmap book', () => {
-  it('the footer Devlog opens it: intro on the left, six version cards on the right', () => {
+  it('the footer Devlog (env badge) opens it: intro on the left, six version cards on the right', () => {
     const seen = []
     const { container } = render(
       <LanguageProvider><PolicyBookProvider>
-        <Footer /><PolicyBook /><Spy seen={seen} />
+        <Footer /><Book left={null} right={null} /><Spy seen={seen} />
       </PolicyBookProvider></LanguageProvider>)
-    fireEvent.click(screen.getByText(en.footer.devlog).closest('button'))
+    fireEvent.click(screen.getByTestId('env-badge'))
     expect(seen[seen.length - 1]).toBe('roadmap')
     const left = container.querySelector('.book-page-left')
     expect(left.querySelector('.book-page-title').textContent).toContain('paths.games')

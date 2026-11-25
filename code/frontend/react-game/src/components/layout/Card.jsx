@@ -189,11 +189,11 @@ export default function Card({
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
       { isPage && <h2 className="book-page-title">
-          { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')} data-testid="page-back">
+          { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')} data-tip={t('card.back')} data-testid="page-back">
           <i className="fas fa-arrow-left" />
         </button>}
         
-        { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')} data-testid="page-forward">
+        { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')} data-tip={t('card.forward')} data-testid="page-forward">
           <i className="fas fa-arrow-right" />
         </button>}
         <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />

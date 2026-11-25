@@ -1,90 +1,88 @@
 import { useTranslation } from '../../i18n/context'
 import { useServer } from '../../context/ServerContext'
 import { usePolicyBook } from '../../context/PolicyBookContext'
-import { ENV_BADGE } from '../../constants/features'
-import EnvBadge, { envBadgeLabel } from './EnvBadge'
+import EnvBadge from './EnvBadge'
 
+/** The four policy links of row 2: kind and icon. */
+const POLICY_LINKS = [
+  ['privacy', 'fa-shield-alt'],
+  ['terms', 'fa-file-contract'],
+  ['cookies', 'fa-cookie-bite'],
+  ['credits', 'fa-users'],
+]
+
+/** Row 1's server: a select (several) or a badge (green online, red offline, detecting); tooltip: the warning. */
+export function FooterServer({ t, server, servers, probing, status, version, changeServer }) {
+  const tip = t('footer.serversWarning')
+  if (probing || (servers.length <= 1 && status === 'loading')) {
+    return <span className="footer-server-row footer-server-muted" data-tip={tip}>{t('footer.serverDetecting')}</span>
+  }
+  if (servers.length > 1) {
+    return (
+      <span className="footer-server-row" data-tip={tip}>
+        <select className="footer-server-select" aria-label={t('footer.serverSelect')} value={server}
+          onChange={e => changeServer(e.target.value)}>
+          {servers.map(s => (
+            <option key={s.url} value={s.url} style={{ background: '#2e1508' }}>{s.label}</option>
+          ))}
+        </select>
+        {status === 'online' && <span className="footer-server-dot footer-server-dot--online" />}
+        {status === 'offline' && <span className="footer-server-dot footer-server-dot--offline" />}
+        {status === 'loading' && <span className="footer-server-muted">…</span>}
+        {version && <span className="footer-server-muted">{version}</span>}
+      </span>
+    )
+  }
+  if (status === 'offline') {
+    return (
+      <span className="footer-server-row footer-server-badge footer-server-badge--offline" data-tip={tip}>
+        <i className="fas fa-server footer-server-icon" aria-hidden="true" />
+        <span>{t('footer.serverOffline')}</span>
+      </span>
+    )
+  }
+  return (
+    <span className="footer-server-row footer-server-badge footer-server-badge--online" data-tip={tip}>
+      <i className="fas fa-server footer-server-icon" aria-hidden="true" />
+      <span className="footer-server__full">{t('footer.serverVersion').replace('{version}', version ?? '').trim()}</span>
+      <span className="footer-server__short">{version}</span>
+    </span>
+  )
+}
+
+/**
+ * Footer — v1.13.0: a small bar after main, below the fold, two centred rows. Row 1: the env badge
+ * (Devlog), the server, the copyright with the client version; row 2: the four policy chapters.
+ */
 export default function Footer() {
   const { t } = useTranslation()
   // v0.42.0 — status and version come from ServerContext (one request per server).
-  const { server, servers, probing, status, version, changeServer } = useServer()
+  const serverInfo = useServer()
   const { openPolicyBook } = usePolicyBook()
-  const policyLink = kind => () => openPolicyBook(kind)
 
   return (
     <footer className="medieval-footer">
       <div className="footer-inner">
-
-
-        <div className="footer-copy  footer-alpha-warning">
-          <i className="fas fa-flask" style={{ marginRight: '0.4rem', color: 'var(--color-gold, #c8960a)' }} />
-          {/* Step 40 — the build's env badge names the version; no badge (prod) → no sentence. */}
-          {envBadgeLabel(ENV_BADGE, t) && <>{t('footer.alphaPrefix')}<EnvBadge /><br /></>}
-          v1.13.0 &nbsp;
-          {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
-          <br />
-          {t('footer.serversWarning')}
-          <span className="footer-server-row">
-            {/* Step 40 — same look as the rest of the footer: a "Server:" label, the name, the status */}
-            <span className="footer-server-label">{t('footer.serverSelect')}: </span>
-            {probing ? (
-              <span className="footer-server-muted">detecting…</span>
-            ) : servers.length <= 1 ? (
-              // One server only (VITE_DEFAULT_SERVERS): its name, nothing to choose.
-              <span className="footer-server-name">{servers[0]?.label ?? server}</span>
-            ) : (
-              <select className="footer-server-select" value={server} onChange={e => changeServer(e.target.value)}>
-                {servers.map(s => (
-                  <option key={s.url} value={s.url} style={{ background: '#2e1508' }}>{s.label}</option>
-                ))}
-              </select>
-            )}
-            {status === 'online' && <span className="footer-server-dot" style={{ background: '#4caf50' }} />}
-            {status === 'offline' && <span className="footer-server-dot" style={{ background: '#f44336' }} />}
-            {status === 'loading' && <span className="footer-server-muted ms-1">…</span>}
-            {version && <span className="footer-server-muted ms-1">{version}</span>}
+        <div className="footer-row footer-row--status">
+          <EnvBadge variant="footer" />
+          <FooterServer t={t} {...serverInfo} />
+          <span className="footer-copy" data-testid="footer-copy">
+            <i className="fas fa-dice-d20 me-1" />
+            <span className="gold-light">PATHS GAMES</span>{' '}
+            v1.13.0 &nbsp;
+            &copy; {t('footer.rights').toUpperCase()}
           </span>
         </div>
-
-
-        <div className="footer-copy">
-          <i className="fas fa-dice-d20 me-2" />
-          <span className="gold-light">PATHS GAMES</span> 
-          &nbsp; &copy; {t('footer.rights').toUpperCase()} 
+        <div className="footer-row footer-row--links">
+          {POLICY_LINKS.map(([kind, icon]) => (
+            <button key={kind} type="button" className="footer-icon-link footer-link-btn"
+              onClick={() => openPolicyBook(kind)}>
+              <i className={`fas ${icon}`} aria-hidden="true" />
+              <span className="footer-link__full">{t(`footer.${kind}`)}</span>
+              <span className="footer-link__short">{t(`footer.short.${kind}`)}</span>
+            </button>
+          ))}
         </div>
-
-        <div className="footer-links-row">
-          <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" className="footer-icon-link  d-none d-md-inline-flex ">
-            <i className="fab fa-github" /><span>{t('footer.github')}</span>
-          </a>
-          {/* Step 40 — the Devlog opens the roadmap book (data/roadmap.json). */}
-          <button type="button" className="footer-icon-link d-none d-md-inline-flex footer-link-btn" onClick={policyLink('roadmap')}>
-            <i className="fas fa-newspaper" /><span>{t('footer.devlog')}</span>
-          </button>
-          <a href="https://www.instagram.com/pathsgames/" target="_blank" rel="noopener" className="footer-icon-link footer-social-link">
-            <i className="fab fa-instagram" /><span>{t('footer.instagram')}</span>
-          </a>
-          <a href="https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ" target="_blank" rel="noopener" className="footer-icon-link footer-social-link">
-            <i className="fab fa-youtube" /><span>{t('footer.youtube')}</span>
-          </a>
-        </div>
-        <div className="footer-copy footer-links-row">
-          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('privacy')}>
-            <i className="fas fa-shield-alt " /><span>{t('footer.privacy')}</span>
-          </button>
-          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('terms')}>
-            <i className="fas fa-file-contract" /><span>{t('footer.terms')}</span>
-          </button>
-          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('cookies')}>
-            <i className="fas fa-cookie-bite" /><span>{t('footer.cookies')}</span>
-          </button>
-          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('credits')}>
-            <i className="fas fa-users" /><span>{t('footer.credits')}</span>
-          </button>
-        </div>
-
-
-
       </div>
     </footer>
   )

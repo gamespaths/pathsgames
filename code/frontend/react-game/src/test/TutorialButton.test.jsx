@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -12,9 +12,12 @@ vi.mock('@marsidev/react-turnstile', async () => {
   return { Turnstile: ({ onSuccess }) => { useEffect(() => { onSuccess?.('tok') }, []); return null } }
 })
 const guest = vi.hoisted(() => ({ user: { userUuid: 'u1', accessToken: 'tok' } }))
-const mockOpenGuestModal = vi.fn()
+const mockOpenPlayerPage = vi.fn()
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: guest.user, error: null, openGuestModal: mockOpenGuestModal }),
+  useGuestUser: () => ({ user: guest.user, error: null }),
+}))
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: mockOpenPlayerPage, closePlayerPage: vi.fn() }),
 }))
 vi.mock('../constants/features', async (importOriginal) => ({
   ...(await importOriginal()), RESUME_WITHOUT_MODAL: false, ADD_COMING_SOON_STORIES: false,
@@ -22,9 +25,6 @@ vi.mock('../constants/features', async (importOriginal) => ({
 vi.mock('../api/stories', () => ({ getStoriesCatalog: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../features/catalog/StoryCatalog', () => ({ default: () => <div data-testid="catalog" /> }))
-vi.mock('../features/start-book/StartBookModal', () => ({
-  default: ({ story }) => <div data-testid="start-book-modal">{story.title}</div>,
-}))
 vi.mock('../utils/turnstile', async (importOriginal) => ({ ...(await importOriginal()), CF_KEY: 'test-site-key' }))
 
 import TutorialButton, { firstTutorialStory } from '../features/catalog/TutorialButton'
@@ -118,25 +118,28 @@ describe('HomePage — tutorial button', () => {
     getStoriesCatalog.mockResolvedValue(STORIES)
   })
 
-  const renderHome = () => render(<HomeStatusProvider><MemoryRouter><HomePage /></MemoryRouter></HomeStatusProvider>)
+  function StoryStub() { return <div data-testid="story-page">{useLocation().state?.story?.title}</div> }
+  const renderHome = () => render(<HomeStatusProvider><MemoryRouter>
+    <Routes><Route path="/" element={<HomePage />} /><Route path="/story/:storyId" element={<StoryStub />} /></Routes>
+  </MemoryRouter></HomeStatusProvider>)
 
-  it('opens the start book of the first tutorial story when there is no match yet', async () => {
+  it('opens the story page of the first tutorial story when there is no match yet', async () => {
     listMatches.mockResolvedValue([])
     renderHome()
     const btn = await screen.findByTestId('tutorial-btn')
     await vi.waitFor(() => expect(btn).not.toBeDisabled())
     fireEvent.click(btn)
-    expect((await screen.findByTestId('start-book-modal')).textContent).toBe('First steps')
+    expect((await screen.findByTestId('story-page')).textContent).toBe('First steps')
   })
 
-  it('a paused tutorial match: resume, which opens the guest modal like the card does', async () => {
+  it('a paused tutorial match: resume, which opens the player page like the card does', async () => {
     listMatches.mockResolvedValue([{ uuid: 'm1', storyUuid: 't1', status: 'PAUSED' }])
     renderHome()
     const btn = await screen.findByTestId('tutorial-btn')
     await vi.waitFor(() => expect(btn.textContent).toBe('home.resumeTutorial'))
     await vi.waitFor(() => expect(btn).not.toBeDisabled())
     fireEvent.click(btn)
-    expect(mockOpenGuestModal).toHaveBeenCalled()
+    expect(mockOpenPlayerPage).toHaveBeenCalled()
   })
 
   it('no button once the tutorial was played to the end', async () => {

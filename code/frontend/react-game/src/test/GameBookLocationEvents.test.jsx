@@ -36,7 +36,6 @@ vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-te
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
 vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
 vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
-vi.mock('../features/start-book/StartBookModal', () => ({ CardPreviewOverlay: () => <div /> }))
 
 // The movement card: fires onMoved with whatever the API answered.
 vi.mock('../features/gameplay/cards/MovementCard', () => ({

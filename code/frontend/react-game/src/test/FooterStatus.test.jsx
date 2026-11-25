@@ -33,13 +33,14 @@ describe('Footer — real-server status', () => {
     ctx.version = 'v9.9'
     const { container } = render(<Footer />)
     expect(screen.getByText('v9.9')).toBeInTheDocument()
-    expect(container.querySelector('[style*="rgb(76, 175, 80)"]')).toBeInTheDocument()
+    expect(container.querySelector('.footer-server-dot--online')).toBeInTheDocument()
+    expect(container.querySelector('.footer-server-row')).toHaveAttribute('data-tip', 'footer.serversWarning')
   })
 
   it('handles an online server with no version', () => {
     ctx.status = 'online'
     const { container } = render(<Footer />)
-    expect(container.querySelector('[style*="rgb(76, 175, 80)"]')).toBeInTheDocument()
+    expect(container.querySelector('.footer-server-dot--online')).toBeInTheDocument()
     // No server version beside the status dot (the build's own v0.x line lives elsewhere).
     expect(container.querySelector('.footer-server-row').textContent).not.toMatch(/v\d/)
   })
@@ -47,10 +48,10 @@ describe('Footer — real-server status', () => {
   it('marks the server offline', () => {
     ctx.status = 'offline'
     const { container } = render(<Footer />)
-    expect(container.querySelector('[style*="rgb(244, 67, 54)"]')).toBeInTheDocument()
+    expect(container.querySelector('.footer-server-dot--offline')).toBeInTheDocument()
     expect(screen.getByRole('combobox')).toBeInTheDocument()
-    // Two servers: the drop-down, never the fixed name.
-    expect(container.querySelector('.footer-server-name')).toBeNull()
+    // Two servers: the drop-down, never the single-server badge.
+    expect(container.querySelector('.footer-server-badge')).toBeNull()
   })
 
   it('shows an ellipsis while loading', () => {

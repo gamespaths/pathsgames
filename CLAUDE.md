@@ -21,7 +21,7 @@ Caveman mode (full) is always active: a SessionStart hook loads `.claude/hooks/c
 | Versions, 42-step rules, recurring steps | `wiki/VersionTemplate.md`, `wiki/Roadmap.md` |
 | Game rules / data model / story format | `wiki/GameRules.md`, `DataModel.md`, `StoryFormat.md` |
 | Search the design docs | Ask the `doc-finder` subagent (Haiku, read-only, returns a summary) |
-| Analyse a step / develop an analysed step | `paths-games-new-feature` / `paths-games-dev-feature` subagents |
+| Analyse a step / develop an analysed step / write its test list | `paths-games-new-feature` / `paths-games-dev-feature` / `paths-games-test-feature` subagents |
 
 `wiki/` holds small shared docs (current state). Each version has `wiki/documentation_vN/`
 (own `INDEX.md`, `Roadmap.md` with 42 steps, step files). `wiki/documentation_v0/` is ~4.2 MB (~1M

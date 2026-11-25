@@ -5,13 +5,15 @@ vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k }),
 }))
 
-import ErrorCard from '../components/modals/ErrorCard'
+import ErrorCard from '../components/layout/ErrorCard'
 import images from '@/data/images.json'
 
 describe('ErrorCard', () => {
-  it('renders the fixed "error" card from data/images.json on its own overlay', () => {
+  it('v1.13.0 — renders the fixed "error" card from data/images.json as a page, no overlay', () => {
     const { container } = render(<ErrorCard status="RUNNING" onClose={vi.fn()} />)
-    expect(screen.getByTestId('error-card-overlay')).toBeInTheDocument()
+    expect(screen.queryByTestId('error-card-overlay')).toBeNull()
+    expect(container.querySelector('.error-card-overlay')).toBeNull()
+    expect(container.firstChild).toHaveClass('book-page-content')
     expect(screen.getByText('errors.title')).toBeInTheDocument()
     const errorImg = images.find(x => x.id === 'error')
     expect(container.querySelector('img').src).toBe(errorImg.urlImage)
@@ -44,13 +46,8 @@ describe('ErrorCard', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
-  it('caps the card width when maxWidth is given, fills the overlay otherwise', () => {
+  it('takes no maxWidth any more: the page fills the book\'s right page', () => {
     const { container } = render(<ErrorCard status="RUNNING" onClose={vi.fn()} maxWidth="400px" />)
-    const wrap = container.querySelector('.error-card-overlay').firstChild
-    expect(wrap.style.maxWidth).toBe('400px')
-    const { container: c2 } = render(<ErrorCard status="RUNNING" onClose={vi.fn()} />)
-    const bare = c2.querySelector('.error-card-overlay').firstChild
-    expect(bare.style.maxWidth).toBe('')
-    expect(bare.style.width).toBe('100%')
+    expect(container.firstChild.getAttribute('style')).toBeNull()
   })
 })

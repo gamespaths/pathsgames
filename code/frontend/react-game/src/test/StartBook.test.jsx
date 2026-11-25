@@ -1,18 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 vi.mock('../api/stories', () => ({ getStoryDetail: vi.fn(), getStories: vi.fn() }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, mobile, onClose }) => <div data-testid="book">{left}{right}{mobile}</div>,
+  default: ({ left, right, mobile }) => <div data-testid="book">{left}{right}{mobile}</div>,
 }))
 vi.mock('../components/layout/Card', () => ({
   default: ({ card, loading, onClose }) => (
     <div data-testid="book-page" data-loading={String(!!loading)}>
       {card?.title}
+      {typeof card?.description === 'string' && <span>{card.description}</span>}
       {onClose && <button onClick={onClose}>page-back</button>}
     </div>
   ),
@@ -47,7 +48,7 @@ vi.mock('../features/start-book/StartBookMobile', () => ({
   ),
 }))
 
-import StartBookModal, { CardPreviewOverlay } from '../features/start-book/StartBookModal'
+import StartBook, { CardPreviewOverlay } from '../features/start-book/StartBook'
 import { getStoryDetail } from '../api/stories'
 
 const STORY = {
@@ -63,21 +64,34 @@ const STORY = {
 function wrap(props = {}) {
   return render(
     <MemoryRouter>
-      <StartBookModal story={STORY} onClose={vi.fn()} {...props} />
+      <StartBook story={STORY} {...props} />
     </MemoryRouter>
   )
 }
 
-describe('StartBookModal', () => {
+describe('StartBook', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getStoryDetail.mockResolvedValue(STORY)
   })
 
-  it('shows loading spinner before detail loads', () => {
+  it('v1.13.0 — while the detail loads: the same Book, the story card left and LoadingCard right', () => {
     getStoryDetail.mockReturnValue(new Promise(() => {}))
     wrap()
-    expect(document.querySelector('.fa-spinner')).not.toBeNull()
+    expect(screen.getByTestId('book')).toBeInTheDocument()
+    const pages = screen.getAllByTestId('book-page')
+    expect(pages[0]).toHaveTextContent('Forest Quest')
+    expect(pages[0].dataset.loading).toBe('false')
+    expect(pages[1]).toHaveTextContent('game.loadingCard.title')
+    expect(pages[1].dataset.loading).toBe('true')
+    expect(document.querySelector('.book-overlay')).toBeNull()
+  })
+
+  it('a direct load (no story) asks the detail by its id, LoadingCard on both pages meanwhile', async () => {
+    getStoryDetail.mockReturnValue(new Promise(() => {}))
+    render(<MemoryRouter><StartBook storyId="s9" /></MemoryRouter>)
+    expect(getStoryDetail).toHaveBeenCalledWith('s9', 'en')
+    expect(screen.getAllByTestId('book-page').every(p => p.dataset.loading === 'true')).toBe(true)
   })
 
   it('renders ConfigView after detail loads', async () => {
@@ -130,9 +144,38 @@ describe('StartBookModal', () => {
     expect(screen.getByTestId('config-view')).toBeInTheDocument()
   })
 
-  it('returns null when story is not provided', () => {
-    const { container } = render(<MemoryRouter><StartBookModal onClose={vi.fn()} /></MemoryRouter>)
-    expect(container.firstChild).toBeNull()
+  it('neither a story nor an id: the ErrorCard right page, which goes home', async () => {
+    render(
+      <MemoryRouter initialEntries={['/story/']}>
+        <Routes>
+          <Route path="/" element={<div>home-page</div>} />
+          <Route path="/story/" element={<StartBook />} />
+        </Routes>
+      </MemoryRouter>
+    )
+    expect((await screen.findAllByText('errors.storyNotFound')).length).toBeGreaterThan(0)
+    expect(getStoryDetail).not.toHaveBeenCalled()
+    fireEvent.click(screen.getAllByText('page-back').at(-1))
+    expect(await screen.findByText('home-page')).toBeInTheDocument()
+  })
+
+  it('a failing detail without a story (direct load): the ErrorCard page, the error picture left', async () => {
+    getStoryDetail.mockRejectedValue(new Error('404'))
+    render(<MemoryRouter><StartBook storyId="nope" /></MemoryRouter>)
+    expect((await screen.findAllByText('errors.storyNotFound')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('errors.title').length).toBeGreaterThan(0)
+  })
+
+  it('an empty detail without a story is an error too', async () => {
+    getStoryDetail.mockResolvedValue(null)
+    render(<MemoryRouter><StartBook storyId="nope" /></MemoryRouter>)
+    expect((await screen.findAllByText('errors.storyNotFound')).length).toBeGreaterThan(0)
+  })
+
+  it('a failing detail with the Home\'s story falls back to that summary', async () => {
+    getStoryDetail.mockRejectedValue(new Error('down'))
+    wrap()
+    expect(await screen.findByTestId('config-view')).toBeInTheDocument()
   })
 
   it('calls handlePreviewModal via mobile onPreview prop', async () => {
@@ -177,7 +220,7 @@ describe('StartBookModal', () => {
     getStoryDetail.mockResolvedValue(storyWithLocks)
     render(
       <MemoryRouter>
-        <StartBookModal story={storyWithLocks} onClose={vi.fn()} />
+        <StartBook story={storyWithLocks} />
       </MemoryRouter>
     )
     await screen.findByTestId('config-view')
@@ -190,20 +233,31 @@ describe('StartBookModal', () => {
     expect(screen.getByTestId('config-view')).toBeInTheDocument()
   })
 
-  it('navigates to start-match and closes when "Start Game" is pressed', async () => {
-    const onClose = vi.fn()
+  it('"Start" saves { story, config } in the story entry, then pushes /start-match (Back finds the loadout)', async () => {
+    function StartMatchStub() {
+      const { state } = useLocation()
+      const navigate = useNavigate()
+      return <div>start-match-page:{String(state?.fromStory)}:{state?.config?.class?.name}
+        <button onClick={() => navigate(-1)}>browser-back</button></div>
+    }
+    function StoryRoute() {
+      const { state } = useLocation()
+      return <><span data-testid="saved">{state?.config?.class?.name ?? 'none'}</span><StartBook storyId="s1" story={STORY} /></>
+    }
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/story/s1']}>
         <Routes>
-          <Route path="/" element={<StartBookModal story={STORY} onClose={onClose} />} />
-          <Route path="/start-match/:storyId" element={<div>start-match-page</div>} />
+          <Route path="/story/:storyId" element={<StoryRoute />} />
+          <Route path="/start-match/:storyId" element={<StartMatchStub />} />
         </Routes>
       </MemoryRouter>
     )
     await screen.findByTestId('config-view')
+    expect(screen.getByTestId('saved')).toHaveTextContent('none')
     fireEvent.click(screen.getByText('proceed'))
-    expect(onClose).toHaveBeenCalled()
-    expect(await screen.findByText('start-match-page')).toBeInTheDocument()
+    expect(await screen.findByText('start-match-page:true:Fighter')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('browser-back'))
+    expect(await screen.findByTestId('saved')).toHaveTextContent('Fighter')
   })
 })
 

@@ -40,22 +40,13 @@ Shared references for this version: [Game Rules](../GameRules.md),
 | 10 | [Admin tool — user management backend](./Step10_AdminUserManagementBackend.md) | ✅ | Users list, ban, suspend, unblock, re-link, deletion, intervention log. |
 | 11 | [Admin tool — user management pages](./Step11_AdminUserManagementPages.md) | ✅ | react-admin Users list and User detail with reason dialogs. |
 | 12 | [Pagination residuals and multi-device continuity](./Step12_PaginationAndMultiDeviceContinuity.md) | ✅ | Session cap 12, 250-day refresh, `SameSite`, stories and matches paging. |
+| 13 | [Book layout without modals](./Step13_BookLayoutWithoutModals.md) | ✅ | In-flow books, `/player` and `/story` routes, policy chapter, navbar close button. |
 
 
 
 
 # Next steps
 
-13. **Book layout without modals** — every page keeps its own book under an always-visible navbar.
-    - No single persistent book: each page has its own book, page turns happen inside a page only (frontend)
-    - Remove the modal overlays: game, start book, start match, end game, and the player panel render inside the page layout (frontend)
-    - New routes: the player page `/player` (formerly GuestUserModal) and the story set-up `/story/:storyId` (formerly StartBookModal inside the Home); other URLs may be added if needed (frontend)
-    - Policy book opens inside the current book as a chapter, without changing the URL, then back; also during a match (card credits); the `?policy=` deep link keeps working (frontend)
-    - Close (X) button removed from the books and moved into the navbar, tooltip "Back to the home page"; in a match it still asks today's confirmation (frontend)
-    - Footer: a small bar always visible at the bottom, never hidden; which links stay in it is decided later (frontend)
-    - ErrorCard becomes the right page of the book (like the loading page) instead of an overlay; the cookie banner stays a modal (frontend)
-    - Mobile scrolling moves from the overlay to the page; scroll helpers updated (frontend)
-    - Unit tests updated for the pages that were modals (tests)
 14. **Home book and card faces** — the Home becomes a book and every card gets a back. Concept prototype: `website_concepts_v0/v1.13.0/`.
     - Home: left page a fixed introduction card (picture, title, tutorial button, anti-bot check), right page all the stories in one list, no category rows for now (frontend)
     - Card columns from a parameter: three on desktop, two on medium screens and mobile (frontend)
@@ -72,6 +63,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
 16. **Mobile book and preferences** — the same book on phones, and the player's own settings.
     - Analysis of a vertical book on mobile (today mobile shows the cards without the book), then its layout (docs, frontend)
     - Mobile page turn on the page's left edge, sticky deck, deal on scroll, light vibration on Android when a card is played (iOS ignored) (frontend)
+    - Bookmark icons on mobile (position, information, backpack, map, missions) reusing the existing bookmark component, as a sticky row (frontend)
     - Preferences card on the player page: the right page lists the preferences (language, theme, size, animations, columns); clicking it opens a card on the right page to change them (frontend)
     - Number of card columns customizable by the player (frontend)
     - Preferences kept in the browser (localStorage), listed in the cookie banner among the strictly necessary items (no new consent request, banner revision not bumped) and in the privacy policy (frontend, docs)
@@ -281,7 +273,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 1.7.0 | Profile, many-device and admin user steps done | October 23, 2026 |
   | 1.10.0 | Security review fixes; secrets step added | October 28, 2026 |
   | 1.11.0 | Automatic tests run and green on three backends | October 29, 2026 |
-  | 1.13.0 | Book and animation steps added; steps reordered | November 24, 2026 |
+  | 1.13.0 | Book and animation steps added; step 13 closed | November 24, 2026 |
 
 - **Last Updated**: November 24, 2026 (v1.13.0)
 

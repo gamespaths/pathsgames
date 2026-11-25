@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
-// v1.2.0 — the login card of the start-match book: "Logged" for a Google user, a Login
-// button to the user book for a guest while Google sign-in is on.
+// v1.2.0 — the login card of the start-match book: "Logged" for a Google user (its (i) opens
+// the player page, v1.13.0), a Login button for a guest while Google sign-in is on.
 
 vi.mock('@/i18n/context', () => ({ useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }) }))
 const ctx = vi.hoisted(() => ({ value: {} }))
@@ -11,6 +11,10 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => c
 vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn(), startMatch: vi.fn() }))
 vi.mock('@/context/PolicyBookContext', () => ({
   usePolicyBook: () => ({ policyBook: null, openPolicyBook: vi.fn(), closePolicyBook: vi.fn() }),
+}))
+const player = vi.hoisted(() => ({ open: vi.fn() }))
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: player.open, closePlayerPage: vi.fn() }),
 }))
 vi.mock('@/hooks/useAntibot', () => ({ default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }) }))
 vi.mock('@/components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
@@ -46,11 +50,11 @@ function renderFlow() {
 }
 
 describe('StartMatchFlow v1.2.0 — login card', () => {
-  const openGuestModal = vi.fn()
+  const openGuestModal = player.open
   beforeEach(() => vi.clearAllMocks())
 
-  it('a Google user: name, picture, an (i) that opens the user book; the story stays on the left page', () => {
-    ctx.value = { isGoogleUser: true, googleEnabled: true, openGuestModal,
+  it('a Google user: name, picture, an (i) that opens /player; the story stays on the left page', () => {
+    ctx.value = { isGoogleUser: true, googleEnabled: true,
       user: { userUuid: 'u1', accessToken: 'tok', displayName: 'Mario Rossi', pictureUrl: 'p=s96-c' } }
     renderFlow()
     const login = screen.getByTestId('cc-login')
@@ -67,7 +71,7 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
   })
 
   it('a guest with Google on: the small card is the hint and Login, which opens the guest page with Google', () => {
-    ctx.value = { isGoogleUser: false, googleEnabled: true, openGuestModal, user: { userUuid: 'u1', accessToken: 'tok' } }
+    ctx.value = { isGoogleUser: false, googleEnabled: true, user: { userUuid: 'u1', accessToken: 'tok' } }
     const { rerender } = renderFlow()
     const login = screen.getByTestId('cc-login')
     expect(login).toHaveTextContent('book.guest')
@@ -108,7 +112,7 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
     const mm = window.matchMedia
     window.matchMedia = vi.fn(() => ({ matches: true }))
     try {
-      ctx.value = { isGoogleUser: false, googleEnabled: true, openGuestModal, user: { userUuid: 'u1', accessToken: 'tok' } }
+      ctx.value = { isGoogleUser: false, googleEnabled: true, user: { userUuid: 'u1', accessToken: 'tok' } }
       const { rerender } = renderFlow()
       fireEvent.click(screen.getByTestId('select-login'))
       expect(show).toHaveBeenCalled()
@@ -127,7 +131,7 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
   })
 
   it('v1.8.0 — a refused Google login is said on the guest page', () => {
-    ctx.value = { isGoogleUser: false, googleEnabled: true, openGuestModal, authError: 'EMAIL_DOMAIN_NOT_ALLOWED',
+    ctx.value = { isGoogleUser: false, googleEnabled: true, authError: 'EMAIL_DOMAIN_NOT_ALLOWED',
       user: { userUuid: 'u1', accessToken: 'tok' } }
     renderFlow()
     // the mocked t answers the key itself: an untranslated code reads as the generic failure
@@ -137,7 +141,7 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
   })
 
   it('a guest with Google off keeps the locked card', () => {
-    ctx.value = { isGoogleUser: false, googleEnabled: false, openGuestModal, user: { userUuid: 'u1', accessToken: 'tok' } }
+    ctx.value = { isGoogleUser: false, googleEnabled: false, user: { userUuid: 'u1', accessToken: 'tok' } }
     renderFlow()
     expect(screen.getByTestId('cc-login').dataset.lockInfo).toBe('book.guestLock')
     expect(screen.queryByTestId('select-login')).toBeNull()

@@ -5,23 +5,33 @@ import { ENV_BADGE } from '../../constants/features'
 /**
  * EnvBadge — Step 40: the environment code of the build as a translated header label
  * (envBadge.<code>); an unknown code shows upper-cased, empty or `prod` shows nothing.
- * The whole badge is a button: it opens the Devlog book, as the footer Devlog link does.
+ * The whole badge is a button: it opens the Devlog chapter.
  * Step 42 — on mobile only the short label shows (`envBadge.short.<code>`: "Local" for "Local version").
+ * v1.13.0 — `variant="footer"`: with no label the info icon shows alone, so the Devlog stays reachable.
  */
-export default function EnvBadge({ code = ENV_BADGE }) {
+export default function EnvBadge({ code = ENV_BADGE, variant = 'navbar' }) {
   const { t } = useTranslation()
   const { openPolicyBook } = usePolicyBook()
   const label = envBadgeLabel(code, t)
-  if (!label) return null
+  const devlog = t('footer.devlog')
+  if (!label) {
+    if (variant !== 'footer') return null
+    return (
+      <button type="button" className="env-badge env-badge--icon" data-testid="env-badge"
+        data-tip={devlog} aria-label={devlog} onClick={() => openPolicyBook('roadmap')}>
+        <i className="fas fa-info-circle env-badge__icon" aria-hidden="true" />
+      </button>
+    )
+  }
   const short = envBadgeShortLabel(code, t)
   const env = String(code).trim().toLowerCase()
-  const devlogLabel = `${label} — ${t('footer.devlog')}`
+  const devlogLabel = `${label} — ${devlog}`
   return (
     <button
       type="button"
       className={`env-badge env-badge--${env}`}
       data-testid="env-badge"
-      title={devlogLabel}
+      data-tip={devlogLabel}
       aria-label={devlogLabel}
       onClick={() => openPolicyBook('roadmap')}
     >

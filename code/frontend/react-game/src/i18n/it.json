@@ -1,6 +1,7 @@
 {
   "nav": {
     "brand": "Paths Games",
+    "backHome": "Torna alla pagina iniziale",
     "guest": "Ospite",
     "login": "Accedi",
     "instagram": "Instagram",
@@ -300,7 +301,6 @@
     },
     "move": "Vai Qui",
     "execute": "Esegui",
-    "closeBook": "Chiudi il libro della partita",
     "closePrompt": "Hai chiuso il libro del gioco senza concluderla, puoi riprendere dal punto in cui ti sei fermato quando vuoi entrando nella lista delle tue partite cliccando nell'icona del tuo utente.",
     "endGame": "Termina Partita",
     "endGameShort": "Finale",
@@ -610,24 +610,27 @@
     }
   },
   "footer": {
-    "alphaPrefix": "Questa è solo la",
     "serversWarning": "I server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
     "serverSelect": "Server",
+    "serverVersion": "server {version}",
+    "serverOffline": "server non raggiungibile",
+    "serverDetecting": "rilevamento…",
     "rights": "Tutti i diritti riservati",
-    "madeWith": "Realizzato con",
-    "byTeam": "dal Team Paths Games",
     "privacy": "Privacy Policy",
     "terms": "Termini di Servizio",
     "cookies": "Cookie Policy",
     "credits": "Crediti",
-    "github": "GitHub",
-    "roadmap": "Roadmap",
     "devlog": "Devlog",
-    "instagram": "Instagram",
-    "youtube": "YouTube"
+    "short": {
+      "privacy": "Privacy",
+      "terms": "Termini",
+      "cookies": "Cookie",
+      "credits": "Crediti"
+    }
   },
   "errors": {
     "title": "Errore Match",
+    "storyNotFound": "Non è stato possibile caricare questa storia.",
     "matchNotRunning": "Impossibile caricare il match.",
     "matchEnded": "Perché la storia è già conclusa.",
     "rateLimitSoon": "qualche minuto"

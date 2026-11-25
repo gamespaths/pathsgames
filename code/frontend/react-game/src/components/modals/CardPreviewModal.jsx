@@ -7,7 +7,7 @@ import Card from '../layout/Card'
  *
  * On desktop the (i) lens swaps the book's left page; on mobile there is no
  * left page, so the same preview is shown here in a Bootstrap modal. Mounted
- * once by StartBookModal and opened via the window.bootstrap Modal API on
+ * once by StartBook and opened via the window.bootstrap Modal API on
  * #cardPreviewModal whenever an (i) button is pressed.
  */
 export default function CardPreviewModal({ preview, story }) {

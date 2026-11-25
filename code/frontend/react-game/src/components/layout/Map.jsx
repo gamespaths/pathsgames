@@ -234,11 +234,11 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
           {nodeEls}
         </div>
         <div className="game-map-ctrl">
-          <button type="button" title={t('game.map.zoomIn')}
+          <button type="button" aria-label={t('game.map.zoomIn')} data-tip={t('game.map.zoomIn')}
             onClick={() => { const el = canvasRef.current; if (el) zoomAt(el.clientWidth / 2, el.clientHeight / 2, 1.25) }}>+</button>
-          <button type="button" title={t('game.map.zoomOut')}
+          <button type="button" aria-label={t('game.map.zoomOut')} data-tip={t('game.map.zoomOut')}
             onClick={() => { const el = canvasRef.current; if (el) zoomAt(el.clientWidth / 2, el.clientHeight / 2, 1 / 1.25) }}>−</button>
-          <button type="button" title={t('game.map.center')}
+          <button type="button" aria-label={t('game.map.center')} data-tip={t('game.map.center')}
             onClick={() => centerOn(currentId, true)}>◎</button>
         </div>
       </div>

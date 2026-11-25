@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 
 // Controllable Turnstile mock: on mount it fires onSuccess (human) by default,
 // or onError when `ts.behavior` is flipped to 'bot' before render.
@@ -23,19 +23,23 @@ vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 
-const mockOpenGuestModal = vi.fn()
+const mockOpenPlayerPage = vi.fn()
 const mockUser = { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok' }
 // v0.37.6 — the guest identity the page sees; tests swap it to simulate a session
 // still being created (no token yet) or one that failed.
 const guest = vi.hoisted(() => ({ user: null, error: null, sessionIdle: false, ensureGuest: null }))
 
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: guest.user, error: guest.error, openGuestModal: mockOpenGuestModal,
+  useGuestUser: () => ({ user: guest.user, error: guest.error,
     sessionIdle: guest.sessionIdle, ensureGuest: guest.ensureGuest }),
+}))
+// v1.13.0 — a blocking match opens /player with the list the Home already has
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: mockOpenPlayerPage, closePlayerPage: vi.fn() }),
 }))
 
 // The flags come from .env*, which a build (or a developer) flips: pin them here so this
-// suite always describes the modal flow. The direct-resume one has its own suite.
+// suite always describes the player-page flow. The direct-resume one has its own suite.
 vi.mock('../constants/features', async (importOriginal) => ({
   ...(await importOriginal()),
   RESUME_WITHOUT_MODAL: false,
@@ -51,13 +55,6 @@ vi.mock('../features/catalog/StoryCatalog', () => ({
       {stories.map(s => (
         <button key={s.uuid} onClick={() => onStoryClick(s)}>{s.title}</button>
       ))}
-    </div>
-  ),
-}))
-vi.mock('../features/start-book/StartBookModal', () => ({
-  default: ({ story, onClose, initialConfig }) => (
-    <div data-testid="start-book-modal" data-config={initialConfig?.class?.name ?? ''}>
-      {story.title}<button onClick={onClose}>close-book</button>
     </div>
   ),
 }))
@@ -78,15 +75,30 @@ function HomeErrorProbe() {
   return <span data-testid="home-error">{error ?? 'none'}</span>
 }
 
+// v1.13.0 — the story set-up book is the /story/:storyId page, reached with the story in its state.
+function StoryPageStub() {
+  const { pathname, state } = useLocation()
+  return <div data-testid="story-page" data-path={pathname}>{state?.story?.title}</div>
+}
+
+function tree(ui) {
+  return (
+    <HomeStatusProvider>
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<>{ui}<HomeErrorProbe /></>} />
+          <Route path="/story/:storyId" element={<StoryPageStub />} />
+        </Routes>
+      </MemoryRouter>
+    </HomeStatusProvider>
+  )
+}
+
 const STORY_A = { uuid: 's1', title: 'Forest Path', card: {} }
 const STORY_B = { uuid: 's2', title: 'Dragon Keep', card: {} }
 
 function wrap(ui) {
-  return render(
-    <HomeStatusProvider>
-      <MemoryRouter>{ui}<HomeErrorProbe /></MemoryRouter>
-    </HomeStatusProvider>,
-  )
+  return render(tree(ui))
 }
 
 describe('HomePage — story click with active match check', () => {
@@ -109,53 +121,49 @@ describe('HomePage — story click with active match check', () => {
     expect(screen.queryByText('home.knownAccount')).toBeNull()
   })
 
-  it('opens StartBookModal when no active match for that story', async () => {
+  it('v1.13.0 — opens /story/:storyId, the story in the router state, when no active match', async () => {
     listMatches.mockResolvedValue([
       { uuid: 'm1', storyUuid: 's1', status: 'ENDED' },
     ])
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
-    expect(mockOpenGuestModal).not.toHaveBeenCalled()
+    const page = await screen.findByTestId('story-page')
+    expect(page.dataset.path).toBe('/story/s1')
+    expect(page).toHaveTextContent('Forest Path')
+    expect(mockOpenPlayerPage).not.toHaveBeenCalled()
   })
 
-  // Back from start-match: the router state names the story and the loadout, the start
-  // book reopens on it at once (no card click, no match check) and the state is dropped.
-  it('reopens the start book with the loadout handed back by start-match', async () => {
+  it('v1.13.0 — the router state of a return from start-match no longer reopens anything on the Home', async () => {
     listMatches.mockResolvedValue([])
     render(
       <HomeStatusProvider>
         <MemoryRouter initialEntries={[{ pathname: '/', state: { reopenStory: STORY_B, reopenConfig: { class: { name: 'Mage' } } } }]}>
-          <HomePage /><HomeErrorProbe />
+          <Routes><Route path="/" element={<HomePage />} /><Route path="/story/:storyId" element={<StoryPageStub />} /></Routes>
         </MemoryRouter>
       </HomeStatusProvider>,
     )
-    const modal = await screen.findByTestId('start-book-modal')
-    expect(modal).toHaveTextContent('Dragon Keep')
-    expect(modal.dataset.config).toBe('Mage')
-    // Closing it forgets the handed-back loadout too.
-    fireEvent.click(screen.getByText('close-book'))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    await screen.findByText('Dragon Keep')
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
   })
 
-  it('opens GuestUserModal when RUNNING match exists for that story (handing over the fetched matches)', async () => {
+  it('opens the player page when RUNNING match exists for that story (handing over the fetched matches)', async () => {
     const list = [{ uuid: 'm1', storyUuid: 's1', status: 'RUNNING' }]
     listMatches.mockResolvedValue(list)
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
-    await waitFor(() => expect(mockOpenGuestModal).toHaveBeenCalledTimes(1))
-    // matches already loaded by Home are passed to the modal so it won't refetch
-    expect(mockOpenGuestModal).toHaveBeenCalledWith(list)
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    await waitFor(() => expect(mockOpenPlayerPage).toHaveBeenCalledTimes(1))
+    // matches already loaded by Home are passed to the player page so it won't refetch
+    expect(mockOpenPlayerPage).toHaveBeenCalledWith(list)
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
   })
 
-  it('opens GuestUserModal when CREATED match exists for that story', async () => {
+  it('opens the player page when CREATED match exists for that story', async () => {
     listMatches.mockResolvedValue([
       { uuid: 'm2', storyUuid: 's1', status: 'CREATED' },
     ])
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
-    await waitFor(() => expect(mockOpenGuestModal).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockOpenPlayerPage).toHaveBeenCalledTimes(1))
   })
 
   it('does not redirect when active match is for a different story', async () => {
@@ -164,28 +172,28 @@ describe('HomePage — story click with active match check', () => {
     ])
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
-    expect(mockOpenGuestModal).not.toHaveBeenCalled()
+    expect(await screen.findByTestId('story-page')).toBeInTheDocument()
+    expect(mockOpenPlayerPage).not.toHaveBeenCalled()
   })
 
-  it('opens GuestUserModal when a PAUSED match exists for that story (v0.32.1)', async () => {
+  it('opens the player page when a PAUSED match exists for that story (v0.32.1)', async () => {
     const list = [{ uuid: 'm3', storyUuid: 's1', status: 'PAUSED' }]
     listMatches.mockResolvedValue(list)
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
-    await waitFor(() => expect(mockOpenGuestModal).toHaveBeenCalledWith(list))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    await waitFor(() => expect(mockOpenPlayerPage).toHaveBeenCalledWith(list))
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
   })
 
-  it('fails closed when listMatches throws: no StartBookModal, "error" footers and the navbar error (v0.37.6)', async () => {
+  it('fails closed when listMatches throws: no story page, "error" footers and the navbar error (v0.37.6)', async () => {
     listMatches.mockRejectedValue(new Error('Network error'))
     wrap(<HomePage />)
     await screen.findByText('Forest Path')
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
     await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('matches'))
     fireEvent.click(screen.getByText('Forest Path'))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
-    expect(mockOpenGuestModal).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
+    expect(mockOpenPlayerPage).not.toHaveBeenCalled()
     expect(screen.queryByText('home.matchesError')).not.toBeInTheDocument()
   })
 
@@ -196,7 +204,7 @@ describe('HomePage — story click with active match check', () => {
     fireEvent.click(await screen.findByText('Forest Path'))
     rejectMatches(new Error('Network error'))
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
   })
 
   it('a click during the load awaits the single in-flight request (v0.32.1)', async () => {
@@ -205,10 +213,10 @@ describe('HomePage — story click with active match check', () => {
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
     // still pending: nothing opened, and no second request was fired
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
     expect(listMatches).toHaveBeenCalledTimes(1)
     resolveMatches([])
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    expect(await screen.findByTestId('story-page')).toBeInTheDocument()
     expect(listMatches).toHaveBeenCalledTimes(1)
   })
 
@@ -221,7 +229,7 @@ describe('HomePage — story click with active match check', () => {
     await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('antibot'))
     expect(getStories).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByText('Forest Path'))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
     expect(screen.queryByText('antibot.error')).not.toBeInTheDocument()
   })
 
@@ -250,14 +258,10 @@ describe('HomePage — story click with active match check', () => {
     expect(screen.getByTestId('footer-state').textContent).toBe('loading')
     // A click meanwhile is ignored: nothing in flight to wait for.
     fireEvent.click(screen.getByText('Forest Path'))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
     // The token lands → one call, with that token.
     guest.user = mockUser
-    rerender(
-      <HomeStatusProvider>
-        <MemoryRouter><HomePage /><HomeErrorProbe /></MemoryRouter>
-      </HomeStatusProvider>,
-    )
+    rerender(tree(<HomePage />))
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
     expect(listMatches).toHaveBeenCalledTimes(1)
     expect(listMatches).toHaveBeenCalledWith('tok')
@@ -426,7 +430,7 @@ describe('HomePage v1.2.0 — after a Google logout with no guest to resume', ()
     wrap(<HomePage />)
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    expect(await screen.findByTestId('story-page')).toBeInTheDocument()
     expect(guest.ensureGuest).toHaveBeenCalled()
     expect(listMatches).not.toHaveBeenCalled()
   })
@@ -437,7 +441,43 @@ describe('HomePage v1.2.0 — after a Google logout with no guest to resume', ()
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
     fireEvent.click(await screen.findByText('Forest Path'))
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
-    expect(screen.queryByTestId('start-book-modal')).toBeNull()
+    expect(screen.queryByTestId('story-page')).toBeNull()
   })
 })
 
+describe('HomePage v1.13.0 — interim policy chapter host (until step 14)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.behavior = 'pending'
+    guest.user = mockUser
+    guest.error = null
+    guest.sessionIdle = false
+    document.cookie = 'pathsgames.turnstilePass=; max-age=0; path=/'
+    getStories.mockResolvedValue([STORY_A])
+    listMatches.mockResolvedValue([])
+  })
+
+  it('no chapter: no Book, the hero and the catalog as usual', async () => {
+    const { container } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    expect(container.querySelector('.book-stage')).toBeNull()
+    expect(container.querySelector('.home-page')).not.toHaveClass('book-content--covered')
+  })
+
+  it('a chapter covers the hero and the catalog (kept mounted, Turnstile running) under a tab-less Book', async () => {
+    const { PolicyBookProvider, usePolicyBook } = await import('../context/PolicyBookContext')
+    function Opener() { const { openPolicyBook } = usePolicyBook(); return <button onClick={() => openPolicyBook('privacy')}>open-privacy</button> }
+    const { container } = render(<PolicyBookProvider>{tree(<><Opener /><HomePage /></>)}</PolicyBookProvider>)
+    await screen.findByText('Forest Path')
+    fireEvent.click(screen.getByText('open-privacy'))
+    const stage = container.querySelector('.book-stage')
+    expect(stage).toHaveClass('book-stage--no-tabs')
+    expect(container.querySelector('.book-bookmark--home')).toBeNull()
+    expect(container.querySelector('.book-content--chapter')).toBeInTheDocument()
+    const home = container.querySelector('.home-page')
+    expect(home).toHaveClass('book-content--covered')
+    expect(home).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByTestId('turnstile-mock')).toBeInTheDocument()
+    expect(screen.getByText('Forest Path')).toBeInTheDocument()
+  })
+})

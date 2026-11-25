@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 // Coverage-focused companion to HomePage.test.jsx / GamePage.test.jsx: the board
 // reload handler, the fatal-error exit and the home-page paths the main suites
@@ -19,9 +19,11 @@ vi.mock('@marsidev/react-turnstile', async () => {
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-const mockOpenGuestModal = vi.fn()
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok' }, openGuestModal: mockOpenGuestModal }),
+  useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok' } }),
+}))
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: vi.fn(), closePlayerPage: vi.fn() }),
 }))
 vi.mock('../api/stories', () => ({ getStories: vi.fn(), getStoriesCatalog: vi.fn(), getStory: vi.fn(), getStoryDetail: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
@@ -36,25 +38,24 @@ vi.mock('../features/catalog/StoryCatalog', () => ({
     <div>{stories.map(s => <button key={s.uuid} onClick={() => onStoryClick(s)}>{s.title}</button>)}</div>
   ),
 }))
-// The start book exposes its close handler so the home page can drop the selection.
-vi.mock('../features/start-book/StartBookModal', () => ({
-  default: ({ story, onClose }) => (
-    <div data-testid="start-book-modal">
-      {story.title}<button data-testid="close-book" onClick={onClose}>close</button>
-    </div>
-  ),
-}))
-// The game board exposes onReload / onError so both parent handlers can be driven.
+// The game board exposes onReload / onError so both parent handlers can be driven; v1.13.0 —
+// a transient error reaches it as `error` (its right page) and closes with onErrorClose.
 vi.mock('../features/gameplay/GameBook', () => ({
-  default: ({ onReload, onError, onClose }) => (
+  default: ({ onReload, onError, onClose, error, onErrorClose }) => (
     <div data-testid="game-book">
       <button data-testid="reload" onClick={() => onReload?.()}>reload</button>
       <button data-testid="fatal" onClick={() => onError?.({ status: 500 })}>fatal</button>
       <button data-testid="close" onClick={onClose}>close</button>
+      {error && (
+        <div data-testid="error-card">
+          <span data-testid="error-status">{error.status ?? 'none'}</span>
+          <button data-testid="close-error" onClick={onErrorClose}>close-error</button>
+        </div>
+      )}
     </div>
   ),
 }))
-vi.mock('../components/modals/ErrorCard', () => ({
+vi.mock('../components/layout/ErrorCard', () => ({
   default: ({ status, onClose }) => (
     <div data-testid="error-card">
       <span data-testid="error-status">{status ?? 'none'}</span>
@@ -75,7 +76,12 @@ import { getMatchInfo } from '../api/game'
 
 const STORY = { uuid: 's1', title: 'Forest Path', card: { title: 'Forest Path' } }
 
-describe('HomePage — story click and book dismissal', () => {
+function StoryStub() { return <div data-testid="story-page">{useLocation().state?.story?.title}</div> }
+const renderHome = () => render(<MemoryRouter>
+  <Routes><Route path="/" element={<HomePage />} /><Route path="/story/:storyId" element={<StoryStub />} /></Routes>
+</MemoryRouter>)
+
+describe('HomePage — story click and story page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ts.behavior = 'success'
@@ -88,11 +94,11 @@ describe('HomePage — story click and book dismissal', () => {
   it('awaits the in-flight match list instead of refetching it', async () => {
     let resolveMatches
     listMatches.mockReturnValue(new Promise(res => { resolveMatches = res }))
-    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    renderHome()
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
     resolveMatches([])
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    expect(await screen.findByTestId('story-page')).toBeInTheDocument()
     expect(listMatches).toHaveBeenCalledTimes(1)
   })
 
@@ -100,19 +106,19 @@ describe('HomePage — story click and book dismissal', () => {
   // whether a match already exists, so the book stays shut.
   it('does not open the book when the match fetch fails', async () => {
     listMatches.mockRejectedValue(new Error('offline'))
-    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    renderHome()
     fireEvent.click(await screen.findByText('Forest Path'))
     await waitFor(() => expect(listMatches).toHaveBeenCalled())
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('story-page')).not.toBeInTheDocument()
   })
 
-  // Closing the book clears the selected story and returns to the catalog.
-  it('drops the selected story when the book is closed', async () => {
+  // v1.13.0 — the story is a page of its own: the catalog is left behind, the story in the state.
+  it('leaves the catalog for /story/:id with the clicked story', async () => {
     listMatches.mockResolvedValue([])
-    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    renderHome()
     fireEvent.click(await screen.findByText('Forest Path'))
-    fireEvent.click(await screen.findByTestId('close-book'))
-    await waitFor(() => expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument())
+    expect(await screen.findByTestId('story-page')).toHaveTextContent('Forest Path')
+    expect(screen.queryByText('home.heroTitle')).not.toBeInTheDocument()
   })
 })
 
@@ -149,7 +155,7 @@ describe('GamePage — reload and fatal errors', () => {
     expect(screen.getByTestId('game-book')).toBeInTheDocument()
   })
 
-  // A transient error raised inside the board is shown over it and dismissed in
+  // A transient error raised inside the board takes its right page and is dismissed in
   // place — the player stays in the match.
   it('dismisses a transient board error in place', async () => {
     wrap()
@@ -170,8 +176,10 @@ describe('GamePage — reload and fatal errors', () => {
     try {
       getMatchInfo.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }))
       wrap()
-      expect(await screen.findByTestId('error-card')).toBeInTheDocument()
-      fireEvent.click(screen.getByTestId('close-error'))
+      // v1.13.0 — the error page is the book's right page (and its mobile copy)
+      expect((await screen.findAllByTestId('error-card')).length).toBeGreaterThan(0)
+      expect(screen.queryByTestId('game-book')).not.toBeInTheDocument()
+      fireEvent.click(screen.getAllByTestId('close-error')[0])
       expect(window.location.href).toBe('/')
     } finally {
       window.location = original

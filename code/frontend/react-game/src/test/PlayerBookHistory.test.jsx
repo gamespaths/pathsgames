@@ -9,7 +9,7 @@ vi.mock('../utils/turnstile', () => ({
   isTurnstilePassValid: () => true, recordTurnstilePass: vi.fn(),
 }))
 const guestCtx = { user: { username: 'g', accessToken: 't' }, loading: false,
-  guestModalOpen: true, closeGuestModal: vi.fn(), matches: null }
+  matches: null }
 vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => guestCtx }))
 vi.mock('../components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
 vi.mock('../components/layout/Card', () => ({
@@ -37,11 +37,11 @@ vi.mock('@/features/matches/MatchHistoryCard', () => ({ default: () => <div data
 vi.mock('@/components/layout/LoadingCard', () => ({ default: () => <div /> }))
 vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div /> }))
 
-import GuestUserModal from '@/features/guest-user/GuestUserModal'
+import PlayerBook from '@/features/guest-user/PlayerBook'
 
-describe('GuestUserModal — History from the list (Step 40)', () => {
+describe('PlayerBook — History from the list (Step 40)', () => {
   it('opens the big history page directly, with the match summary, and back to the list', () => {
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('history-from-list'))
     expect(screen.getByText('log:m9:ENDED')).toBeInTheDocument()
     expect(screen.queryByTestId('mission-cards')).not.toBeInTheDocument()
@@ -52,12 +52,12 @@ describe('GuestUserModal — History from the list (Step 40)', () => {
   })
 
   it('the Missions icon opens the missions without the small History card; (i) keeps it', () => {
-    const { unmount } = render(<GuestUserModal />)
+    const { unmount } = render(<PlayerBook />)
     fireEvent.click(screen.getByText('missions-from-list'))
     expect(screen.getByTestId('mission-cards')).toBeInTheDocument()
     expect(screen.queryByTestId('small-history')).not.toBeInTheDocument()
     unmount()
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('info-from-list'))
     expect(screen.getByTestId('small-history')).toBeInTheDocument()
   })

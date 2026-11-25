@@ -78,10 +78,20 @@ describe('OptionPicker', () => {
   it('locks a trait the remaining budget cannot pay for, under a "traits cost" label', () => {
     renderPicker({ selected: [], config: { difficulty: { traitCostPositiveBudget: 3 } } })
     // Brave costs 2 and fits; Greedy costs 5 and does not.
-    const locks = document.querySelectorAll('[title="book.traitBudgetExceeded"]')
+    // v1.13.0 — the lock reason is the drawn tooltip of the lock label (data-tip, no native title)
+    const locks = document.querySelectorAll('[data-tip="book.traitBudgetExceeded"]')
     expect(locks.length).toBe(1)
+    expect(locks[0]).not.toHaveAttribute('title')
     expect(locks[0].textContent).toContain('book.traitCostLock')
     expect(locks[0].textContent).not.toContain('Greedy')
+  })
+
+  it('v1.13.0 — the trait budget is not a heading over the cards: it stays visible', () => {
+    renderPicker({ selected: [TRAITS[0]], config: { difficulty: { traitCostPositiveBudget: 4 } } })
+    const budget = screen.getByTestId('trait-budget')
+    expect(budget).toBeVisible()
+    expect(budget.closest('.book-cards-heading')).toBeNull()
+    expect(document.querySelector('.selection-header')).not.toHaveClass('book-cards-heading')
   })
 
   it('a selected trait stays clickable so it can be removed', () => {

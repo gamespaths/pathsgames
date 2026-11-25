@@ -48,7 +48,7 @@ export default function RegistryLockInfo({ lock, target }) {
       ) : (
         <>{' '}<button type="button" className="btn btn-link p-0 registry-lock-info-btn"
           data-testid="registry-lock-btn"
-          aria-label={t('game.registryLock.info')} title={t('game.registryLock.info')}
+          aria-label={t('game.registryLock.info')} data-tip={t('game.registryLock.info')}
           onClick={(e) => { e.stopPropagation(); setOpen(true) }}>
           <i className={`fas ${CREDIT_ICONS.tip}`} />
         </button></>

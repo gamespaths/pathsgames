@@ -45,4 +45,4 @@ and list them: do not guess.
 
 A short report (max 30 lines): files changed per component, test results with real numbers
 (passed/failed, coverage), Robot results, anything skipped or failing, and a suggestion to run
-`/doc-update`.
+`paths-games-test-feature` (owner's test list) and then `/doc-update`.

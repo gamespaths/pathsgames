@@ -40,6 +40,7 @@ export default function CardButtons({
         className={`gc-footer__btn ${alone ? 'gc-footer__btn--icon' : ' '} ${buttonClassName} `}
         onClick={onPreviewClick}
         aria-label={previewLabel}
+        data-tip={flagShowLabel ? undefined : previewLabel}
         data-testid={tid('info')}
         >
         <i className={`${previewIconClassName} ${iconClassName}`} />
@@ -72,7 +73,7 @@ export default function CardButtons({
       {onPreview && !hidePreview && getPreviewButton(false, "mr-1", true)}
       <span
         className="gc-footer__cards-buttons"
-        title={lockedReason || undefined}
+        data-tip={lockedReason || undefined}
         aria-label={lockedReason || undefined}
       >
         {/* Lock text: its own label, else the class it names, else the card's own name. */}

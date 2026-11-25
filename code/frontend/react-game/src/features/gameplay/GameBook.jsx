@@ -6,6 +6,9 @@ import { isStaleMatch } from '../../api/matchVersion'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import LoadingCard from '@/components/layout/LoadingCard'
+import ErrorCard from '@/components/layout/ErrorCard'
+import { usePolicyBook } from '@/context/PolicyBookContext'
+import { useHomeButtonHandler } from '@/context/HomeButtonContext'
 import { buildCardCharacteristicsRight } from '@/utils/gamebook'
 import { buildUpdateMatchCard } from '@/utils/loadoutCards'
 import EndGameBook from './EndGameBook'
@@ -29,9 +32,10 @@ export { statChangeItems } from '@/utils/statBadges'
  * GameBook — the board: it wires the match payloads to the two reading pages and owns
  * nothing else. The side payloads live in useMatchChrome, what the pages show in
  * useBookView, and what an API answer narrates in useGameplayResults.
+ * v1.13.0 — `error` (a transient API error) takes the right page; the home tab opens the close card first.
  */
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError, reloadKey = 0,
-  openLogKey = 0, staleKey = 0 }) {
+  openLogKey = 0, staleKey = 0, error = null, onErrorClose }) {
   const { t, lang } = useTranslation()
   const { user } = useGuestUser()
   const accessToken = user?.accessToken
@@ -56,6 +60,16 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const { clock, weather, matchLocations, locationCosts, refresh: refreshChrome } =
     useMatchChrome(matchUuid, accessToken, lang)
   const [view, viewActions] = useBookView()
+  const { closePolicyBook } = usePolicyBook()
+  // The close card, never straight to the Home: also from an open policy chapter, which gives way.
+  useHomeButtonHandler(gameEnded ? null : () => {
+    closePolicyBook()
+    viewActions.setPreviewRight({ kind: 'close' })
+  })
+  // A transient error takes the right page: on mobile it is the bottom of the stack.
+  useEffect(() => {
+    if (error) scrollMobileIntoView('.book-mobile-right')
+  }, [error])
   // v1.7.0 step 8 — a match refetch (stale or page return) reloads the chrome and closes the pages
   useEffect(() => {
     if (!reloadKey) return
@@ -141,7 +155,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   }
 
   if (gameEnded) {
-    return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose}
+    return <EndGameBook story={story} endGameCard={endGameCard}
       missions={gameData?.info?.missions} />
   }
 
@@ -195,13 +209,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onEndGamePreview={handleEndGamePreviewFull}
     onExit={onClose} />
 
-  const right = results.loading ? <LoadingCard story={story} /> : rightContent
+  // Priority: a transient error, then the reload in progress, then the board's own page.
+  const right = error
+    ? <ErrorCard status={error.status} message={error.message} onClose={onErrorClose} />
+    : results.loading ? <LoadingCard story={story} /> : rightContent
 
   return (
     <>
       <Book
-        onClose={() => viewActions.setPreviewRight({ kind: 'close' })}
-        closeLabel={`${t('game.closeBook')}${story?.title ?? story?.card?.title ? ' ' + (story?.title ?? story?.card?.title) : ''}`}
         left={leftContent}
         right={right}
         bookmarksLeft={buildBookmarksLeft({ t, view: view.view, previewLeft: view.previewLeft,

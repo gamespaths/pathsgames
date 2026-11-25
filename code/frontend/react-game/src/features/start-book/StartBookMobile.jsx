@@ -10,8 +10,8 @@ import { selectedEntityForType } from './startBookOptions'
  * Reuses the desktop right-page flow components (ConfigView, with OptionPicker
  * for changing a card) so the loadout cards render as a responsive 2-column
  * grid. The story header card sits on top; "Start Game" hands off to the
- * start-match page (the antibot check and terms gate live there now). The close
- * button is provided by the surrounding Book overlay.
+ * start-match page (the antibot check and terms gate live there now). The way
+ * home is the Book's home tab (v1.13.0).
  */
 export default function StartBookMobile({
   activeStory,

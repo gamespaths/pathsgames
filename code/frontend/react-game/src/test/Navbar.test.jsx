@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
+import { HomeButtonProvider, useHomeButtonHandler } from '../context/HomeButtonContext'
 
 const mockSetLang = vi.fn()
 const mockChangeServer = vi.fn()
@@ -37,7 +38,6 @@ vi.mock('@/context/HomeStatusContext', () => ({
   useHomeStatus: () => ({ error: homeStatus.error, setError: vi.fn() }),
 }))
 
-const mockOpenGuestModal = vi.fn()
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({
     user: { userUuid: 'mock-uuid-0001', username: 'guest_mock0001' },
@@ -45,17 +45,19 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
     error: null,
     refreshGuest: vi.fn(),
     clearGuest: vi.fn(),
-    openGuestModal: mockOpenGuestModal,
-    guestModalOpen: false,
-    closeGuestModal: vi.fn(),
+    setMatches: vi.fn(),
   }),
 }))
 
-function renderNavbar(initialRoute = '/') {
+function renderNavbar(initialRoute = '/', handler = null) {
+  function Page() { useHomeButtonHandler(handler); return null }
   return render(
-    <MemoryRouter initialEntries={[initialRoute]}>
-      <Navbar />
-    </MemoryRouter>
+    <HomeButtonProvider>
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <Page />
+        <Navbar />
+      </MemoryRouter>
+    </HomeButtonProvider>
   )
 }
 
@@ -65,64 +67,120 @@ describe('Navbar', () => {
     expect(screen.getByText('nav.brand')).toBeInTheDocument()
   })
 
-  it('renders user button with guest username as title', () => {
+  const userBtn = () => document.querySelector('.nav-user-btn')
+
+  it('renders user button with guest username as drawn tooltip', () => {
     renderNavbar()
-    expect(screen.getByTitle('guest_mock0001')).toBeInTheDocument()
+    expect(userBtn()).toHaveAttribute('data-tip', 'guest_mock0001')
+    expect(userBtn()).not.toHaveAttribute('title')
   })
 
   it('user button shows nav.guest label', () => {
     renderNavbar()
-    const btn = screen.getByTitle('guest_mock0001')
+    const btn = userBtn()
     expect(btn.tagName).toBe('BUTTON')
     expect(btn).toHaveTextContent('nav.guest')
   })
 
-  it('guest button calls openGuestModal on click', () => {
+  it('v1.13.0 — the user button opens /player', () => {
+    mockNavigate.mockClear()
     renderNavbar()
-    fireEvent.click(screen.getByTitle('guest_mock0001'))
-    expect(mockOpenGuestModal).toHaveBeenCalledOnce()
+    fireEvent.click(userBtn())
+    expect(mockNavigate).toHaveBeenCalledWith('/player')
   })
 
-  it('does not show exit button on home page', () => {
-    renderNavbar('/')
-    expect(screen.queryByText('game.exitToHome')).toBeNull()
-  })
-
-  it('shows exit button on play page', () => {
+  it('also in a match: a push, so Back returns to the match', () => {
+    mockNavigate.mockClear()
     renderNavbar('/play/123')
-    expect(screen.getByText('game.exitToHome')).toBeInTheDocument()
+    fireEvent.click(userBtn())
+    expect(mockNavigate).toHaveBeenCalledWith('/player')
   })
 
-  it('exit button navigates back home', () => {
-    renderNavbar('/play/123')
-    fireEvent.click(screen.getByText('game.exitToHome'))
-    expect(mockNavigate).toHaveBeenCalledWith('/')
+  it('on /player already it replaces the entry instead of stacking a second one', () => {
+    mockNavigate.mockClear()
+    renderNavbar('/player')
+    fireEvent.click(userBtn())
+    expect(mockNavigate).toHaveBeenCalledWith('/player', { replace: true })
+  })
+
+  it('v1.13.0 — no close button and no "Exit to Home" on any route', () => {
+    for (const route of ['/', '/play/123', '/story/s1', '/start-match/s1', '/player']) {
+      const { container, unmount } = renderNavbar(route)
+      expect(screen.queryByText('game.exitToHome')).toBeNull()
+      expect(container.querySelector('.navbar-home-btn')).toBeNull()
+      expect(container.querySelector('.navbar-social--tight')).toBeNull()
+      expect(container.querySelector('.book-close-btn')).toBeNull()
+      unmount()
+    }
   })
 
   it('renders the three social links with their targets', () => {
     renderNavbar()
-    expect(screen.getByTitle('nav.instagram')).toHaveAttribute('href', 'https://www.instagram.com/pathsgames/')
-    expect(screen.getByTitle('nav.youtube')).toHaveAttribute(
+    expect(screen.getByLabelText('nav.instagram')).toHaveAttribute('href', 'https://www.instagram.com/pathsgames/')
+    expect(screen.getByLabelText('nav.youtube')).toHaveAttribute(
       'href', 'https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ')
-    expect(screen.getByTitle('nav.x')).toHaveAttribute('href', 'https://x.com/PathsGames')
+    expect(screen.getByLabelText('nav.x')).toHaveAttribute('href', 'https://x.com/PathsGames')
   })
 
-  it('social links open in a new tab', () => {
+  it('social links open in a new tab, with a drawn tooltip', () => {
     renderNavbar()
-    const link = screen.getByTitle('nav.instagram')
+    const link = screen.getByLabelText('nav.instagram')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener')
-    expect(link).toHaveAttribute('aria-label', 'nav.instagram')
+    expect(link).toHaveAttribute('data-tip', 'nav.instagram')
+    expect(link).not.toHaveAttribute('title')
   })
 
-  it('social row is not marked tight on the home page', () => {
-    const { container } = renderNavbar('/')
-    expect(container.querySelector('.navbar-social')).not.toHaveClass('navbar-social--tight')
+  it('brand without a handler keeps href="/" (a full load of the home)', () => {
+    renderNavbar('/story/s1')
+    const brand = screen.getByText('nav.brand').closest('a')
+    expect(brand).toHaveAttribute('href', '/')
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+    brand.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(false)
   })
 
-  it('social row is marked tight on a play page, where the exit button takes the room', () => {
-    const { container } = renderNavbar('/play/123')
-    expect(container.querySelector('.navbar-social')).toHaveClass('navbar-social--tight')
+  it('brand with a handler (a running match) prevents the reload and runs it', () => {
+    const handler = vi.fn()
+    renderNavbar('/play/123', handler)
+    const brand = screen.getByText('nav.brand').closest('a')
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+    brand.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(true)
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  describe('--navbar-h', () => {
+    afterEach(() => {
+      delete globalThis.ResizeObserver
+      document.documentElement.style.removeProperty('--navbar-h')
+    })
+
+    it('without a ResizeObserver (jsdom) the CSS fallback stays', () => {
+      delete globalThis.ResizeObserver
+      renderNavbar()
+      expect(document.documentElement.style.getPropertyValue('--navbar-h')).toBe('')
+    })
+
+    it('writes the real height on <html>, follows its changes, and drops it on unmount', () => {
+      let notify = null
+      const disconnect = vi.fn()
+      globalThis.ResizeObserver = class { constructor(cb) { notify = cb } observe() {} disconnect() { disconnect() } }
+      const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockReturnValue({ height: 72.4, width: 0, top: 0, left: 0, right: 0, bottom: 72.4 })
+      const { unmount } = renderNavbar()
+      expect(document.documentElement.style.getPropertyValue('--navbar-h')).toBe('72px')
+      rect.mockReturnValue({ height: 0 })
+      notify()
+      expect(document.documentElement.style.getPropertyValue('--navbar-h')).toBe('72px')
+      rect.mockReturnValue({ height: 118 })
+      notify()
+      expect(document.documentElement.style.getPropertyValue('--navbar-h')).toBe('118px')
+      unmount()
+      expect(disconnect).toHaveBeenCalled()
+      expect(document.documentElement.style.getPropertyValue('--navbar-h')).toBe('')
+      rect.mockRestore()
+    })
   })
 
   // v0.37.6 — home load errors surface here with a refresh button.

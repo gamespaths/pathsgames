@@ -11,17 +11,16 @@ vi.mock('@/context/ServerContext', () => ({
   useServer: () => ({ matchRefetch: { browsers: ['all'], minHiddenSeconds: 0 } }),
 }))
 vi.mock('../features/gameplay/GameBook', () => ({
-  default: ({ onError, reloadKey, staleKey }) => (
+  default: ({ onError, reloadKey, staleKey, error }) => (
     <div data-testid="game-book">
       <span data-testid="reload-key">{reloadKey}</span>
       <span data-testid="stale-key">{staleKey}</span>
       <button onClick={() => onError?.({ staleMatch: true })}>stale-error</button>
       <button onClick={() => onError?.({ status: 409, response: { data: { error: 'NOT_YOUR_TURN' } } })}>other-error</button>
+      {/* v1.13.0 — a transient error is the board's right page */}
+      {error && <div data-testid="error-card">{error.message}</div>}
     </div>
   ),
-}))
-vi.mock('../components/modals/ErrorCard', () => ({
-  default: ({ message }) => <div data-testid="error-card">{message}</div>,
 }))
 
 import GamePage from '../pages/GamePage'

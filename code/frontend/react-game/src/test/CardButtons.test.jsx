@@ -153,7 +153,9 @@ describe('CardButtons — secondary actions beside the (i)', () => {
   it('shows the lock label over the class name and the card name', () => {
     render(<CardButtons locked lockInfo={{ kind: 'budget', label: 'Traits cost', className: 'Mage' }}
                         name="Greedy" lockedIcon="fas fa-lock" lockedReason="over budget" />)
-    const lock = screen.getByTitle('over budget')
+    const lock = screen.getByLabelText('over budget')
+    expect(lock).toHaveAttribute('data-tip', 'over budget')
+    expect(lock).not.toHaveAttribute('title')
     expect(lock.textContent).toContain('Traits cost')
     expect(lock.textContent).not.toContain('Mage')
     expect(lock.textContent).not.toContain('Greedy')

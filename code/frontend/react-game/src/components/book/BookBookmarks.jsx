@@ -24,19 +24,20 @@ export default function BookBookmarks({ items = [], side = 'left' }) {
           <button
             key={item.key}
             type="button"
-            className={['book-bookmark', item.active ? 'is-active' : '', item.disabled ? 'is-disabled' : '',
+            className={['book-bookmark', item.className, item.active ? 'is-active' : '', item.disabled ? 'is-disabled' : '',
               item.danger ? 'is-danger' : '', item.alert ? 'is-alert' : ''].filter(Boolean).join(' ')}
             onClick={inert ? undefined : item.onClick}
             // aria-disabled, not the attribute: a disabled button shows no tooltip, and the
             // "coming soon" title is the whole point of the missions tab.
             aria-disabled={item.disabled ? 'true' : undefined}
             aria-current={item.active ? 'page' : undefined}
-            title={item.title ?? item.label}
+            data-tip={item.title ?? item.label}
             aria-label={item.label}
           >
             {item.icon && <i className={item.icon} />}
             {item.badges?.length > 0 && (
-              <BonusBadgeList items={item.badges} showZeros littleVersion className="book-bookmark__badges" />
+              <BonusBadgeList items={item.badges} showZeros littleVersion withTitle={false}
+                className="book-bookmark__badges" />
             )}
           </button>
         )

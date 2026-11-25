@@ -4,6 +4,9 @@ import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
 import { readPolicyDeepLink, clearPolicyDeepLink, DEEP_LINK_KINDS, POLICY_PARAM } from '../utils/policyDeepLink'
 import en from '../i18n/en.json'
 import it_ from '../i18n/it.json'
+import { MemoryRouter } from 'react-router-dom'
+import Book from '../components/book/Book'
+import { LanguageProvider } from '../i18n/context'
 
 // Step 42 — alpha launch polish: ?policy= deep link, EN/IT parity, privacy retention, consent label.
 
@@ -12,6 +15,7 @@ vi.mock('vanilla-cookieconsent', () => ({
   run, showPreferences: vi.fn(), setLanguage: vi.fn(), acceptedCategory: vi.fn(() => false), eraseCookies: vi.fn(),
 }))
 vi.mock('vanilla-cookieconsent/dist/cookieconsent.css', () => ({}))
+vi.mock('../api/stories', () => ({ getStoriesCatalog: vi.fn(async () => []) }))
 
 function setUrl(path) {
   window.history.replaceState({ idx: 3, key: 'k' }, '', path)
@@ -94,6 +98,19 @@ describe('PolicyBookProvider deep link', () => {
     act(() => result.current.closePolicyBook())
     expect(result.current.policyBook).toBeNull()
     expect(window.location.search).toBe('')
+  })
+
+  it.each(['/player', '/story/s1', '/play/s1'])('v1.13.0 — opens the chapter in the book of %s too', path => {
+    setUrl(`${path}?policy=cookies`)
+    const { container } = render(
+      <LanguageProvider><PolicyBookProvider>
+        <MemoryRouter initialEntries={[`${path}?policy=cookies`]}>
+          <Book left={<span>own-page</span>} right={null} />
+        </MemoryRouter>
+      </PolicyBookProvider></LanguageProvider>,
+    )
+    expect(container.querySelector('.book-wrapper')).toHaveAttribute('data-page-key', 'policy:cookies')
+    expect(screen.getByText('own-page').closest('.book-content--covered')).not.toBeNull()
   })
 
   it('renders the opened kind to its children', () => {

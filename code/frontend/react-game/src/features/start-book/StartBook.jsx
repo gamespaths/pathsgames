@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
 import Card from '../../components/layout/Card'
+import LoadingCard from '../../components/layout/LoadingCard'
+import ErrorCard from '../../components/layout/ErrorCard'
+import GameBookMobile from '../gameplay/GameBookMobile'
 import ConfigView from './ConfigView'
 import OptionPicker from './OptionPicker'
 import StartBookMobile from './StartBookMobile'
@@ -11,6 +14,7 @@ import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, fitTraitsToBudget, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait, traitCostItems } from '../../utils/traitBudget'
 import { getOptionsForType, selectedEntityForType } from './startBookOptions'
+import { buildErrorCard } from '../../utils/loadoutCards'
 
 function buildInitialConfig(story) {
   // v0.35.2 — the preselected trait must be one the player could have chosen: picking
@@ -28,13 +32,19 @@ function buildInitialConfig(story) {
   }
 }
 
-/** `initialConfig` (optional): a loadout to reopen with, e.g. coming back from start-match. */
-export default function StartBookModal({ story, onClose, initialConfig = null }) {
+/**
+ * StartBook — v1.13.0: the book of `/story/:storyId` (was StartBookModal). `story` shows while the detail loads;
+ * without it an unknown or failing story shows the ErrorCard page. `initialConfig`: a loadout to reopen with.
+ */
+export default function StartBook({ story = null, storyId = null, initialConfig = null }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { t, lang } = useTranslation()
+  const uuid = storyId ?? story?.uuid ?? null
 
   const [detail, setDetail] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(true)
+  const [failed, setFailed] = useState(false)
   const [config, setConfig] = useState(() => initialConfig ?? buildInitialConfig(story))
   // Consumed by the first detail load only: a later reload (language change) starts afresh.
   const reopenRef = useRef(initialConfig)
@@ -43,23 +53,41 @@ export default function StartBookModal({ story, onClose, initialConfig = null })
   const [detailType, setDetailType] = useState(null) // single-option card whose detail fills the right page
 
   useEffect(() => {
-    if (!story?.uuid) return
+    if (!uuid) {
+      setFailed(true)
+      setLoadingDetail(false)
+      return
+    }
     setLoadingDetail(true)
-    void getStoryDetail(story.uuid, lang)
+    setFailed(false)
+    void getStoryDetail(uuid, lang)
       .then(data => {
+        if (!data && !story) { setFailed(true); return }
         setDetail(data)
         const reopen = reopenRef.current
         reopenRef.current = null
         setConfig(reopen ?? buildInitialConfig(data ?? story))
       })
       .catch(() => {
+        // The summary of the Home is enough to start; a direct load has nothing to show.
+        if (!story) { setFailed(true); return }
         setDetail(story)
         setConfig(reopenRef.current ?? buildInitialConfig(story))
       })
       .finally(() => setLoadingDetail(false))
-  }, [story?.uuid, lang])
+  }, [uuid, lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!story) return null
+  if (loadingDetail || failed) {
+    const left = story?.card
+      ? <Card variant="page" card={story.card} loading={false} story={story} entityType="story" />
+      : failed
+        ? <Card variant="page" card={buildErrorCard(t)} entityType="error" loading={false} />
+        : <LoadingCard story={null} />
+    const right = failed
+      ? <ErrorCard message={t('errors.storyNotFound')} onClose={() => navigate('/')} />
+      : <LoadingCard story={story} />
+    return <Book left={left} right={right} mobile={<GameBookMobile left={left} right={right} />} />
+  }
 
   const activeStory = detail ?? story
 
@@ -154,24 +182,13 @@ export default function StartBookModal({ story, onClose, initialConfig = null })
     setDetailType(null)
   }
 
-  // "Start Game" — the only step in the book now. Hand the chosen loadout to the
-  // start-match page, which owns the antibot check and the terms gate.
+  // "Start Game": the loadout is saved in this entry first (Back finds it), then the start-match page.
   function handleStartGame() {
-    onClose()
-    navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config } })
+    const state = { story: activeStory, config }
+    navigate(pathname, { replace: true, state })
+    navigate(`/start-match/${uuid ?? activeStory.uuid}`, { state: { ...state, fromStory: true } })
   }
 
-
-  if (loadingDetail) {
-    return (
-      <div className="book-overlay">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <i className="fas fa-spinner fa-spin fa-2x" style={{ color: 'var(--color-gold)' }} />
-        </div>
-      </div>
-    )
-  }
-  
   //console.log("preview",preview);
   const leftContent = preview ? ( 
      <CardPreviewOverlay
@@ -230,7 +247,6 @@ export default function StartBookModal({ story, onClose, initialConfig = null })
   return (
     <>
       <Book
-        onClose={onClose}
         left={leftContent}
         right={rightContent}
         mobile={

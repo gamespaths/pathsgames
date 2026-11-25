@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useLocation } from 'react-router-dom'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { getMatchInfo } from '../api/game'
+import { listMatches } from '../api/matches'
 import { matchInfoToGameData } from '../api/matchInfoAdapter'
 import { getStory, getStoryDetail } from '../api/stories'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { useTranslation } from '../i18n/context'
 import GameBook from '../features/gameplay/GameBook'
+import GameBookMobile from '../features/gameplay/GameBookMobile'
+import Book from '@/components/book/Book'
+import Card from '@/components/layout/Card'
 import LoadingCard from '@/components/layout/LoadingCard'
-import ErrorCard from '../components/modals/ErrorCard'
+import ErrorCard from '@/components/layout/ErrorCard'
+import { buildErrorCard } from '@/utils/loadoutCards'
+import { findResumableMatch } from '@/utils/matchStatus'
 import { useServer } from '@/context/ServerContext'
 import { STALE_EVENT, getMatchVersion, isStaleMatch } from '@/api/matchVersion'
 import useMatchRefetchOnReturn from '@/hooks/useMatchRefetchOnReturn'
@@ -19,9 +25,10 @@ export function changedElsewhere(before, after) {
 
 export default function GamePage() {
   const { storyId } = useParams()
-  const { state } = useLocation()
+  const { state, pathname } = useLocation()
+  const navigate = useNavigate()
   const matchUuid = state?.matchUuid ?? null
-  const { user } = useGuestUser() ?? {}
+  const { user, error: guestError, sessionIdle } = useGuestUser() ?? {}
   const { lang } = useTranslation()
   const { t } = useTranslation()
 
@@ -43,13 +50,30 @@ export default function GamePage() {
   // its second mount, which joins this request instead of asking /info again.
   const boardRequest = useRef(null)
 
+  // v1.13.0 — a direct load has no matchUuid: resume the running match of this story, else the story page.
+  const accessToken = user?.accessToken ?? null
   useEffect(() => {
-    let cancelled = false
-    if (matchUuid === null || storyId === null) {
-      setMatchError({ status: 400 })
-      setLoading(false)
-      return
+    if (matchUuid) return undefined
+    const toStory = () => navigate(`/story/${storyId}`, { replace: true })
+    if (!accessToken) {
+      if (guestError || sessionIdle) toStory()
+      return undefined
     }
+    let cancelled = false
+    listMatches(accessToken)
+      .then(list => {
+        if (cancelled) return
+        const found = findResumableMatch(list, storyId)
+        if (found) navigate(pathname, { replace: true, state: { matchUuid: found.uuid } })
+        else toStory()
+      })
+      .catch(() => { if (!cancelled) toStory() })
+    return () => { cancelled = true }
+  }, [matchUuid, accessToken, guestError, sessionIdle, storyId, pathname, navigate])
+
+  useEffect(() => {
+    if (!matchUuid) return undefined
+    let cancelled = false
     const key = `${matchUuid}|${storyId}|${user?.accessToken}|${lang}`
     if (boardRequest.current?.key !== key) {
       boardRequest.current = {
@@ -136,7 +160,7 @@ export default function GamePage() {
   }
 
   // Surface an API error raised inside GameBook (e.g. startMovement). `transient`
-  // errors are shown over the board and dismissed in place; fatal match-load errors
+  // errors take the board's right page and are dismissed in place; fatal match-load errors
   // (no transient flag) send the player home on close.
   const handleGameError = (err) => {
     if (isStaleMatch(err)) return // the notice and the refetch already answer it
@@ -152,28 +176,36 @@ export default function GamePage() {
     else gotoHomePage(null)
   }
 
-  return (
-    <div className="game-page-wrap">
-      {updatedBanner && (
-        <div className="pg-update-banner" role="alert" data-testid="match-updated-banner">
-          <span>{t('game.matchUpdating')}</span>
-          <button type="button" className="pg-update-banner-link" onClick={openMatchLog}>
-            {t('game.matchUpdatedLog')}
-          </button>
-          <button type="button" className="pg-update-banner-close" aria-label={t('game.matchUpdatedDismiss')}
-            onClick={() => setUpdatedBanner(false)}>×</button>
-        </div>
-      )}
-      {matchError && (
-        <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} maxWidth="400px" />
-      )}
-      {loading ? (
-        <LoadingCard story={story} maxWidth="400px" />
-      ) : (!matchError || matchError.transient) && (
-        <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
-          onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError}
-          reloadKey={reloadKey} openLogKey={openLogKey} staleKey={staleKey} />
-      )}
+  const banner = updatedBanner && (
+    <div className="pg-update-banner" role="alert" data-testid="match-updated-banner">
+      <span>{t('game.matchUpdating')}</span>
+      <button type="button" className="pg-update-banner-link" onClick={openMatchLog}>
+        {t('game.matchUpdatedLog')}
+      </button>
+      <button type="button" className="pg-update-banner-close" aria-label={t('game.matchUpdatedDismiss')}
+        onClick={() => setUpdatedBanner(false)}>×</button>
     </div>
+  )
+
+  // v1.13.0 — every state is a Book: the loading card, the fatal error page, then the board.
+  if (loading) {
+    const left = <LoadingCard story={story} />
+    return <>{banner}<Book left={left} right={null} mobile={<GameBookMobile left={left} right={null} />} /></>
+  }
+  if (matchError && !matchError.transient) {
+    const left = story?.card
+      ? <Card variant="page" card={story.card} story={story} entityType="story" loading={false} />
+      : <Card variant="page" card={buildErrorCard(t)} entityType="error" loading={false} />
+    const right = <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} />
+    return <>{banner}<Book left={left} right={right} mobile={<GameBookMobile left={left} right={right} />} /></>
+  }
+  return (
+    <>
+      {banner}
+      <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
+        onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError}
+        error={matchError} onErrorClose={handleErrorClose}
+        reloadKey={reloadKey} openLogKey={openLogKey} staleKey={staleKey} />
+    </>
   )
 }

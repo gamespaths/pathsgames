@@ -18,16 +18,18 @@ import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turnstile'
 
 /**
- * GuestUserModal — book-style overlay showing the guest identity on the left
- * page and the user's matches on the right page.
+ * PlayerBook — v1.13.0: the book of the `/player` page (was the GuestUserModal overlay): the
+ * player's identity on the left page and the matches on the right page. PlayerPage hosts it.
  *
  * Clicking (i) on a MatchCard puts the story card on the left page and, v0.37.4, the match's
  * MISSIONS on the right — each openable down to its steps — with a "Match History" card
  * closing the grid that opens the timeline. A back-arrow returns one page at a time.
  */
-export default function GuestUserModal() {
+export default function PlayerBook() {
   const { t, lang } = useTranslation()
-  const { user, loading, guestModalOpen, closeGuestModal, matches } = useGuestUser()
+  const { user, loading, matches } = useGuestUser()
+  // The list the opener handed over, read once: the page clears the context copy on unmount.
+  const [preloadedMatches] = useState(matches)
   const [previewInfo, setPreviewInfo] = useState(null) // { card, story, statusLabel, match }
   // What the right page reads for the previewed match: 'missions' | 'missionSteps' | 'history'
   const [matchView, setMatchView] = useState('missions')
@@ -49,8 +51,6 @@ export default function GuestUserModal() {
     setAttempt(a => a + 1)
     setStatus('checking')
   }
-
-  if (!guestModalOpen) return null
 
   // v1.2.0 — the displayName (Google: "given family", else name, else nickname) titles the card
   const username    = user?.displayName ?? user?.username ?? t('modals.guestUser.anonymous')
@@ -156,17 +156,15 @@ export default function GuestUserModal() {
     ) : (
       <UserMatchesList
         accessToken={user?.accessToken}
-        preloadedMatches={matches}
+        preloadedMatches={preloadedMatches}
         onPreviewCard={openPreview}
         onOpenHistory={openHistory}
-        onClose={closeGuestModal}
       />
     )}
   </>
 
   return (
     <Book
-      onClose={closeGuestModal}
       left={leftPage}
       right={rightPage}
       // Same stacked column as the game: user card on top, matches below, with the game's margins.

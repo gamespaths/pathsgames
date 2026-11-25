@@ -20,9 +20,9 @@ import { openMissions } from '@/utils/missions'
  *
  * A match with no missions at all skips straight to the ending: an empty grid says nothing.
  *
- * Mobile view stacks the same two pages vertically.
+ * Mobile view stacks the same two pages vertically. v1.13.0 — the book's home tab goes home (no handler).
  */
-export default function EndGameBook({ story, endGameCard, onClose, missions = [] }) {
+export default function EndGameBook({ story, endGameCard, missions = [] }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const rows = Array.isArray(missions) ? missions : []
@@ -97,8 +97,6 @@ export default function EndGameBook({ story, endGameCard, onClose, missions = []
 
     return (
       <Book
-        onClose={onClose}
-        overlayClass="book-overlay end-game-overlay"
         wrapperClass="book-wrapper end-game-wrapper"
         left={leftPage}
         right={rightPage}
@@ -123,8 +121,6 @@ export default function EndGameBook({ story, endGameCard, onClose, missions = []
 
   return (
     <Book
-      onClose={onClose}
-      overlayClass="book-overlay end-game-overlay"
       wrapperClass="book-wrapper end-game-wrapper"
       left={leftPage}
       right={rightPage}

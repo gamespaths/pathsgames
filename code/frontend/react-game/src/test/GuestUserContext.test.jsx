@@ -20,8 +20,8 @@ async function setServer(url) {
 }
 
 function Probe() {
-  const { user, loading, error, refreshGuest, clearGuest,
-          guestModalOpen, openGuestModal, closeGuestModal, matches } = useGuestUser()
+  const ctx = useGuestUser()
+  const { user, loading, error, refreshGuest, clearGuest, matches, setMatches } = ctx
   return (
     <div>
       <span data-testid="username">{user?.username ?? 'none'}</span>
@@ -30,13 +30,12 @@ function Probe() {
       <span data-testid="csrf">{user?.csrfToken ?? 'no-csrf'}</span>
       <span data-testid="loading">{loading ? 'yes' : 'no'}</span>
       <span data-testid="error">{error ?? ''}</span>
-      <span data-testid="modal">{guestModalOpen ? 'open' : 'closed'}</span>
+      <span data-testid="modal-api">{['guestModalOpen', 'openGuestModal', 'closeGuestModal'].filter(k => k in ctx).join(',') || 'none'}</span>
       <span data-testid="matches">{matches ? matches.length : 'null'}</span>
       <button onClick={() => refreshGuest()}>refresh</button>
       <button onClick={() => clearGuest()}>clear</button>
-      <button onClick={() => openGuestModal([{ uuid: 'm1' }])}>open-pre</button>
-      <button onClick={() => openGuestModal()}>open-empty</button>
-      <button onClick={() => closeGuestModal()}>close</button>
+      <button onClick={() => setMatches([{ uuid: 'm1' }])}>open-pre</button>
+      <button onClick={() => setMatches(null)}>close</button>
     </div>
   )
 }
@@ -130,22 +129,18 @@ describe('GuestUserContext', () => {
     expect(screen.getByTestId('username').textContent).toBe('none')
   })
 
-  it('openGuestModal stores preloaded matches; closeGuestModal clears them', async () => {
+  it('v1.13.0 — keeps the preloaded matches (setMatches), which start null', async () => {
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
+    expect(screen.getByTestId('matches').textContent).toBe('null')
     fireEvent.click(screen.getByText('open-pre'))
-    expect(screen.getByTestId('modal').textContent).toBe('open')
     expect(screen.getByTestId('matches').textContent).toBe('1')
-
     fireEvent.click(screen.getByText('close'))
-    expect(screen.getByTestId('modal').textContent).toBe('closed')
     expect(screen.getByTestId('matches').textContent).toBe('null')
   })
 
-  it('openGuestModal with no argument leaves matches null', async () => {
+  it('v1.13.0 — the guest modal API is gone (the player page is a route)', async () => {
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    fireEvent.click(screen.getByText('open-empty'))
-    expect(screen.getByTestId('modal').textContent).toBe('open')
-    expect(screen.getByTestId('matches').textContent).toBe('null')
+    expect(screen.getByTestId('modal-api').textContent).toBe('none')
   })
 })
 

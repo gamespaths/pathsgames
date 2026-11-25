@@ -19,7 +19,7 @@ export const SHOW_MOBILE_CARD_CHARACTERISTICS = parseFlag(import.meta.env?.VITE_
 // v0.35.8 — teaser stories from data/stories.json appended to the API catalog on the Home.
 export const ADD_COMING_SOON_STORIES = parseFlag(import.meta.env?.VITE_ADD_COMING_SOON_STORIES, false)
 
-// v0.35.8 — Home "Resume" jumps straight into the match instead of opening the guest modal.
+// v0.35.8 — Home "Resume" jumps straight into the match instead of opening the player page.
 export const RESUME_WITHOUT_MODAL = parseFlag(import.meta.env?.VITE_RESUME_WITHOUT_MODAL, false)
 
 // v0.38.1 — drop the stories listed in data/hidden-stories.json from the Home catalog.

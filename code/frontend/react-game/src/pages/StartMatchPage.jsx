@@ -7,8 +7,8 @@ import StartMatchFlow from '@/features/start-match/StartMatchFlow'
  *
  * Reached from the start book's "Start Game" with `{ story, config }` in the
  * router state. Thin by design: it guards the navigation state and delegates the
- * whole antibot → confirm → create → enter-game flow to StartMatchFlow. Direct
- * navigation / refresh loses the state, so we bounce back to the catalog.
+ * whole antibot → confirm → create → enter-game flow to StartMatchFlow. A direct
+ * navigation (typed URL, new tab) has no state: v1.13.0 — back to the story page.
  */
 export default function StartMatchPage() {
   const { storyId } = useParams()
@@ -19,8 +19,8 @@ export default function StartMatchPage() {
   const config = state?.config ?? null
 
   useEffect(() => {
-    if (!story || !config) navigate('/', { replace: true })
-  }, [story, config, navigate])
+    if (!story || !config) navigate(`/story/${storyId}`, { replace: true })
+  }, [story, config, navigate, storyId])
 
   if (!story || !config) return null
 

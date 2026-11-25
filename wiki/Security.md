@@ -284,7 +284,7 @@ across environments.
 
 - **Owner only**: `GET /api/matches/{uuid}/weather` and `POST /api/matches/{uuid}/join` answer 404 `MATCH_NOT_FOUND` to anyone but the match creator, on Java (`WeatherController`, `CharacterCommandService`), Python and AWS (`_require_owned_match`, `_join_match`). The `If-Match` check of `join` comes after the owner check. One human player per match until V4 ([GameRules](GameRules.md)).
 - **Cookie path**: Python auth cookies use `Path=/api/auth` like Java and AWS; the legacy `Path=/` copy is deleted at the next set or clear.
-- **react-game links**: copyright and credit links (`linkCopyright`) open only when `http` or `https` (`src/utils/safeUrl.js` `safeExternalUrl`, used by `Card.jsx` and `PolicyBook.jsx`).
+- **react-game links**: copyright and credit links (`linkCopyright`) open only when `http` or `https` (`src/utils/safeUrl.js` `safeExternalUrl`, used by `Card.jsx` and `PolicyChapter.jsx`).
 - **AWS tokens**: access and refresh tokens without `exp` are refused (`common/jwt_utils.py`).
 - **Deploy log**: `aws_backend_deploy_stage.sh` masks `BannedSubjectPepper` in the printed parameters.
 - **npm**: react-game `dompurify` 3.4.17 and `axios` 1.21.0, react-admin `axios` 1.21.0. Open audit items: `follow-redirects` (Node only) and `react-router` (v7 migration planned later).

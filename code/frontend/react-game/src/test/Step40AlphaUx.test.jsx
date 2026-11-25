@@ -19,7 +19,7 @@ import MatchCard from '../features/matches/MatchCard'
 import MatchStatusBadge from '../features/matches/MatchStatusBadge'
 import MatchLogCard, { LogEntryRow } from '../features/matches/MatchLogCard'
 import UserMatchesList from '../features/guest-user/UserMatchesList'
-import { RoadmapCards } from '../components/modals/PolicyBook'
+import { RoadmapCards } from '../components/book/PolicyChapter'
 import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
 import { isTutorialStory, TUTORIAL_CATEGORY, ENV_BADGE } from '../constants/features'
 import { formatDate, toEpochMs } from '../utils/dates'
@@ -118,7 +118,8 @@ describe('CardCreditsBar and TipNote', () => {
     render(<TipNote text="Hello" hideLabel="hide" onHide={onHide} />)
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled()
     const hide = screen.getByRole('button', { name: 'hide' })
-    expect(hide.getAttribute('title')).toBe('hide')
+    expect(hide.getAttribute('data-tip')).toBe('hide')
+    expect(hide.hasAttribute('title')).toBe(false)
     expect(hide.textContent).toBe('')
     expect(hide.querySelector('.fa-eye-slash')).toBeTruthy()
     fireEvent.click(hide)

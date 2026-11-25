@@ -7,6 +7,11 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => c
 const tr = vi.hoisted(() => ({ value: {} }))
 vi.mock('@/i18n/context', () => ({ useTranslation: () => ({ t: (k) => tr.value[k] ?? k, lang: 'en', setLang: vi.fn() }) }))
 vi.mock('@/context/PolicyBookContext', () => ({ usePolicyBook: () => ({ openPolicyBook: vi.fn() }) }))
+// v1.13.0 — the deletion's "close" leaves the player page (usePlayerPage, inside the router)
+const player = vi.hoisted(() => ({ close: null }))
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: vi.fn(), closePlayerPage: player.close }),
+}))
 const gisMock = vi.hoisted(() => ({ load: vi.fn(), nonce: vi.fn(() => 'nonce-del') }))
 vi.mock('@/auth/gisLoader', () => ({ loadGis: gisMock.load, newNonce: gisMock.nonce }))
 
@@ -19,7 +24,7 @@ function base(extra = {}) {
     user: GOOGLE_USER, isGoogleUser: true, googleEnabled: true, googleClientId: 'cid',
     logout: vi.fn(), logoutAll: vi.fn(), deleteAccount: vi.fn(), loginWithGoogle: vi.fn(),
     authBusy: false, profileBusy: false, authError: null, clearAuthError: vi.fn(),
-    profileError: null, clearProfileError: vi.fn(), accountDeleted: false, closeGuestModal: vi.fn(),
+    profileError: null, clearProfileError: vi.fn(), accountDeleted: false,
     ...extra,
   }
 }
@@ -108,14 +113,15 @@ describe('UserAccountPanel — logout menu', () => {
     expect(screen.getByTestId('logout-menu')).toBeTruthy()
   })
 
-  it('after the deletion: the closing message, its button leaves the book', () => {
+  it('after the deletion: the closing message, its button leaves the player page (closePlayerPage)', () => {
+    player.close = vi.fn()
     ctx.value = base({ accountDeleted: true })
     render(<UserAccountPanel />)
     expect(screen.getByTestId('user-profile-deleted')).toHaveTextContent('profile.delete.doneTitle')
     expect(screen.getByTestId('user-profile-deleted')).toHaveTextContent('profile.delete.done')
     expect(screen.queryByText('auth.google.logout')).toBeNull()
     fireEvent.click(screen.getByText('profile.delete.close'))
-    expect(ctx.value.closeGuestModal).toHaveBeenCalled()
+    expect(player.close).toHaveBeenCalled()
   })
 
   it('shows a profile error and clears it', () => {

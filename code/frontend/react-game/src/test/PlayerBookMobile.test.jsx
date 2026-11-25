@@ -9,7 +9,7 @@ vi.mock('../i18n/context', () => ({
 
 const mockUser = { username: 'guest_u1', accessToken: 'tok' }
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: mockUser, loading: false, guestModalOpen: true, closeGuestModal: vi.fn() }),
+  useGuestUser: () => ({ user: mockUser, loading: false }),
 }))
 
 // Only the mobile column is rendered, to check its wrappers.
@@ -18,12 +18,12 @@ vi.mock('../components/layout/Card', () => ({ default: () => <div data-testid="b
 vi.mock('@/features/guest-user/UserMatchesList', () => ({ default: () => <div data-testid="matches-list" /> }))
 vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div data-testid="lang-sel" /> }))
 
-import GuestUserModal from '@/features/guest-user/GuestUserModal'
+import PlayerBook from '@/features/guest-user/PlayerBook'
 
-describe('GuestUserModal — mobile column', () => {
+describe('PlayerBook — mobile column', () => {
   it('stacks the user page and the matches in the game\'s mobile wrappers (same side margins)', () => {
     document.cookie = 'pathsgames.turnstilePass=1; path=/'
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     const left = screen.getByTestId('book-page').parentElement
     expect(left).toHaveClass('book-mobile-left')
     expect(left.parentElement).toHaveClass('book-mobile-layout')

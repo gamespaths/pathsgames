@@ -1,4 +1,5 @@
 @import './variables.css';
+@import './book.css';
 @import './mobile.css';
 @import './abbrev.css';
 
@@ -181,6 +182,12 @@ html, body {
   min-height: 100vh;
 }
 
+/* v1.13.0 — every page fills the screen under the sticky navbar: the footer sits below the fold. */
+main.app-main {
+  min-height: calc(100vh - var(--navbar-h));
+  min-height: calc(100dvh - var(--navbar-h));
+}
+
 /* === SCROLLBAR === */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--color-brown-dark); }
@@ -193,7 +200,7 @@ html, body {
 .navbar-medieval {
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: var(--z-navbar);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -284,12 +291,6 @@ html, body {
 }
 .navbar-error__btn:hover { background: rgba(232,184,48,0.15); }
 
-.navbar-home-btn {
-  font-size: 0.75rem !important;
-  padding: 4px 12px !important;
-  white-space: nowrap;
-}
-
 .language-list-wrap{
   display: block;
   flex-direction: row;
@@ -375,7 +376,7 @@ html, body {
 /* Guest toast notification */
 .navbar-toast {
   position: fixed;
-  top: 64px;
+  top: calc(var(--navbar-h) - 8px);
   left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(135deg, var(--color-brown-mid), var(--color-brown-dark));
@@ -386,7 +387,7 @@ html, body {
   padding: 10px 22px;
   border-radius: 6px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-  z-index: 2000;
+  z-index: var(--z-toast);
   white-space: nowrap;
   animation: fadeIn 0.3s ease, toastFadeOut 0.5s ease 2.5s forwards;
 }
@@ -395,32 +396,29 @@ html, body {
    FOOTER
    ═══════════════════════════════════════════ */
      
-.medieval-footer { /* background  var(--footer-background); */
+/* v1.13.0 — a small bar after main, two centred rows: never visible when a page opens. */
+.medieval-footer {
   background: linear-gradient(135deg, var(--color-brown-mid), var(--color-brown-dark));
-  padding: 32px 20px 20px;
+  padding: 10px 16px 12px;
   text-align: center;
   border-top: 2px solid var(--color-gold);
-  margin-top: 60px;
-}
-
-.footer-inner { 
-  max-width: 1000px; margin: 0 auto; 
-}
-
-.footer-brand-sm {
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
   color: var(--color-gold-light);
 }
 
-.footer-links-row {
+.footer-inner {
+  max-width: 1000px; margin: 0 auto;
+}
+
+.footer-row {
   display: flex;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 1rem;
+  gap: 6px 18px;
 }
+.footer-row + .footer-row { margin-top: 6px; }
 
 .footer-icon-link {
   display: flex;
@@ -428,17 +426,17 @@ html, body {
   gap: 0.4rem;
   color: var(--color-parchment-dark);
   text-decoration: none;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-family: var(--font-heading);
   transition: color 0.2s;
-  margin-left:0.5rem;
 }
 .footer-icon-link:hover { color: var(--color-gold-light); }
 /* Footer actions are buttons (they open books, not URLs): strip native button look */
 .footer-link-btn { background: none; border: 0; padding: 0; cursor: pointer; }
+.footer-link__short { display: none; }
 
-/* Step 40 — the server row reads as the rest of the footer: no box, same font and size */
-.footer-server-row { margin-left: 0.4rem; white-space: nowrap; }
+/* The server: a select (several servers) or a badge (one server) */
+.footer-server-row { display: inline-flex; align-items: center; gap: 0.35em; white-space: nowrap; }
 .footer-server-select {
   background: transparent;
   border: none;
@@ -453,31 +451,16 @@ html, body {
   width: 0.6em;
   height: 0.6em;
   border-radius: 50%;
-  margin-left: 0.4em;
 }
+.footer-server-dot--online  { background: #4caf50; }
+.footer-server-dot--offline { background: #f44336; }
 .footer-server-muted { opacity: 0.7; }
+.footer-server-badge { display: inline-flex; align-items: center; gap: 0.35em; }
+.footer-server-badge--online  .footer-server-icon { color: #4caf50; }
+.footer-server-badge--offline .footer-server-icon { color: #f44336; }
+.footer-server__short { display: none; }
 
-.footer-alpha-warning {
-  font-size: 1rem;
-  color: var(--color-gold-light);
-  font-family: var(--font-heading);
-  text-align: center;
-  margin-top: 0.6rem;
-  opacity: 0.9;
-}
-
-.footer-copy {
-  font-size: 1rem;
-  font-family: var(--font-heading);
-  color: var(--color-gold-light);
-  margin-top: 1rem;
-}
-
-.footer-link-inline {
-  color: var(--color-gold-dark);
-  text-decoration: none;
-}
-.footer-link-inline:hover { color: var(--color-gold-light); }
+.footer-copy { white-space: nowrap; }
 
 .gold-light { color: var(--color-gold-light); }
 
@@ -666,177 +649,7 @@ html, body {
 
 /* Title bar and footer button come from the shared Card (.gc-title / .gc-footer). */
 
-/* ═══════════════════════════════════════════
-   BOOK OVERLAY / WRAPPER
-   ═══════════════════════════════════════════ */
-.book-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 4, 0, 0.85);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.4s ease;
-}
-
-.book-wrapper {
-  position: relative;
-  display: flex;
-  width: min(94vw, 1080px);
-  height: min(88vh, 680px);
-  box-shadow: 0 24px 48px rgba(0,0,0,0.8);
-  animation: bookOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.book-spine {
-  position: absolute;
-  left: 50%;
-  top: 1%;
-  height: 98%;
-  width: 12px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 40%, var(--color-brown-dark) 100%);
-  border-radius: 3px;
-  z-index: 10;
-  box-shadow: 0 0 8px rgba(0,0,0,0.6);
-}
-
-/* v0.35.5 — the same board renders inside the book and in the mobile stack; these two say
-   which of the two copies a card sits out. See hideWhereClass in constants/features.js. */
-.book-wrapper .hide-in-book { display: none !important; }
-.book-mobile-layout .hide-in-mobile { display: none !important; }
-
-/* The status card names its shortcuts for the mobile stack only; inside the book the
-   bookmarks already carry those names, so the labels stay off there. */
-.book-wrapper .card-status .gc-footer__btn-label { display: none; }
-
-/* ═══════════════════════════════════════════
-   BOOK BOOKMARKS (v0.35.5)
-   Tabs slotted into the book's top edge: inside .book-wrapper, so the mobile rule that
-   hides the wrapper hides them too.
-   ═══════════════════════════════════════════ */
-.book-bookmarks {
-  position: absolute;
-  top: -4px; /*QUI EX 0 */
-  z-index: 5;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  transform: translateY(-100%);
-  /* the gaps between tabs sit over the page: they must not eat its clicks */
-  pointer-events: none;
-}
-.book-bookmarks--left  { left: 24px; }
-/* The close bar is fixed at the viewport's top-right: leave the (x) its room. */
-.book-bookmarks--right { right: 24px; padding-right: 56px; justify-content: flex-end; }
-
-.book-bookmark {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  /* the extra bottom padding is what slides under the page edge */
-  padding: 6px 12px 10px;
-  margin-bottom: -4px;
-  border: 3px solid var(--color-brown-warm);
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  background: var(--book-bookmark-background); /*linear-gradient(180deg, var(--color-brown-mid) 0%, var(--color-brown-dark) 100%);*/
-  color: var(--color-brown-light);
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 0 -3px 8px rgba(0,0,0,0.5);
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.book-bookmark:hover { 
-  /* transform: translateY(2px);  */
-  background: var(--book-bookmark-background-hover); 
-  color: var(--color-gold-dark);
-}
-.book-bookmark.is-active {
-  /*background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);*/
-  background: var(--book-bookmark-background-hover); 
-  color: var(--color-gold-super-deep);
-  cursor: default;
-  /*color: var(--color-brown-deep);*/
-  /*
-  margin-bottom: -12px;
-  padding-bottom: 18px;*/
-}
-.book-bookmark.is-active:hover { transform: none; }
-/* The tab shouts: the page behind it holds something the player must act on (a life or an
-   energy about to run out, a sadness at its ceiling, a bag that cannot take another thing). */
-.book-bookmark.is-danger {
-  border-color: #c0392b;
-  background: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%);
-  color: #ffe9e4;
-  box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.65);
-}
-.book-bookmark.is-danger.is-active {
-  background: linear-gradient(180deg, #e74c3c 0%, #a12b1d 100%);
-  color: #fff;
-}
-.book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
-
-/* v0.37.1 — light gold: the page behind this tab has moved since the player last opened it.
-   Quieter than is-danger on purpose — news to read, not something to act on. */
-.book-bookmark.is-alert {
-  border-color: var(--color-gold-light);
-  background: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%);
-  color: #fff6d5;
-  box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.6);
-}
-.book-bookmark.is-alert.is-active {
-  background: linear-gradient(180deg, #f0d27a 0%, #a8830f 100%);
-  color: #fffdf5;
-}
-
-.book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
-.book-bookmark.is-disabled:hover { transform: none; }
-.book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
-
-.book-bookmark .player-stats-bar{
-  margin-bottom: 0px;
-}
-
-/* ═══════════════════════════════════════════
-   BOOK PAGES
-   ═══════════════════════════════════════════ */
-.book-page {
-  width: 50%;
-  height: 100%;
-  background: var(--book-page-background);
-  border:  var(--book-border);
-  position: relative;
-  overflow: hidden;
-}
-
-.book-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.06;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  background-size: 200px 200px;
-}
-
-.book-page-left {
-  border-radius: 12px 0 0 12px;
-  box-shadow: inset -4px 0 12px rgba(0,0,0,0.4);
-}
-
-.book-page-right {
-  border-radius: 0 12px 12px 0;
-  box-shadow: inset 4px 0 12px rgba(0,0,0,0.4);
-  background: var(--book-page-background-right);
-}
+/* Book stage, shell, cover, bookmarks and pages: styles/book.css (v1.13.0). */
 
 .book-page-extra{
   margin-top: auto;
@@ -864,104 +677,6 @@ html, body {
   overflow: hidden;
 }
 
-/* corner ornaments */
-.page-corner {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  border-color: var(--color-gold-dark);
-  border-style: solid;
-  opacity: 0.5;
-  pointer-events: none;
-}
-.page-corner-tl { top: 5px; left: 5px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
-.page-corner-tr { top: 5px; right: 5px; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
-.page-corner-bl { bottom: 5px; left: 5px; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
-.page-corner-br { bottom: 5px; right: 5px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
-
-/* ═══════════════════════════════════════════
-   BOOK CLOSE BUTTON
-   ═══════════════════════════════════════════ */
-/* Close bar: the (x) plus its label. Fixed to the top-right on desktop;
-   re-centered at the top on mobile (see mobile.css). */
-.book-close-bar {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.book-close-label {
-  color: var(--color-gold-light);
-  font-family: var(--font-display);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-  white-space: nowrap;
-  /* Hidden until the pointer hovers the close bar (desktop only — see mobile.css,
-     which removes the label entirely on touch layouts). */
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-.book-close-bar:hover .book-close-label {
-  opacity: 1;
-}
-/* Inside the bar the button flows in the flex row, not pinned to a page corner. */
-.book-close-bar .book-close-btn {
-  position: relative;
-  top: auto;
-  right: auto;
-  flex: none;
-}
-
-.book-close-btn {
-  position: absolute;
-  top: -16px;
-  right: -16px;
-  z-index: 20;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-brown-mid);
-  border: 2px solid var(--color-gold-dark);
-  color: var(--color-gold-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background 0.2s, color 0.2s;
-}
-.book-close-btn:hover { background: var(--color-ember); color: #fff; }
-
-/* ═══════════════════════════════════════════
-   CLOSE CONFIRMATION (paused match) — story card + message
-   Shown after the player taps the (x) without finishing the match.
-   ═══════════════════════════════════════════ */
-.close-prompt-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  overflow-y: auto;
-  background: rgba(10, 4, 0, 0.9);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.3s ease;
-}
-.close-prompt-modal {
-  width: min(92vw, 360px);
-  max-height: 100%;
-}
-/* Reuses the .book-page-desc parchment look; only the alignment is tweaked. */
-.close-prompt-text {
-  text-align: center;
-}
 
 /* ═══════════════════════════════════════════
    BOOK PAGE CONTENT — left page body
@@ -1632,17 +1347,6 @@ html, body {
   transition: opacity 0.2s;
 }
 .config-card-cover:hover .config-cover-badge { opacity: 1; }
-
-/* ── Credits modal ── */
-.credits-list {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 1rem;
-  justify-content: center;
-  padding: 8px 4px;
-  overflow-x: auto;
-}
 
 /* Card size: ~170 × 238px */
 .credits-card {
@@ -2364,34 +2068,14 @@ html, body {
   color: var(--color-gold);
   font-family: var(--font-heading);
 }
-/* ErrorCard: its own overlay ABOVE the book (.book-overlay is z-index 1050),
-   so transient gameplay errors stay visible over the open board. */
-.error-card-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1060;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 4, 0, 0.85);
-  backdrop-filter: blur(4px);
-  padding: 1rem;
-}
-.game-page-wrap {
-  min-height: calc(100vh - 112px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px 20px;
-}
 
 /* v1.7.0 step 12 — the match changed on another device: dismissible banner with a link to the log */
 .pg-update-banner {
   position: fixed;
-  top: 72px;
+  top: calc(var(--navbar-h) + 8px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1070; /* v1.8.0 above .book-overlay (1050) and .error-card-overlay (1060) */
+  z-index: var(--z-banner); /* v1.13.0 just above the sticky navbar */
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2637,17 +2321,6 @@ html, body {
   color: var(--color-gold-light, #e8c87a);
 }
 
-.modal-close-btn {
-  background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold));
-  color: var(--color-brown-deep);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 18px;
-  cursor: pointer;
-}
-
 /* Clock cycle widget (Step 26) */
 .clock-widget {
   margin-bottom: 0px;
@@ -2667,24 +2340,6 @@ html, body {
   background: linear-gradient(180deg, #8a7bff, #5b4bd6);
   color: var(--color-parchment);
 }
-.sleep-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1080;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 4, 1, 0.7);
-  padding: 16px;
-}
-.sleep-modal-content {
-  max-width: 420px;
-  width: 100%;
-}
-
-.card-detail-img { width: 100%; height: 200px; object-fit: cover; border-radius: 4px; margin-bottom: 12px; }
-.card-detail-title { font-family: var(--font-heading); color: var(--color-gold-light); font-size: 1.1rem; margin-bottom: 8px; }
-.card-detail-desc { font-size: 0.88rem; color: var(--color-parchment-dark); line-height: 1.6; font-style: italic; margin-bottom: 16px; }
 
 .btn-action {
   background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold));
@@ -2797,13 +2452,10 @@ html, body {
    START MATCH PAGE (v0.19.10)
    Book layout shown between the start book and the game.
    ═══════════════════════════════════════════ */
+/* v1.13.0 — fills .book-shell, which carries the size and the opening animation. */
 .start-match-wrapper {
-  position: relative;
-  display: flex;
-  width: min(96vw, 1080px);
-  height: min(88vh, 680px);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.8);
-  animation: bookOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  width: 100%;
+  height: 100%;
 }
 
 /* Right page column: card grid (scrolls) above a pinned status block */
@@ -3417,8 +3069,7 @@ html, body {
   font-size: 0.72rem;
 }
 
-/* PolicyBook — privacy / terms / cookies / credits as a book, above any open book (1050). */
-.policy-book-overlay { z-index: 1060; }
+/* Policy chapter — privacy / terms / cookies / credits / Devlog as a chapter of the current book. */
 .policy-book-text {
   font-size: 0.95rem;
   font-style: normal;
@@ -3575,4 +3226,41 @@ html, body {
   height: auto;
   text-align: center;
   font-size: clamp(0.85rem, 11cqi, 1.7rem);
+}
+
+/* ═══ DRAWN TOOLTIP (v1.13.0) — TooltipLayer.jsx, for any [data-tip] target ═══ */
+.pg-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-tooltip);
+  max-width: min(260px, 90vw);
+  padding: 5px 10px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 6px;
+  background: var(--color-brown-dark);
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+/* A hidden tooltip takes no layout space. */
+.pg-tooltip[hidden] { display: none !important; }
+.pg-tooltip__arrow {
+  position: absolute;
+  left: var(--pg-tip-arrow, 50%);
+  width: 10px;
+  height: 10px;
+  background: var(--color-brown-dark);
+  border: 1px solid var(--color-gold-dark);
+  transform: translateX(-50%) rotate(45deg);
+}
+.pg-tooltip[data-placement="above"] .pg-tooltip__arrow { bottom: -6px; border-top: none; border-left: none; }
+.pg-tooltip[data-placement="below"] .pg-tooltip__arrow { top: -6px; border-bottom: none; border-right: none; }
+/* Touch: a long press shows the tip, so no system menu nor text selection on its targets. */
+@media (hover: none) {
+  [data-tip] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 }

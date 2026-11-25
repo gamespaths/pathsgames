@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import usePlayerPage from '@/features/guest-user/usePlayerPage'
 import GoogleSignInButton from '@/features/guest-user/GoogleSignInButton'
 import { authErrorText } from '@/features/guest-user/UserAccountPanel'
 import { usePolicyBook } from '@/context/PolicyBookContext'
@@ -14,7 +15,6 @@ import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rate
 import { buildCharacterAttributesCard, buildGameTypeCard, buildGoogleLoginCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
-// import ConfirmStep from './ConfirmStep' — "Start" moved onto the second bonuses card (v0.38.3).
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
 import { traitBudgetItems } from '@/utils/traitBudget'
@@ -65,9 +65,11 @@ function delaySeconds() {
 
 export default function StartMatchFlow({ story, config, storyId }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useTranslation()
   const { openPolicyBook } = usePolicyBook()
-  const { user, isGoogleUser, googleEnabled, openGuestModal, authError } = useGuestUser()
+  const { user, isGoogleUser, googleEnabled, authError } = useGuestUser()
+  const { openPlayerPage } = usePlayerPage()
   // Always challenge (cookie:false): the backend consumes a fresh single-use
   // token on match creation.
   const gate = useAntibot({ cookie: false })
@@ -107,11 +109,12 @@ export default function StartMatchFlow({ story, config, storyId }) {
     if (el) window.bootstrap?.Modal?.getInstance?.(el)?.hide()
   }, [isGoogleUser, loginPageOpen])
 
-  const goHome = useCallback(() => navigate('/'), [navigate])
-  // Back to the start book, with this loadout still selected (HomePage reopens the modal).
-  const goBackToBook = useCallback(
-    () => navigate('/', { state: { reopenStory: story, reopenConfig: config } }),
-    [navigate, story, config])
+  // v1.13.0 — back to the story page with this loadout: one step back when it is the previous entry, else a replace.
+  const cameFromStory = Boolean(location.state?.fromStory)
+  const goBackToBook = useCallback(() => {
+    if (cameFromStory) navigate(-1)
+    else navigate(`/story/${storyId}`, { replace: true, state: { story, config } })
+  }, [navigate, cameFromStory, storyId, story, config])
 
   // Drive a visible countdown for `seconds`, resolving when it reaches 0. Used
   // to pace the creating → joining → running steps so each phase message is
@@ -188,7 +191,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
   // 'starting' counts down then creates the match; 'created' (no card, no API call) enters the game at once.
   useEffect(() => {
     if (phase === 'created') {
-      navigate(`/play/${storyId}`, { state: { matchUuid: match?.uuid } })
+      // Replace: Back from the game lands on the story page, never on a spent start-match page.
+      navigate(`/play/${storyId}`, { replace: true, state: { matchUuid: match?.uuid } })
       return undefined
     }
     if (phase !== 'starting') return undefined
@@ -259,9 +263,9 @@ export default function StartMatchFlow({ story, config, storyId }) {
     linkCopyright: story.card?.linkCopyright }
   const guestLoginPage = !isGoogleUser && googleEnabled
   const loginCard = isGoogleUser
-    // v1.8.0 — the Google user: name, picture and an (i) that opens the user book of the navbar
+    // v1.8.0 — the Google user: name, picture and an (i) that opens the player page (v1.13.0)
     ? <Card card={buildGoogleLoginCard(t, user)} entityType="login" label={t('book.login')} story={story}
-        onPreview={() => openGuestModal()} flagInformationCard additionalCardClasses="pg-card--logged" />
+        onPreview={() => openPlayerPage()} flagInformationCard additionalCardClasses="pg-card--logged" />
     : googleEnabled
       // v1.8.0 — the small card is only the hint (no artwork, no (i)); Login opens its page with Google
       ? <Card card={{ ...buildLoginCard(t), urlImage: null }} entityType="login" label={t('book.login')} story={story}
@@ -357,15 +361,6 @@ export default function StartMatchFlow({ story, config, storyId }) {
   let bottom = null
   if (gate.phase === 'checking' || gate.phase === 'error') {
     bottom = <AntibotBlock gate={gate} t={t} />
-  /* } else if (phase === 'confirm') {
-    // Single-player for now; future multiplayer JOIN/lobby branches here.
-    bottom = (
-      <ConfirmStep
-        termsAccepted={termsAccepted}
-        onStart={() => setPhase('starting')}
-        onHome={goHome}
-      />
-    ) */
   } else if (phase === 'error') {
     bottom = (
       <MatchStatus
@@ -381,9 +376,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
   return (
     <>
     <Book
-      overlayClass="book-overlay start-match-overlay "
+      stageClass="start-match-stage"
       wrapperClass="book-wrapper start-match-wrapper"
-      onClose={goHome}
       mobile={
         <div className="book-mobile-layout">
           <Card variant="page" card={story.card} story={story} loading={false} />

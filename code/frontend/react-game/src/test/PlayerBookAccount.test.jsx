@@ -19,16 +19,16 @@ vi.mock('../components/layout/Card', () => ({
 vi.mock('@/features/guest-user/UserMatchesList', () => ({ default: () => null }))
 vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div data-testid="lang-sel" /> }))
 
-import GuestUserModal from '@/features/guest-user/GuestUserModal'
+import PlayerBook from '@/features/guest-user/PlayerBook'
 
-const base = { loading: false, guestModalOpen: true, closeGuestModal: vi.fn(), googleEnabled: true,
+const base = { loading: false, googleEnabled: true,
   googleClientId: 'cid', logout: vi.fn(), authBusy: false }
 
-describe('GuestUserModal v1.2.0 — account in the parchment body', () => {
+describe('PlayerBook v1.2.0 — account in the parchment body', () => {
   it('a Google user: picture before the name, multi-device body and dark logout in the body', () => {
     ctx.value = { ...base, isGoogleUser: true,
       user: { accountType: 'GOOGLE', displayName: 'Mario Rossi', pictureUrl: 'p.png', accessToken: 't' } }
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     const title = screen.getByTestId('title')
     const img = title.querySelector('img.user-avatar')
     expect(img.getAttribute('src')).toBe('p.png')
@@ -45,14 +45,14 @@ describe('GuestUserModal v1.2.0 — account in the parchment body', () => {
 
   it('a Google user without a picture keeps the plain name', () => {
     ctx.value = { ...base, isGoogleUser: true, user: { accountType: 'GOOGLE', displayName: 'Mario', accessToken: 't' } }
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     expect(screen.getByTestId('title').querySelector('img')).toBeNull()
     expect(screen.getByTestId('title').textContent).toBe('Mario')
   })
 
   it('a guest: invite with the age notice on one line, then the sign-in button, in the body', () => {
     ctx.value = { ...base, isGoogleUser: false, user: { username: 'guest_x', accessToken: 't' } }
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     const desc = screen.getByTestId('desc')
     const text = desc.textContent
     expect(text.indexOf('modals.guestUser.body')).toBe(0)

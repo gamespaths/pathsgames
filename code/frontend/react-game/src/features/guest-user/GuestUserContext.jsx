@@ -84,12 +84,10 @@ export function GuestUserProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [errorRetryAfter, setErrorRetryAfter] = useState(0)
-  const [guestModalOpen, setGuestModalOpen] = useState(false)
-  // Matches the guest modal will show. When the Home already fetched them (to
+  // Matches the player page will show. When the Home already fetched them (to
   // decide whether a story has an active match) it hands them over here, so
   // UserMatchesList can skip the redundant `GET /api/matches` call. `null`
-  // means "not preloaded — fetch them". Cleared on close so a later open from
-  // the navbar always fetches fresh data.
+  // means "not preloaded — fetch them". Cleared when the player page unmounts.
   const [matches, setMatches] = useState(null)
   // v1.2.0 — Google sign-in switch and client id (GET /api/echo/status), the last auth error
   // code, and `sessionIdle`: logged out with no guest to resume, a guest comes at the first Play.
@@ -111,21 +109,6 @@ export function GuestUserProvider({ children }) {
   const deletedRef = useRef(false)
   userRef.current = user
   i18nRef.current = i18n
-
-  // `openGuestModal(matches?)` — callers that already have the match list (the
-  // Home, to decide whether a story has an active match) pass it in so the
-  // modal reuses it instead of re-fetching. Called with no argument (navbar) it
-  // leaves `matches` null and the modal fetches them.
-  const openGuestModal  = useCallback((preloaded = null) => {
-    setMatches(Array.isArray(preloaded) ? preloaded : null)
-    setGuestModalOpen(true)
-  }, [])
-  const closeGuestModal = useCallback(() => {
-    // v1.7.0 — after the account deletion nothing of the old session stays open
-    if (deletedRef.current) { reloadHome(); return }
-    setGuestModalOpen(false)
-    setMatches(null)
-  }, [])
 
   /** v1.7.0 — a Google profile wins over the device; a new language waits until no request is in flight. */
   const applyProfile = useCallback((profile) => {
@@ -404,8 +387,7 @@ export function GuestUserProvider({ children }) {
 
   return (
     <GuestUserContext.Provider value={{
-      user, loading, error, errorRetryAfter, refreshGuest, clearGuest, guestModalOpen, openGuestModal,
-      closeGuestModal, matches, setMatches,
+      user, loading, error, errorRetryAfter, refreshGuest, clearGuest, matches, setMatches,
       isGoogleUser: user?.accountType === 'GOOGLE', googleEnabled: google.enabled, googleClientId: google.clientId,
       loginWithGoogle, logout, authError, clearAuthError, authBusy, sessionIdle, ensureGuest,
       supportedLanguages, refreshProfile, savePreferences, logoutAll, deleteAccount, accountDeleted,

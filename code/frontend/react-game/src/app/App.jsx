@@ -4,23 +4,20 @@ import AppRoutes from './routes'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import CookieConsentManager from '@/components/CookieConsentManager'
-import PolicyBook from '@/components/modals/PolicyBook'
-import GuestUserModal from '@/features/guest-user/GuestUserModal'
+import TooltipLayer from '@/components/ui/TooltipLayer'
 
+/** v1.13.0 — every page is the in-flow book of its route: no global overlay any more. */
 export default function App() {
   return (
     <Providers>
       <BrowserRouter>
         <CookieConsentManager />
         <Navbar />
-        <main>
+        <main className="app-main">
           <AppRoutes />
         </main>
         <Footer />
-
-        {/* Global overlays: the policy book (footer links) and the guest book */}
-        <PolicyBook />
-        <GuestUserModal />
+        <TooltipLayer />
       </BrowserRouter>
     </Providers>
   )

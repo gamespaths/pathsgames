@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 // Same harness as HomePage.test.jsx, but with the RESUME_WITHOUT_MODAL flag on:
-// a story with a resumable match must go straight to /play, no guest modal.
+// a story with a resumable match must go straight to /play, no player page.
 vi.mock('@marsidev/react-turnstile', async () => {
   const { useEffect } = await import('react')
   return {
@@ -18,9 +18,12 @@ vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 
-const mockOpenGuestModal = vi.fn()
+const mockOpenPlayerPage = vi.fn()
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok' }, openGuestModal: mockOpenGuestModal }),
+  useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok' } }),
+}))
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: mockOpenPlayerPage, closePlayerPage: vi.fn() }),
 }))
 
 const mockNavigate = vi.fn()
@@ -42,9 +45,6 @@ vi.mock('../features/catalog/StoryCatalog', () => ({
     <div>{stories.map(s => <button key={s.uuid} onClick={() => onStoryClick(s)}>{s.title}</button>)}</div>
   ),
 }))
-vi.mock('../features/start-book/StartBookModal', () => ({
-  default: ({ story }) => <div data-testid="start-book-modal">{story.title}</div>,
-}))
 
 import HomePage from '../pages/HomePage'
 import { getStoriesCatalog as getStories } from '../api/stories'
@@ -64,8 +64,7 @@ describe('HomePage — Resume without the player modal (VITE_RESUME_WITHOUT_MODA
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/play/s1', { state: { matchUuid: 'm1' } }))
-    expect(mockOpenGuestModal).not.toHaveBeenCalled()
-    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(mockOpenPlayerPage).not.toHaveBeenCalled()
   })
 
   it('resumes a CREATED match too', async () => {
@@ -75,20 +74,20 @@ describe('HomePage — Resume without the player modal (VITE_RESUME_WITHOUT_MODA
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/play/s1', { state: { matchUuid: 'm2' } }))
   })
 
-  it('still opens the modal for a PAUSED match — it blocks a new run but cannot be resumed', async () => {
+  it('still opens the player page for a PAUSED match — it blocks a new run but cannot be resumed', async () => {
     const list = [{ uuid: 'm3', storyUuid: 's1', status: 'PAUSED' }]
     listMatches.mockResolvedValue(list)
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
-    await waitFor(() => expect(mockOpenGuestModal).toHaveBeenCalledWith(list))
+    await waitFor(() => expect(mockOpenPlayerPage).toHaveBeenCalledWith(list))
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
-  it('opens StartBookModal when there is nothing to resume', async () => {
+  it('opens the story page when there is nothing to resume', async () => {
     listMatches.mockResolvedValue([{ uuid: 'm4', storyUuid: 's1', status: 'ENDED' }])
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
-    expect(mockNavigate).not.toHaveBeenCalled()
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/story/s1', { state: { story: STORY_A } }))
+    expect(mockOpenPlayerPage).not.toHaveBeenCalled()
   })
 })

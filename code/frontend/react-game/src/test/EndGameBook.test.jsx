@@ -5,8 +5,12 @@ import { MemoryRouter } from 'react-router-dom'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
+const bookProps = vi.hoisted(() => ({ last: null }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, mobile }) => <div data-testid="book">{left}{right}{mobile}</div>,
+  default: (props) => {
+    bookProps.last = props
+    return <div data-testid="book">{props.left}{props.right}{props.mobile}</div>
+  },
 }))
 vi.mock('../components/layout/Card', () => ({
   default: ({ card, loading }) => (
@@ -27,7 +31,7 @@ const END_CARD = { title: 'Victory!', description: 'You won.', urlImage: null }
 function wrap(props = {}) {
   return render(
     <MemoryRouter>
-      <EndGameBook story={STORY} endGameCard={END_CARD} onClose={vi.fn()} {...props} />
+      <EndGameBook story={STORY} endGameCard={END_CARD} {...props} />
     </MemoryRouter>
   )
 }
@@ -36,6 +40,13 @@ describe('EndGameBook', () => {
   it('renders the Book wrapper', () => {
     wrap()
     expect(screen.getByTestId('book')).toBeInTheDocument()
+  })
+
+  it('v1.13.0 — an in-flow book: no overlay class, no close (x); the home tab goes home', () => {
+    wrap()
+    expect(bookProps.last.overlayClass).toBeUndefined()
+    expect(bookProps.last.onClose).toBeUndefined()
+    expect(bookProps.last.wrapperClass).toBe('book-wrapper end-game-wrapper')
   })
 
   it('renders both left (story) and right (end-game) book pages', () => {

@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../i18n/context'
 import { getStoriesCatalog } from '../api/stories'
 import { listMatches } from '../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import usePlayerPage from '@/features/guest-user/usePlayerPage'
 import StoryCatalog from '../features/catalog/StoryCatalog'
 import TutorialButton from '../features/catalog/TutorialButton'
-import StartBookModal from '../features/start-book/StartBookModal'
+import Book from '@/components/book/Book'
 import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
 import useAntibot from '../hooks/useAntibot'
@@ -16,6 +17,7 @@ import { withComingSoonStories } from '../utils/comingSoonStories'
 import { withoutHiddenStories } from '../utils/hiddenStories'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { useHomeStatus } from '@/context/HomeStatusContext'
+import { usePolicyBook } from '@/context/PolicyBookContext'
 import { RATE_LIMITED } from '@/utils/rateLimit'
 
 const HERO_IMG = {
@@ -27,8 +29,9 @@ const HERO_IMG = {
 export default function HomePage() {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
-  const location = useLocation()
-  const { user, error: guestError, openGuestModal, sessionIdle, ensureGuest } = useGuestUser()
+  const { user, error: guestError, sessionIdle, ensureGuest } = useGuestUser()
+  const { openPlayerPage } = usePlayerPage()
+  const { policyBook } = usePolicyBook()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
   // v0.32.1 — 'loading' | 'ready' | 'error': an unreadable list must NOT look like
@@ -36,9 +39,6 @@ export default function HomePage() {
   const [matchesStatus, setMatchesStatus] = useState('loading')
   const [pendingStoryUuid, setPendingStoryUuid] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [selectedStory, setSelectedStory] = useState(null)
-  // The loadout the start book reopens with when the player comes back from start-match.
-  const [reopenConfig, setReopenConfig] = useState(null)
   // The single in-flight `GET /api/matches` and the token it was made with. A click
   // during the load awaits THIS promise instead of firing its own request.
   const matchesPromise = useRef(null)
@@ -80,7 +80,7 @@ export default function HomePage() {
 
   // Load the guest's matches at mount, so the catalog can badge stories and
   // a story click can reuse the list (no extra fetch, and it is handed to the
-  // guest modal instead of being re-fetched there). The promise is kept in a ref:
+  // player page instead of being re-fetched there). The promise is kept in a ref:
   // a click that lands before it resolves waits for it rather than starting a
   // second request — the window in which a duplicate match could be created.
   useEffect(() => {
@@ -133,16 +133,6 @@ export default function HomePage() {
   }, [storiesError, footerState, guestError, setHomeError])
   useEffect(() => () => setHomeError(null), [setHomeError])
 
-  // Back from start-match: reopen the start book on that story with its loadout, then drop
-  // the router state so a refresh lands on the plain catalog.
-  useEffect(() => {
-    const reopenStory = location.state?.reopenStory
-    if (!reopenStory) return
-    setReopenConfig(location.state?.reopenConfig ?? null)
-    setSelectedStory(reopenStory)
-    navigate('/', { replace: true, state: null })
-  }, [location.state, navigate])
-
   async function handleStoryClick(story) {
     // The footer only shows a button when the gate passed and the matches answered
     // (or are on their way): anything else is a click on a locked card.
@@ -182,69 +172,64 @@ export default function HomePage() {
     if (resumable) {
       navigate(`/play/${story.uuid}`, { state: { matchUuid: resumable.uuid } })
     } else if (storyHasBlockingMatch(list, story.uuid)) {
-      openGuestModal(list)
+      openPlayerPage(list)
     } else {
-      setSelectedStory(story)
+      navigate(`/story/${story.uuid}`, { state: { story } })
     }
   }
 
   return (
     <>
-      {/* Hero Netflix-style. v0.37.6 — the Turnstile strip sits inside the overlay, above
-          the title, so the check runs over the picture while the catalog loads below;
-          `interaction-only` keeps it invisible unless a challenge is due. */}
-      <section className="hero-section" style={{ backgroundImage: `url(${HERO_IMG.url})` }}>
-        <div className="hero-overlay">
-          {gate.phase === 'checking' && (
-            <div className="home-antibot-strip">
-              <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
-              <div className="mt-2">
-                <TurnstileWidget
-                  key={gate.attempt}
-                  appearance={TURNSTILE_APPEARANCE.home}
-                  onSuccess={gate.onSuccess}
-                  onError={gate.onError}
-                  onExpire={gate.onExpire}
-                />
+      {/* Interim chapter host until step 14: the hero and the catalog stay mounted (Turnstile running). */}
+      {policyBook && <Book left={null} right={null} homeTab={false} />}
+      <div className={policyBook ? 'home-page book-content--covered' : 'home-page'}
+        aria-hidden={policyBook ? 'true' : undefined}>
+        {/* Hero Netflix-style. v0.37.6 — the Turnstile strip sits inside the overlay, above
+            the title, so the check runs over the picture while the catalog loads below;
+            `interaction-only` keeps it invisible unless a challenge is due. */}
+        <section className="hero-section" style={{ backgroundImage: `url(${HERO_IMG.url})` }}>
+          <div className="hero-overlay">
+            {gate.phase === 'checking' && (
+              <div className="home-antibot-strip">
+                <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
+                <div className="mt-2">
+                  <TurnstileWidget
+                    key={gate.attempt}
+                    appearance={TURNSTILE_APPEARANCE.home}
+                    onSuccess={gate.onSuccess}
+                    onError={gate.onError}
+                    onExpire={gate.onExpire}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-          {!loading && !storiesError && (
-            <TutorialButton stories={stories} matches={matches} footerState={footerState}
-              pendingStoryUuid={pendingStoryUuid} onStoryClick={handleStoryClick} />
-          )}
-          <h1 className="hero-title">{t('home.heroTitle')}</h1>
-          <p className="hero-sub">{t('home.heroSub')}</p>
-        </div>
-      </section>
+            )}
+            {!loading && !storiesError && (
+              <TutorialButton stories={stories} matches={matches} footerState={footerState}
+                pendingStoryUuid={pendingStoryUuid} onStoryClick={handleStoryClick} />
+            )}
+            <h1 className="hero-title">{t('home.heroTitle')}</h1>
+            <p className="hero-sub">{t('home.heroSub')}</p>
+          </div>
+        </section>
 
-      {/* Catalog — a failed fetch is the one technical error with nothing to show */}
-      {loading ? (
-        <LoadingCard story={null} maxWidth="500px" />
-      ) : storiesError ? (
-        <div className="stories-section-center stories-loading" role="alert" aria-label={t('home.storiesError')}>
-          {/* The message and the retry live in the navbar (HomeStatusContext): here only the sign. */}
-          <i className="fas fa-exclamation-triangle home-stories-error-icon" title={t('home.storiesError')} />
-        </div>
-      ) : (
-        <StoryCatalog
-          stories={stories}
-          matches={matches}
-          footerState={footerState}
-          pendingStoryUuid={pendingStoryUuid}
-          onStoryClick={handleStoryClick}
-        />
-      )}
-
-      {/* Book modal */}
-      {selectedStory && (
-        <StartBookModal
-          story={selectedStory}
-          initialConfig={reopenConfig}
-          onClose={() => { setSelectedStory(null); setReopenConfig(null) }}
-        />
-      )}
-
+        {/* Catalog — a failed fetch is the one technical error with nothing to show */}
+        {loading ? (
+          <LoadingCard story={null} maxWidth="500px" />
+        ) : storiesError ? (
+          <div className="stories-section-center stories-loading" role="alert" aria-label={t('home.storiesError')}>
+            {/* The message and the retry live in the navbar (HomeStatusContext): here only the sign. */}
+            <i className="fas fa-exclamation-triangle home-stories-error-icon" title={t('home.storiesError')} />
+          </div>
+        ) : (
+          <StoryCatalog
+            stories={stories}
+            matches={matches}
+            footerState={footerState}
+            pendingStoryUuid={pendingStoryUuid}
+            onStoryClick={handleStoryClick}
+          />
+        )}
+      </div>
     </>
   )
 }

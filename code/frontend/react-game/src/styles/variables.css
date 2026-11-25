@@ -71,4 +71,18 @@
   --card-little-v-h:  210px;
   --card-big-h-w:   640px;
   --card-big-h-h:   196px;
+
+  /* === LAYOUT (v1.13.0) — the Navbar writes its real height over this fallback === */
+  --navbar-h:       72px;
+  --book-tabs-h:    46px;
+
+  /* === LAYERS === */
+  --z-navbar:       1000;
+  --z-banner:       1010;
+  --z-toast:        2000;
+  --z-tooltip:      2100;
+}
+
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  :root { --navbar-h: 56px; }
 }

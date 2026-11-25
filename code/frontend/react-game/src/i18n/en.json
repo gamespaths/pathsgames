@@ -1,6 +1,7 @@
 {
   "nav": {
     "brand": "Paths Games",
+    "backHome": "Back to the home page",
     "guest": "Guest",
     "login": "Login",
     "instagram": "Instagram",
@@ -300,7 +301,6 @@
     },
     "move": "Move Here",
     "execute": "Execute",
-    "closeBook": "Close the book of match",
     "closePrompt": "You closed the game book without finishing it. You can resume from where you left off whenever you want by opening your matches list from your user icon.",
     "endGame": "End Game",
     "endGameShort": "Ending",
@@ -610,24 +610,27 @@
     }
   },
   "footer": {
-    "alphaPrefix": "This is only the",
     "serversWarning": "Servers may be unavailable or reset at any time.",
     "serverSelect": "Server",
+    "serverVersion": "server {version}",
+    "serverOffline": "server offline",
+    "serverDetecting": "detecting…",
     "rights": "All rights reserved",
-    "madeWith": "Crafted with",
-    "byTeam": "by the Paths Games Dev Team",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookies Policy",
     "credits": "Credits",
-    "github": "GitHub",
-    "roadmap": "Roadmap",
     "devlog": "Devlog",
-    "instagram": "Instagram",
-    "youtube": "YouTube"
+    "short": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies",
+      "credits": "Credits"
+    }
   },
   "errors": {
     "title": "Match Error",
+    "storyNotFound": "This story could not be loaded.",
     "matchNotRunning": "Cannot load the match.",
     "matchEnded": "Because the story has already ended.",
     "rateLimitSoon": "a few minutes"

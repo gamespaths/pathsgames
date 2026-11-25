@@ -1,0 +1,327 @@
+/* v1.13.0 — the in-flow book of every page: stage under the sticky navbar, shell, leather cover,
+   bookmarks, pages and ornaments. Imported by main.css before mobile.css, which overrides it. */
+
+/* ═══ BOOK STAGE / SHELL — the screen under the navbar; over the book only the bookmarks' height ═══ */
+.book-stage {
+  --book-stage-top: var(--book-tabs-h);
+  --book-stage-bottom: 30px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--book-stage-top) 16px var(--book-stage-bottom);
+  scroll-margin-top: var(--navbar-h);
+}
+/* No tab sticks out (the Home, also with a chapter open): the book rises to the navbar. */
+.book-stage--no-tabs { --book-stage-top: 16px; }
+
+/* Carries the desktop size and the opening animation; step 14's deck pile hangs beside it. */
+.book-shell {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(94vw, 1080px);
+  height: max(520px, calc(100vh - var(--navbar-h) - var(--book-stage-top) - var(--book-stage-bottom)));
+  height: max(520px, calc(100dvh - var(--navbar-h) - var(--book-stage-top) - var(--book-stage-bottom)));
+  animation: bookOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The mobile copy of the home tab: shown above the stacked column only (mobile.css). */
+.book-mobile-home { display: none; }
+
+/* A chapter covers the page's own content: still mounted and rendered, never display:none. */
+.book-content { display: contents; }
+.book-content--covered {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.book-stage > .book-content--covered {
+  inset: auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+}
+
+/* ═══ BOOK COVER (.book-wrapper) — leather, gold tooled frame and stitching; the pages sit inside ═══ */
+.book-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 25% 15%, rgba(232, 184, 48, 0.08) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23l)' opacity='0.18'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, var(--color-brown-warm) 0%, var(--color-brown-mid) 45%, var(--color-brown-dark) 100%);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px var(--color-brown-deep),
+    inset 0 0 22px rgba(0, 0, 0, 0.55);
+}
+/* Gold tooled frame. */
+.book-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 2px rgba(26, 10, 2, 0.45), 0 0 0 1px rgba(26, 10, 2, 0.35);
+  opacity: 0.8;
+  pointer-events: none;
+}
+/* Stitching along the cover's edge. */
+.book-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 1px dashed rgba(232, 184, 48, 0.4);
+  border-radius: 13px;
+  pointer-events: none;
+}
+
+/* v0.35.5 — the same board renders inside the book and in the mobile stack; these two say
+   which of the two copies a card sits out. See hideWhereClass in constants/features.js. */
+.book-wrapper .hide-in-book { display: none !important; }
+.book-mobile-layout .hide-in-mobile { display: none !important; }
+
+/* The status card names its shortcuts for the mobile stack only; inside the book the
+   bookmarks already carry those names, so the labels stay off there. */
+.book-wrapper .card-status .gc-footer__btn-label { display: none; }
+
+/* Spine with the binding thread. */
+.book-spine {
+  position: absolute;
+  left: 50%;
+  top: 1%;
+  height: 98%;
+  width: 12px;
+  transform: translateX(-50%);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 9px, rgba(232, 184, 48, 0.6) 9px 13px) center / 2px 100% no-repeat,
+    linear-gradient(180deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 40%, var(--color-brown-dark) 100%);
+  border-radius: 3px;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+}
+
+/* ═══ COVER ORNAMENTS — empty aria-hidden elements (Book.jsx) ═══ */
+.book-ornament { position: absolute; pointer-events: none; z-index: 11; }
+
+/* Dark gold metal corners with a rivet. */
+.book-corner {
+  width: 30px;
+  height: 30px;
+  background:
+    radial-gradient(circle at 9px 9px, var(--color-gold-light) 0 2px, var(--color-gold-deep) 2.5px 3.5px, transparent 4px),
+    linear-gradient(135deg, var(--color-gold-dark) 0 48%, var(--color-gold-deep) 48% 52%, transparent 52%);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+.book-corner--tl { top: 0; left: 0; border-top-left-radius: 14px; }
+.book-corner--tr { top: 0; right: 0; border-top-left-radius: 14px; transform: scaleX(-1); }
+.book-corner--bl { bottom: 0; left: 0; border-top-left-radius: 14px; transform: scaleY(-1); }
+.book-corner--br { bottom: 0; right: 0; border-top-left-radius: 14px; transform: scale(-1, -1); }
+
+/* Headbands at both ends of the spine. */
+.book-headband {
+  left: 50%;
+  width: 20px;
+  height: 7px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, var(--color-gold-dark) 0 3px, var(--color-brown-dark) 3px 5px);
+  box-shadow: 0 0 0 1px var(--color-gold-deep);
+}
+.book-headband--top { top: 2px; }
+.book-headband--bottom { bottom: 2px; }
+
+/* Ribbon hanging under the bottom edge. */
+.book-ribbon {
+  left: calc(50% + 28px);
+  bottom: -24px;
+  width: 14px;
+  height: 40px;
+  z-index: 1;
+  background: linear-gradient(90deg, var(--color-ember) 0%, var(--color-brown-light) 55%, var(--color-ember) 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* ═══════════════════════════════════════════
+   BOOK BOOKMARKS (v0.35.5)
+   Tabs slotted into the book's top edge: inside .book-wrapper, so the mobile rule that
+   hides the wrapper hides them too.
+   ═══════════════════════════════════════════ */
+.book-bookmarks {
+  position: absolute;
+  top: -4px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  transform: translateY(-100%);
+  /* the gaps between tabs sit over the page: they must not eat its clicks */
+  pointer-events: none;
+}
+.book-bookmarks--left  { left: 24px; }
+/* v1.13.0 — the home tab ends this row (no fixed close bar any more). */
+.book-bookmarks--right { right: 24px; justify-content: flex-end; }
+
+.book-bookmark {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* the extra bottom padding is what slides under the page edge */
+  padding: 6px 12px 10px;
+  margin-bottom: -4px;
+  border: 3px solid var(--color-brown-warm);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: var(--book-bookmark-background);
+  color: var(--color-brown-light);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 -3px 8px rgba(0,0,0,0.5);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.book-bookmark:hover {
+  background: var(--book-bookmark-background-hover);
+  color: var(--color-gold-dark);
+}
+.book-bookmark.is-active {
+  background: var(--book-bookmark-background-hover);
+  color: var(--color-gold-super-deep);
+  cursor: default;
+}
+.book-bookmark.is-active:hover { transform: none; }
+/* The tab shouts: the page behind it holds something the player must act on (a life or an
+   energy about to run out, a sadness at its ceiling, a bag that cannot take another thing). */
+.book-bookmark.is-danger {
+  border-color: #c0392b;
+  background: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%);
+  color: #ffe9e4;
+  box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.65);
+}
+.book-bookmark.is-danger.is-active {
+  background: linear-gradient(180deg, #e74c3c 0%, #a12b1d 100%);
+  color: #fff;
+}
+.book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
+
+/* v0.37.1 — light gold: the page behind this tab has moved since the player last opened it.
+   Quieter than is-danger on purpose — news to read, not something to act on. */
+.book-bookmark.is-alert {
+  border-color: var(--color-gold-light);
+  background: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%);
+  color: #fff6d5;
+  box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.6);
+}
+.book-bookmark.is-alert.is-active {
+  background: linear-gradient(180deg, #f0d27a 0%, #a8830f 100%);
+  color: #fffdf5;
+}
+
+.book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
+.book-bookmark.is-disabled:hover { transform: none; }
+.book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
+
+.book-bookmark .player-stats-bar{
+  margin-bottom: 0px;
+}
+
+/* ═══════════════════════════════════════════
+   BOOK PAGES
+   ═══════════════════════════════════════════ */
+.book-page {
+  width: 50%;
+  height: 100%;
+  background: var(--book-page-background);
+  border:  var(--book-border);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Paper grain. */
+.book-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* Gutter shading, under the page content. */
+.book-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+}
+.book-page-left::after  { right: 0; background: linear-gradient(to left, rgba(46, 21, 8, 0.35), transparent); }
+.book-page-right::after { left: 0;  background: linear-gradient(to right, rgba(46, 21, 8, 0.35), transparent); }
+
+/* Stacked page edges on the outer side of each page. */
+.book-page-left {
+  border-radius: 12px 0 0 12px;
+  box-shadow:
+    inset -4px 0 12px rgba(0,0,0,0.4),
+    -2px 1px 0 -1px var(--color-parchment-dark),
+    -4px 2px 0 -2px var(--color-brown-tan),
+    -6px 3px 0 -3px var(--color-parchment-dark);
+}
+
+.book-page-right {
+  border-radius: 0 12px 12px 0;
+  box-shadow:
+    inset 4px 0 12px rgba(0,0,0,0.4),
+    2px 1px 0 -1px var(--color-parchment-dark),
+    4px 2px 0 -2px var(--color-brown-tan),
+    6px 3px 0 -3px var(--color-parchment-dark);
+  background: var(--book-page-background-right);
+}
+
+/* Corner flourishes. */
+.page-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: var(--color-gold-deep);
+  border-style: solid;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.page-corner::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-gold-deep);
+}
+.page-corner-tl { top: 5px; left: 5px; border-width: 2px 0 0 2px; border-radius: 8px 0 0 0; }
+.page-corner-tr { top: 5px; right: 5px; border-width: 2px 2px 0 0; border-radius: 0 8px 0 0; }
+.page-corner-bl { bottom: 5px; left: 5px; border-width: 0 0 2px 2px; border-radius: 0 0 0 8px; }
+.page-corner-br { bottom: 5px; right: 5px; border-width: 0 2px 2px 0; border-radius: 0 0 8px 0; }
+.page-corner-tl::after { top: 3px; left: 3px; }
+.page-corner-tr::after { top: 3px; right: 3px; }
+.page-corner-bl::after { bottom: 3px; left: 3px; }
+.page-corner-br::after { bottom: 3px; right: 3px; }
+
+/* v1.13.0 — a heading over a card list stays in the markup: its place is kept for the multiplayer messages. */
+.book-cards-heading { display: none !important; }
+
+/* Interim Home host (until step 14): the hero and the catalog stay mounted under the chapter. */
+.home-page.book-content--covered { inset: auto; top: 0; left: 0; width: 100%; height: 0; }

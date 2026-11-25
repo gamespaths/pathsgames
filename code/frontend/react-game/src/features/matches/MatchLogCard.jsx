@@ -36,7 +36,7 @@ import MatchStatusBadge from './MatchStatusBadge'
  * over the loaded entries and filters the list client-side; "All" clears the filter.
  *
  * Used on the book's RIGHT page, next to the story card on the left:
- *   - GuestUserModal — when (i) is clicked on a MatchCard;
+ *   - PlayerBook — when (i) is clicked on a MatchCard;
  *   - GameBook       — when (i) is clicked on the story card in PlayerCards.
  */
 
@@ -114,7 +114,7 @@ export function LogFilterChip({ type, label, count, active, onClick }) {
   return (
     <button type="button" className={`match-log-filter${active ? ' match-log-filter--active' : ''}`}
       style={color ? { color, borderColor: color } : undefined}
-      title={label} aria-label={`${label} (${count})`} aria-pressed={active} onClick={onClick}>
+      data-tip={label} aria-label={`${label} (${count})`} aria-pressed={active} onClick={onClick}>
       <i className={`fas ${icon}`} />{count}
     </button>
   )
@@ -235,7 +235,7 @@ export function LogEntryRow({ entry, lang, t, onPreview }) {
       {!registry && (
         <button type="button" className="card-info-btn match-log-row__info"
           onClick={() => onPreview(entry)}
-          title={t('card.info')} aria-label={`${t('card.info')} ${title}`}>
+          data-tip={t('card.info')} aria-label={`${t('card.info')} ${title}`}>
           <i className="fas fa-info" />
         </button>
       )}

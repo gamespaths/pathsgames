@@ -17,10 +17,16 @@ vi.mock('../api/matches', () => ({
   startMovement: vi.fn(),
   executeEvent: vi.fn(),
 }))
+// v1.13.0 — the book's home tab runs the handler the board registers (the close card first).
+const home = vi.hoisted(() => ({ handler: null }))
+vi.mock('@/context/HomeButtonContext', () => ({
+  useHomeButtonHandler: (fn) => { home.handler = typeof fn === 'function' ? fn : null },
+  useHomeButton: () => ({ run: () => Boolean(home.handler?.() ?? home.handler), hasHandler: () => Boolean(home.handler) }),
+}))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, onClose }) => (
+  default: ({ left, right }) => (
     <div data-testid="book">
-      <button data-testid="book-close" onClick={onClose}>x</button>
+      <button data-testid="book-close" onClick={() => home.handler?.()}>x</button>
       {left}{right}
     </div>
   ),
@@ -53,7 +59,6 @@ vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-te
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
 vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
 vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
-vi.mock('../features/start-book/StartBookModal', () => ({ CardPreviewOverlay: () => <div data-testid="preview-overlay" /> }))
 vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   default: ({ onSlept }) => (
     <div data-testid="go-to-sleep-card">
@@ -159,9 +164,8 @@ describe('GameBook', () => {
     expect(screen.queryByTestId('page-back')).not.toBeInTheDocument()
   })
 
-  // Tapping the (x) does NOT close immediately: it shows the close prompt as a
-  // book overlay on the left page (with the story card on the right); only the
-  // "exit to home" action button there calls onClose.
+  // v1.13.0 — the home tab does NOT go home in a match: it shows the close card on the
+  // right page; only the "exit to home" action button there calls onClose.
   it('shows the close confirmation prompt before exiting', () => {
     const onClose = vi.fn()
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={onClose} />)
@@ -226,7 +230,7 @@ describe('GameBook', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(
-      sel => (sel === '.book-overlay' ? { scrollTo } : realQS(sel)))
+      sel => (sel === '.book-mobile-left' ? { scrollIntoView: scrollTo } : realQS(sel)))
     try {
       const props = { matchUuid: 'm1', story: STORY, onReload: vi.fn(), onClose: vi.fn() }
       const { rerender } = render(<GameBook gameData={GAME_DATA} {...props} />)
@@ -236,7 +240,8 @@ describe('GameBook', () => {
       scrollTo.mockClear()
       // The parent delivers a fresh board (new gameData reference).
       rerender(<GameBook gameData={{ ...GAME_DATA }} {...props} />)
-      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
+      // v1.13.0 — the document scrolls: the top of the stacked column comes into view
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ block: 'start', behavior: 'smooth' }))
     } finally {
       raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
     }
@@ -687,5 +692,87 @@ describe('statChangeItems', () => {
     expect(statChangeItems(result, null, t)).toEqual([
       { key: 'sadness', label: 'game.stats.sadness', value: '+2' },
     ])
+  })
+})
+
+describe('GameBook v1.13.0 — home tab, policy chapter and error page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    home.handler = null
+  })
+
+  it('registers the close-card handler while the match runs and drops it at game end', async () => {
+    endMatch.mockResolvedValue({})
+    render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    expect(home.handler).toBeTypeOf('function')
+    fireEvent.click(screen.getByTestId('action-action'))
+    await waitFor(() => expect(screen.getByTestId('end-game-book')).toBeInTheDocument())
+    expect(home.handler).toBeNull()
+  })
+
+  it('with a policy chapter open the home tab closes it and shows the close card (never home), scrolled into view last', async () => {
+    const { PolicyBookProvider, usePolicyBook } = await import('../context/PolicyBookContext')
+    let chapter = null
+    function Probe() {
+      const ctx = usePolicyBook()
+      chapter = ctx
+      return null
+    }
+    const order = []
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 300 })
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation((x, y) => { order.push(`scrollTo:${y}`) })
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    const realQS = document.querySelector.bind(document)
+    const qs = vi.spyOn(document, 'querySelector').mockImplementation(
+      sel => (sel === '.book-mobile-right' ? { scrollIntoView: () => order.push('scrollIntoView') } : realQS(sel)))
+    const onClose = vi.fn()
+    try {
+      render(<PolicyBookProvider><Probe /><GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={onClose} /></PolicyBookProvider>)
+      act(() => chapter.openPolicyBook('credits'))
+      expect(chapter.policyBook).toBe('credits')
+      order.length = 0
+      fireEvent.click(screen.getByTestId('book-close'))
+      expect(chapter.policyBook).toBeNull()
+      expect(screen.getByText('game.closePrompt')).toBeInTheDocument()
+      expect(onClose).not.toHaveBeenCalled()
+      // the chapter's scroll restore first, the close card's scroll into view wins
+      expect(order).toEqual(['scrollTo:300', 'scrollIntoView'])
+    } finally {
+      scrollTo.mockRestore(); raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
+      Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
+    }
+  })
+
+  it('a transient error takes the right page (before the board), and its close clears it', () => {
+    const onErrorClose = vi.fn()
+    const err = { status: 409, message: 'Not enough energy' }
+    const { rerender } = render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()}
+      error={err} onErrorClose={onErrorClose} />)
+    expect(screen.getByText('Not enough energy')).toBeInTheDocument()
+    expect(screen.queryByTestId('preview-action')).not.toBeInTheDocument()
+    // the left page is untouched
+    expect(screen.getByTestId('location-card')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('action-error'))
+    expect(onErrorClose).toHaveBeenCalled()
+    rerender(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()}
+      error={null} onErrorClose={onErrorClose} />)
+    expect(screen.queryByText('Not enough energy')).not.toBeInTheDocument()
+  })
+
+  it('a transient error scrolls the right part of the mobile stack into view', () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true })
+    const scrollIntoView = vi.fn()
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    const realQS = document.querySelector.bind(document)
+    const qs = vi.spyOn(document, 'querySelector').mockImplementation(
+      sel => (sel === '.book-mobile-right' ? { scrollIntoView } : realQS(sel)))
+    try {
+      render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()}
+        error={{ status: 500 }} onErrorClose={vi.fn()} />)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+    } finally {
+      raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
+    }
   })
 })

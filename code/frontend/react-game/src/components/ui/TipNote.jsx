@@ -29,12 +29,12 @@ export default function TipNote({ text, hideLabel, onHide, focusKey = 0, icon = 
       <i className={`fas ${icon} pg-tip__icon me-1`} aria-hidden="true" />
       <span className="pg-tip__text"><SafeHtml value={text} /></span>
       {link?.href && (
-        <a href={link.href} className="pg-tip__link ms-1" aria-label={link.label} title={link.label} onClick={openLink}
+        <a href={link.href} className="pg-tip__link ms-1" aria-label={link.label} data-tip={link.label} onClick={openLink}
           {...(link.onOpen ? {} : { target: '_blank', rel: 'noopener noreferrer' })}>
           <i className="fas fa-external-link-alt" aria-hidden="true" />
         </a>
       )}
-      <button type="button" className="pg-tip__hide" onClick={onHide} aria-label={hideLabel} title={hideLabel}>
+      <button type="button" className="pg-tip__hide" onClick={onHide} aria-label={hideLabel} data-tip={hideLabel}>
         <i className="fas fa-eye-slash" aria-hidden="true" />
       </button>
     </div>

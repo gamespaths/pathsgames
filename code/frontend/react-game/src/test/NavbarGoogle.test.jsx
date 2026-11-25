@@ -8,6 +8,12 @@ vi.mock('@/context/HomeStatusContext', () => ({ useHomeStatus: () => ({ error: n
 
 const ctx = vi.hoisted(() => ({ value: {} }))
 vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => ctx.value }))
+// v1.13.0 — the user and sign-in buttons open /player (usePlayerPage)
+const player = vi.hoisted(() => ({ open: null }))
+vi.mock('@/features/guest-user/usePlayerPage', () => ({
+  default: () => ({ openPlayerPage: player.open, closePlayerPage: vi.fn() }),
+}))
+const tip = (text) => document.querySelector(`[data-tip="${text}"]`)
 
 function renderNavbar() {
   return render(<MemoryRouter><Navbar /></MemoryRouter>)
@@ -16,60 +22,60 @@ function renderNavbar() {
 describe('Navbar v1.2.0 — Google user', () => {
   it('shows the round picture and the nickname, the icon when the picture fails', () => {
     ctx.value = { user: { username: 'google_x', nickname: 'mario', displayName: 'Mario Rossi', pictureUrl: 'p.png' },
-      isGoogleUser: true, googleEnabled: true, openGuestModal: vi.fn(), loading: false }
+      isGoogleUser: true, googleEnabled: true, loading: false }
     const { container } = renderNavbar()
     const img = container.querySelector('img.nav-user-avatar')
     expect(img.getAttribute('src')).toBe('p.png')
     expect(img.getAttribute('width')).toBe('32')
     expect(screen.getByText('mario')).toBeInTheDocument()
-    expect(screen.getByTitle('Mario Rossi')).toBeInTheDocument()
-    expect(screen.getByTitle('Mario Rossi').className).toBe('nav-user-btn nav-user-btn--google')
-    expect(screen.queryByTitle('auth.google.signIn')).toBeNull()
+    expect(tip('Mario Rossi')).toBeInTheDocument()
+    expect(tip('Mario Rossi').className).toBe('nav-user-btn nav-user-btn--google')
+    expect(tip('auth.google.signIn')).toBeNull()
     fireEvent.error(img)
     expect(container.querySelector('img.nav-user-avatar')).toBeNull()
     expect(container.querySelector('.fa-user-circle')).toBeTruthy()
   })
 
-  it('a guest gets the header sign-in entry, which opens the user book', () => {
-    const openGuestModal = vi.fn()
-    ctx.value = { user: { username: 'guest_x' }, isGoogleUser: false, googleEnabled: true, openGuestModal, loading: false }
+  it('a guest gets the header sign-in entry, which opens the player page', () => {
+    player.open = vi.fn()
+    ctx.value = { user: { username: 'guest_x' }, isGoogleUser: false, googleEnabled: true, loading: false }
     renderNavbar()
-    fireEvent.click(screen.getByTitle('auth.google.signIn'))
-    expect(openGuestModal).toHaveBeenCalled()
-    expect(screen.getByTitle('guest_x').className).toBe('nav-user-btn')
+    fireEvent.click(tip('auth.google.signIn'))
+    expect(player.open).toHaveBeenCalled()
+    expect(tip('guest_x').className).toBe('nav-user-btn')
   })
 
   it('no sign-in entry when Google is off; a closed session is said and dismissed', () => {
     const clearAuthError = vi.fn()
-    ctx.value = { user: null, isGoogleUser: false, googleEnabled: false, openGuestModal: vi.fn(), loading: false,
+    ctx.value = { user: null, isGoogleUser: false, googleEnabled: false, loading: false,
       authError: 'SESSION_REVOKED', clearAuthError }
     renderNavbar()
-    expect(screen.queryByTitle('auth.google.signIn')).toBeNull()
+    expect(tip('auth.google.signIn')).toBeNull()
     expect(screen.getByText('auth.errors.GOOGLE_LOGIN_FAILED')).toBeInTheDocument()
     fireEvent.click(screen.getByText('modals.close'))
     expect(clearAuthError).toHaveBeenCalled()
   })
 
-  it('v1.7.0 step 12 — SESSION_LIMIT is said and its button opens the sign-in', () => {
+  it('v1.7.0 step 12 — SESSION_LIMIT is said and its "sign in again" opens /player', () => {
     const clearAuthError = vi.fn()
-    const openGuestModal = vi.fn()
-    ctx.value = { user: { username: 'guest_x' }, isGoogleUser: false, googleEnabled: true, openGuestModal,
+    player.open = vi.fn()
+    ctx.value = { user: { username: 'guest_x' }, isGoogleUser: false, googleEnabled: true,
       loading: false, authError: 'SESSION_LIMIT', clearAuthError }
     renderNavbar()
     expect(screen.getByRole('alert')).toBeInTheDocument()
     fireEvent.click(screen.getByText('auth.google.signInAgain'))
     expect(clearAuthError).toHaveBeenCalled()
-    expect(openGuestModal).toHaveBeenCalled()
+    expect(player.open).toHaveBeenCalled()
   })
 
   it('SESSION_LIMIT without Google sign-in has only the close button', () => {
-    ctx.value = { user: null, isGoogleUser: false, googleEnabled: false, openGuestModal: vi.fn(), loading: false,
+    ctx.value = { user: null, isGoogleUser: false, googleEnabled: false, loading: false,
       authError: 'SESSION_LIMIT', clearAuthError: vi.fn() }
     renderNavbar()
     expect(screen.queryByText('auth.google.signInAgain')).toBeNull()
   })
 
-  it('other auth errors stay in the user book, not in the header', () => {
+  it('other auth errors stay in the player page, not in the header', () => {
     ctx.value = { user: { username: 'g' }, isGoogleUser: false, googleEnabled: true, openGuestModal: vi.fn(),
       loading: false, authError: 'EMAIL_DOMAIN_NOT_ALLOWED' }
     renderNavbar()

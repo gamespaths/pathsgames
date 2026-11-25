@@ -26,9 +26,8 @@ vi.mock('../api/matches', () => ({
   selectChoice: vi.fn(),
 }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, onClose }) => (
+  default: ({ left, right }) => (
     <div data-testid="book">
-      <button data-testid="book-close" onClick={onClose}>x</button>
       {left}{right}
     </div>
   ),

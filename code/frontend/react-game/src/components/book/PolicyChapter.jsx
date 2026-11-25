@@ -3,7 +3,6 @@ import { safeExternalUrl } from '@/utils/safeUrl'
 import { useTranslation } from '@/i18n/context'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import { openCookiePreferences } from '@/consent/cookieConsent'
-import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import { buildImageCard } from '@/utils/loadoutCards'
 import { creditsEntries } from '@/utils/credits'
@@ -14,9 +13,8 @@ import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
 import { STORY_LICENSE, STORY_LICENSE_URL } from '@/utils/cardCredits'
 
 /**
- * PolicyBook — the Privacy / Terms / Cookies / Credits book opened from the footer links.
- * Left page: the matching `home-*` card of images.json; right page: the policy title and text,
- * or (credits) the grid of story and image cards, or (roadmap) the version cards.
+ * PolicyChapter — v1.13.0: the Privacy / Terms / Cookies / Credits / Devlog chapter of the current book
+ * (was the PolicyBook overlay): the `home-*` card on the left, the policy, credits or versions on the right.
  */
 const POLICIES = {
   // v1.2.0 — texts structure shared with the static pages generator (src/data/policies.json).
@@ -136,8 +134,13 @@ export function RoadmapCards({ entries = roadmap, t }) {
   )
 }
 
-export default function PolicyBook() {
-  const { t, lang } = useTranslation()
+const IDENTITY = key => key
+
+/** The open chapter as `{ kind, left, right, mobile }`, or null (also outside a PolicyBookProvider). */
+export function usePolicyChapter() {
+  const i18n = useTranslation()
+  const t = i18n?.t ?? IDENTITY
+  const lang = i18n?.lang ?? 'en'
   const { policyBook, openPolicyBook, closePolicyBook } = usePolicyBook()
   // Credits only: the catalog stories join the shipped ones. getStoriesCatalog is memoised,
   // so the home's answer is reused; a failure leaves the teasers alone, no error shown.
@@ -157,11 +160,11 @@ export default function PolicyBook() {
   // Left: the home-* image with the paths.games manifesto; right: the policy's own title.
   const leftCard = buildImageCard(policy.imgId, t('modals.policyBook.title'), t('modals.policyBook.body'))
   const title = buildImageCard(policy.imgId).title
-  let leftPage = <Card variant="page" card={leftCard} loading={false} />
+  let leftPage = <Card variant="page" card={leftCard} loading={false} onClose={closePolicyBook} />
 
   let rightPage
   if (policyBook === 'roadmap') {
-    leftPage = <Card variant="page" loading={false}
+    leftPage = <Card variant="page" loading={false} onClose={closePolicyBook}
       card={buildImageCard('home', 'paths.games',
         <RoadmapIntro intro={t('modals.roadmap.intro')} repoLabel={t('modals.roadmap.introRepo')}
           creditsLabel={t('modals.roadmap.introCredits')} onCredits={() => openPolicyBook('credits')} />)} />
@@ -176,15 +179,10 @@ export default function PolicyBook() {
       loading={false} {...manage} />
   }
 
-  function close() { closePolicyBook() }
-
-  return (
-    <Book
-      onClose={close}
-      overlayClass="book-overlay policy-book-overlay"
-      left={leftPage}
-      right={rightPage}
-      mobile={<div className="book-mobile-layout">{leftPage}{rightPage}</div>}
-    />
-  )
+  return {
+    kind: policyBook,
+    left: leftPage,
+    right: rightPage,
+    mobile: <div className="book-mobile-layout policy-chapter-mobile">{leftPage}{rightPage}</div>,
+  }
 }

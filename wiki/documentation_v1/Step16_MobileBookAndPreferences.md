@@ -103,6 +103,7 @@ No change: the suites are API-only (RequestsLibrary, no browser library in `code
 | Loading / error (step 13) | Unchanged | `LoadingCard` / `ErrorCard` | Below the left page, reached by the landing rule (6.5) |
 
 ### 6.4 react-game — sticky tabs and sticky deck
+- Owner note (November 25, 2026): seen in the step 13 test, phones have no bookmarks today. The pills must reuse the existing modules (`BookBookmarks`, same items, icons and badges as desktop: position, information, backpack, map, missions, home tab at the end); to be reviewed in the analysis and tested with the step.
 - The bookmarks (`BookBookmarks`, inside `.book-wrapper`) become visible on mobile. They are one sticky row of pills (`position: sticky; top: var(--navbar-h)`, opaque background), with icons and badges, on **one line that scrolls sideways** (`flex-wrap: nowrap; overflow-x: auto`, hidden scrollbar, pills `flex-shrink: 0`). Only the active pill shows its label. On pages without game tabs the row holds the home tab alone; the Home has none.
 - The left and right rows merge: `Book` wraps the two `BookBookmarks` in one `.book-bookmarks-row` (`display: contents` on desktop, so today's positions stay; the sticky scrolling row on mobile). The right row holds only step 13's home tab, which **ends the row** (home icon only).
 - **Home tab pinned** (owner decision): the right row is `position: sticky; right: 0` inside the scrolling row (row padding compensated), with the row's background and `margin-left: auto`. The other tabs scroll under it, so it stays visible on narrow phones.
@@ -202,7 +203,7 @@ No change: the suites are API-only (RequestsLibrary, no browser library in `code
 ### 7.2 Robot and manual checks
 - Robot: no new suite, no change (API-only).
 - Manual check by the owner on Android Chrome and iOS Safari, portrait and landscape:
-  - sticky navbar, pills (home tab last, still visible while the row scrolls sideways on a narrow phone) and deck (the in-page one; no table pile, also sideways); the vertical book graphics; a turn on a tall page; deal on scroll;
+  - sticky navbar, bookmark pills with the same items, icons and badges as desktop (home tab last, still visible while the row scrolls sideways on a narrow phone) and deck (the in-page one; no table pile, also sideways); the vertical book graphics; a turn on a tall page; deal on scroll;
   - page pictures at `33svh` and card texts as big as today (6.3);
   - on desktop, the Deck row moves step 14's pile under or over the book's cover at once;
   - a long press on a pill and on the home tab shows the tooltip and opens nothing; a tap opens the tab;
@@ -218,7 +219,7 @@ No open doubts. The owner accepted all seven recommendations (development order,
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.13.0 | Phone book, player preferences and deck setting decided | November 24, 2026 |
+  | 1.13.0 | Phone book, preferences, deck setting and bookmark note | November 24, 2026 |
 
 - **Last Updated**: November 24, 2026 (v1.13.0)
 

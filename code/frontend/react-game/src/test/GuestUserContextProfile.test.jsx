@@ -304,8 +304,9 @@ describe('GuestUserContext v1.7.0 — user profile', () => {
     authApi.getMe.mockClear()
     await act(async () => { expect(await ctx.refreshProfile()).toBeNull() })
     expect(authApi.getMe).not.toHaveBeenCalled()
-    act(() => ctx.closeGuestModal())
-    expect(reload).toHaveBeenCalledTimes(1)
+    // v1.13.0 — the player page's close reloads the home (usePlayerPage reads accountDeleted)
+    expect(ctx.accountDeleted).toBe(true)
+    expect(reload).not.toHaveBeenCalled()
   })
 
   it('a refused deletion keeps the account and exposes FRESH_TOKEN_REQUIRED', async () => {
@@ -314,7 +315,7 @@ describe('GuestUserContext v1.7.0 — user profile', () => {
     await act(async () => { expect(await ctx.deleteAccount('old-id')).toBe(false) })
     expect(screen.getByTestId('profile-error')).toHaveTextContent('FRESH_TOKEN_REQUIRED')
     expect(screen.getByTestId('deleted')).toHaveTextContent('alive')
-    act(() => ctx.closeGuestModal())
+    expect(ctx.accountDeleted).toBe(false)
     expect(reload).not.toHaveBeenCalled()
   })
 })

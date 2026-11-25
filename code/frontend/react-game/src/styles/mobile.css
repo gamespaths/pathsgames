@@ -214,30 +214,39 @@
 
   /* Kill any horizontal scroll/tap drift on the whole page on mobile: nothing
      in the game/book modal should ever be wider than the device. */
-  html, body { overflow-x: hidden; max-width: 100%; }
-
-  /* No hover on touch: the close label never appears on mobile, only the (x). */
-  .book-close-label { display: none; }
+  /* v1.13.0 — clip, not hidden: hidden makes body a scroll box and the sticky navbar stops sticking. */
+  html, body { overflow-x: clip; max-width: 100%; }
 
   /* NOTE: mobile.css is @import-ed at the TOP of main.css, so its plain
      single-class rules lose to main.css's later base rules of equal
-     specificity. Double the class to win the cascade.
-     Use plain block flow (not flex) for the mobile overlay: a centered flex
-     overlay clips both the top (first card) AND the bottom (Start button)
-     when the content is taller than the viewport. Block flow scrolls the
-     whole thing top-to-bottom reliably. */
-  .book-overlay.book-overlay {
+     specificity. Double the class to win the cascade. */
+  /* v1.13.0 — the stage is plain block flow with no scroll of its own: the document scrolls. */
+  .book-stage.book-stage {
     display: block;
-    overflow-x: hidden;            /* never let content widen past the viewport */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 56px 0 32px;
+    padding: 0 0 32px;
   }
+  .book-shell.book-shell { display: contents; }
+
+  /* The home tab sits at the top-right of the stage, above the stacked column. */
+  .book-mobile-home.book-mobile-home {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 14px 0;
+  }
+  .book-mobile-home .book-bookmarks {
+    position: static;
+    transform: none;
+    pointer-events: auto;
+  }
+  .book-mobile-home .book-bookmark { margin-bottom: 0; padding: 4px 12px 6px; font-size: 1.25rem; }
+
+  /* A scrolled-to column is not hidden under the sticky navbar. */
+  .book-mobile-left,
+  .book-mobile-right { scroll-margin-top: var(--navbar-h); }
 
   /* Keep the single-column game layout within the device width: cap the layout
      and its left/right wrappers, and stop flex/grid children from forcing a
      wider track (min-width:auto default overflows on long words / wide cards). */
-  .game-page-wrap { overflow-x: hidden; }
   .book-mobile-layout,
   .book-mobile-left,
   .book-mobile-right { max-width: 100%; min-width: 0; }
@@ -264,7 +273,8 @@
   .book-mobile-layout > .start-match-cards > .selection-list{
     gap:1rem;
   }
-  .start-match-overlay > .book-mobile-layout {
+  .start-match-stage > .book-mobile-layout,
+  .start-match-stage > .book-content > .book-mobile-layout {
     padding:10px;
   }
 
@@ -277,8 +287,6 @@
   .game-book-wrapper .book-page        { width: 100%; height: auto; min-height: 240px; }
   .game-book-wrapper .book-page-left   { border-radius: 12px 12px 0 0; }
   .game-book-wrapper .book-page-right  { border-radius: 0 0 12px 12px; }
-
-  .game-page-wrap { padding: 10px; }
 
   /* Hero shorter on mobile */
   .hero-section { height: clamp(180px, 32vw, 280px); }
@@ -296,9 +304,6 @@
 
   /* Navbar: hide brand text, show only icon */
   /*.navbar-brand-text { display:none }*/
-
-  /* Navbar home button: show only icon */
-  .navbar-home-btn span { display: none; }
 
   /* Navbar socials: no room left beside brand and guest button */
   .navbar-social.navbar-social { display: none; }
@@ -326,21 +331,18 @@
   /* Player stats badges */
   .stat-badge { font-size: 0.72rem; padding: 4px 9px; }
 
-  /* Footer compact on mobile */
-  .medieval-footer { margin-top: 30px; padding: 20px 12px 16px; }
-  .footer-links-row { gap: 10px; }
-  .footer-icon-link { font-size: 0.88rem; gap: 0.5rem; }
-  /* Footer socials: hidden below 768px, as the navbar ones */
-  .footer-social-link.footer-social-link { display: none; }
+  /* Footer: the same two rows with short labels, so row 1 wraps only on the narrowest phones */
+  .footer-row.footer-row { gap: 6px 12px; }
+  .footer-link__full { display: none; }
+  .footer-link__short.footer-link__short { display: inline; }
+  .footer-server__full { display: none; }
+  .footer-server__short.footer-server__short { display: inline; }
 
   /* All (i) buttons and badges always visible on touch devices */
   .config-info-btn    { opacity: 1; }
   .config-cover-badge { opacity: 1; }
   .story-card-info-btn { opacity: 1; }
   .game-location-card .card-info-btn { opacity: 1; }
-
-  /* Credits modal: wrap to column on mobile */
-  .credits-list { flex-wrap: wrap; flex-direction: column; align-items: center; }
 
   .config-cover-footer {
     align-items: flex-end;
@@ -385,14 +387,7 @@
   }
 }
 
-/* Navbar socials on a game page: the exit button takes their room first. */
-@media (max-width: 991px) {
-  .navbar-social--tight.navbar-social--tight { display: none; }
-}
-
-
-
-/* Navbar socials on a game page: the exit button takes their room first. */
+/* Small phones: the navbar has no room for the env badge (the footer keeps it). */
 @media (max-width: 442px) {
-  .env-badge {display:none !important;}
+  .navbar-medieval .env-badge {display:none !important;}
 }

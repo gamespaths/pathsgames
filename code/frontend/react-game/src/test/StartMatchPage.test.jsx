@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { MOBILE_MQ } from '@/features/gameplay/js/mobileView'
 
 // Controllable Turnstile mock: fires onSuccess (human) by default, onError when
@@ -51,20 +51,29 @@ const CONFIG = {
   difficulty: { uuid: 'df1', name: 'Normal' },
 }
 
-// What the home route received in its router state (the loadout handed back by "Back").
-const homeState = { current: null }
-function HomeProbe() {
-  homeState.current = useLocation().state
-  return <div>home-page</div>
+// v1.13.0 — what the story route received in its router state (the loadout handed back by "Back").
+const storyState = { current: null }
+function StoryProbe() {
+  storyState.current = useLocation().state
+  return <div>story-page</div>
+}
+function GameProbe() {
+  const navigate = useNavigate()
+  return <div>game-page<button onClick={() => navigate(-1)}>browser-back</button></div>
 }
 
-function renderPage(state) {
+/** `previous`: a story-page entry under the start-match one, as the story page's Start leaves it. */
+function renderPage(state, previous = null) {
+  const entries = previous
+    ? [{ pathname: '/story/s1', state: previous }, { pathname: '/start-match/s1', state }]
+    : [{ pathname: '/start-match/s1', state }]
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/start-match/s1', state }]}>
+    <MemoryRouter initialEntries={entries} initialIndex={entries.length - 1}>
       <Routes>
         <Route path="/start-match/:storyId" element={<StartMatchPage />} />
-        <Route path="/" element={<HomeProbe />} />
-        <Route path="/play/:storyId" element={<div>game-page</div>} />
+        <Route path="/" element={<div>home-page</div>} />
+        <Route path="/story/:storyId" element={<StoryProbe />} />
+        <Route path="/play/:storyId" element={<GameProbe />} />
       </Routes>
     </MemoryRouter>
   )
@@ -73,7 +82,7 @@ function renderPage(state) {
 /** The (duplicated mobile+desktop) Start buttons: the action of the last bonuses card. */
 const startButtons = () => screen.queryAllByRole('button', { name: 'book.start' })
 /** The locked "Start" faces of that card (the only lock with a reason), when not offered. */
-const startLocks = () => document.querySelectorAll('.gc-footer__cards-buttons[title]')
+const startLocks = () => document.querySelectorAll('.gc-footer__cards-buttons[data-tip]')
 
 /** Click the first Start button. */
 function clickStart() {
@@ -98,9 +107,10 @@ describe('StartMatchPage', () => {
     vi.unstubAllEnvs()
   })
 
-  it('redirects home when navigation state is missing', () => {
+  it('v1.13.0 — a direct load (no router state) redirects to the story page', () => {
     renderPage(undefined)
-    expect(screen.getByText('home-page')).toBeInTheDocument()
+    expect(screen.getByText('story-page')).toBeInTheDocument()
+    expect(storyState.current).toBeNull()
   })
 
   it('passes the antibot check then offers Start on the last bonuses card', () => {
@@ -122,7 +132,7 @@ describe('StartMatchPage', () => {
     expect(startButtons().length).toBe(0)
     const locks = startLocks()
     expect(locks.length).toBeGreaterThan(0)
-    expect(locks[0].getAttribute('title')).toBe('antibot.verifying')
+    expect(locks[0].getAttribute('data-tip')).toBe('antibot.verifying')
     expect(createMatch).not.toHaveBeenCalled()
   })
 
@@ -130,7 +140,7 @@ describe('StartMatchPage', () => {
     renderPage({ story: STORY, config: CONFIG })
     fireEvent.click(screen.getAllByText('book.accepted')[0])
     expect(startButtons().length).toBe(0)
-    expect(startLocks()[0].getAttribute('title')).toBe('startMatch.acceptTermsFirst')
+    expect(startLocks()[0].getAttribute('data-tip')).toBe('startMatch.acceptTermsFirst')
     fireEvent.click(screen.getAllByText('book.accept')[0])
     expect(startButtons().length).toBeGreaterThan(0)
   })
@@ -156,16 +166,25 @@ describe('StartMatchPage', () => {
     expect(screen.getAllByText('startMatch.phaseTitle.creating').length).toBeGreaterThan(0)
   })
 
-  it('the story card "Back" returns to the catalog with the loadout to reopen', () => {
-    renderPage({ story: STORY, config: CONFIG })
+  it('the story card "Back" steps back to the story page, whose entry holds the loadout', () => {
+    renderPage({ story: STORY, config: CONFIG, fromStory: true }, { story: STORY, config: CONFIG })
     fireEvent.click(screen.getAllByRole('button', { name: 'book.back' })[0])
-    expect(screen.getByText('home-page')).toBeInTheDocument()
-    expect(homeState.current).toMatchObject({ reopenStory: { uuid: 's1' }, reopenConfig: { class: { uuid: 'cl1' } } })
+    expect(screen.getByText('story-page')).toBeInTheDocument()
+    expect(storyState.current).toMatchObject({ story: { uuid: 's1' }, config: { class: { uuid: 'cl1' } } })
   })
 
-  it('the book (x) goes back home', () => {
+  it('the story card "Back" without a story entry behind it replaces this one with the story page', () => {
     renderPage({ story: STORY, config: CONFIG })
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'book.back' })[0])
+    expect(screen.getByText('story-page')).toBeInTheDocument()
+    expect(storyState.current).toMatchObject({ story: { uuid: 's1' }, config: { class: { uuid: 'cl1' } } })
+  })
+
+  it('v1.13.0 — no close (x): the book\'s home tab goes back home', () => {
+    renderPage({ story: STORY, config: CONFIG })
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+    expect(document.querySelector('.book-stage.start-match-stage')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'nav.backHome' })[0])
     expect(screen.getByText('home-page')).toBeInTheDocument()
   })
 
@@ -227,7 +246,7 @@ describe('StartMatchPage', () => {
     // The joining card reads "failed" (the error as its tooltip); creating stays done.
     expect(phaseLabel(3)).toBe('startMatch.phaseComplete')
     expect(phaseLabel(4)).toBe('startMatch.phaseFailed')
-    expect(document.querySelector('.pg-card--phase-failed .gc-footer__cards-buttons').getAttribute('title')).toBe('ALREADY_JOINED')
+    expect(document.querySelector('.pg-card--phase-failed .gc-footer__cards-buttons').getAttribute('data-tip')).toBe('ALREADY_JOINED')
     expect(phaseLabel(5)).toBe('startMatch.phasePending')
   })
 
@@ -240,6 +259,16 @@ describe('StartMatchPage', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
 
     expect(screen.getByText('game-page')).toBeInTheDocument()
+  })
+
+  it('v1.13.0 — the game replaces the spent start-match entry: Back from the game lands on the story', async () => {
+    createMatch.mockResolvedValue({ uuid: 'm1', status: 'CREATED' })
+    renderPage({ story: STORY, config: CONFIG, fromStory: true }, { story: STORY, config: CONFIG })
+    clickStart()
+    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
+    expect(screen.getByText('game-page')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('browser-back'))
+    expect(screen.getByText('story-page')).toBeInTheDocument()
   })
 
   it('clicking a card info button triggers handleSelectionPreview (preview state)', () => {

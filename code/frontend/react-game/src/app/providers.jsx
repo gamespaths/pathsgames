@@ -3,6 +3,7 @@ import { ServerProvider } from '@/context/ServerContext'
 import { GuestUserProvider } from '@/features/guest-user/GuestUserContext'
 import { HomeStatusProvider } from '@/context/HomeStatusContext'
 import { PolicyBookProvider } from '@/context/PolicyBookContext'
+import { HomeButtonProvider } from '@/context/HomeButtonContext'
 
 /**
  * Providers — the global context providers, composed once around the app.
@@ -16,7 +17,9 @@ export default function Providers({ children }) {
         <GuestUserProvider>
           <HomeStatusProvider>
             <PolicyBookProvider>
-              {children}
+              <HomeButtonProvider>
+                {children}
+              </HomeButtonProvider>
             </PolicyBookProvider>
           </HomeStatusProvider>
         </GuestUserProvider>

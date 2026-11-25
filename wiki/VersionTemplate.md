@@ -62,8 +62,10 @@ kept or shut down by the owner's choice. Details in [Environments](./Environment
 2. The owner answers the doubts; the analysis is updated until no doubt is open.
 3. `paths-games-dev-feature` agent develops the analysed step on all backends and frontends,
    with unit tests and Robot suites, and runs the tests.
-4. `/doc-update` (agent `paths-games-doc`) aligns the documentation.
-5. The owner reviews, bumps the version and commits. Agents never commit and never bump versions.
+4. `paths-games-test-feature` agent writes the owner's test list `documentation_vN/test/StepXX_Name.md`;
+   the owner runs the manual tests.
+5. `/doc-update` (agent `paths-games-doc`) aligns the documentation.
+6. The owner reviews, bumps the version and commits. Agents never commit and never bump versions.
 
 ## 7. Documentation rules
 
@@ -72,6 +74,7 @@ kept or shut down by the owner's choice. Details in [Environments](./Environment
 - Each version has `wiki/documentation_vN/` with its `Roadmap.md`, its step files, `INDEX.md` (only
   that version's documents) and, after launch, `Hotfixes.md`. Images go in a `concepts/`
   subfolder when needed.
+- Each version folder has a `test/` subfolder with one test list per step (same name as the step file).
 - Documents of launched, previous versions are **frozen history**: nobody edits them, except
   `Hotfixes.md`.
 - `wiki/INDEX.md` is the single entry point: shared files plus one line per version.

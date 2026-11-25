@@ -57,14 +57,27 @@ describe('BookBookmarks', () => {
     expect(tab).toHaveAttribute('aria-disabled', 'true')
     // aria-disabled, not the attribute: a disabled button would show no tooltip.
     expect(tab).not.toBeDisabled()
-    expect(tab).toHaveAttribute('title', 'coming soon')
+    expect(tab).toHaveAttribute('data-tip', 'coming soon')
+    expect(tab).not.toHaveAttribute('title')
     fireEvent.click(tab)
     expect(onClick).not.toHaveBeenCalled()
   })
 
   it('falls back to the label as tooltip when no title is given', () => {
     render(<BookBookmarks items={[ITEM]} />)
-    expect(screen.getByLabelText('Map')).toHaveAttribute('title', 'Map')
+    expect(screen.getByLabelText('Map')).toHaveAttribute('data-tip', 'Map')
+  })
+
+  it('v1.13.0 — its badges carry no native title: the drawn tooltip names the tab', () => {
+    const { container } = render(<BookBookmarks items={[{ ...ITEM, badges: [{ key: 'life', label: 'Life', value: '3/10' }] }]} />)
+    const badge = container.querySelector('.book-bookmark .bonus-badge')
+    expect(badge).toHaveAttribute('aria-label', 'Life')
+    expect(badge).not.toHaveAttribute('title')
+  })
+
+  it('adds the item class (the home tab) to the tab', () => {
+    render(<BookBookmarks items={[{ ...ITEM, className: 'book-bookmark--home' }]} />)
+    expect(screen.getByLabelText('Map')).toHaveClass('book-bookmark', 'book-bookmark--home')
   })
 
   it('paints a tab red when its page holds news to act on', () => {

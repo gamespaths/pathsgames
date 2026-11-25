@@ -12,8 +12,6 @@ vi.mock('../utils/turnstile', () => ({
 const guestCtx = {
   user: { username: 'guest_x', accessToken: 't' },
   loading: false,
-  guestModalOpen: true,
-  closeGuestModal: vi.fn(),
   matches: null,
 }
 vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => guestCtx }))
@@ -27,8 +25,9 @@ vi.mock('../components/layout/Card', () => ({
   ),
 }))
 vi.mock('@/features/guest-user/UserMatchesList', () => ({
-  default: ({ onPreviewCard }) => (
+  default: ({ onPreviewCard, preloadedMatches }) => (
     <>
+      <span data-testid="preloaded">{preloadedMatches ? preloadedMatches.length : 'none'}</span>
       <button onClick={() => onPreviewCard({ card: { title: 'Prev' }, story: { title: 'S' } })}>preview</button>
       <button onClick={() => onPreviewCard({
         card: { title: 'Prev' }, story: { title: 'S' }, match: { uuid: 'm1' },
@@ -87,13 +86,13 @@ vi.mock('../components/ui/TurnstileWidget', () => ({
   ),
 }))
 
-import GuestUserModal from '@/features/guest-user/GuestUserModal'
+import PlayerBook from '@/features/guest-user/PlayerBook'
 
-describe('GuestUserModal (antibot + preview)', () => {
-  beforeEach(() => { guestCtx.closeGuestModal.mockClear() })
+describe('PlayerBook (antibot + preview)', () => {
+  beforeEach(() => { guestCtx.matches = null })
 
   it('starts in checking, shows error + retry on Turnstile failure', () => {
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     expect(screen.getByText('antibot.verifying')).toBeInTheDocument()
     fireEvent.click(screen.getByText('ts-error'))
     expect(screen.getByText('antibot.error')).toBeInTheDocument()
@@ -107,7 +106,7 @@ describe('GuestUserModal (antibot + preview)', () => {
   it('opens the missions on the right page when a match is previewed, the history behind a card', () => {
     missionsState.missions = [{ uuid: 'q1', name: 'Quest' }]
     missionsState.loading = false
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('ts-success'))
     expect(screen.queryByTestId('mission-cards')).not.toBeInTheDocument()
 
@@ -135,7 +134,7 @@ describe('GuestUserModal (antibot + preview)', () => {
   it('opens one mission down to its steps, a step to its card, and back one page at a time', () => {
     missionsState.missions = [{ uuid: 'q1', name: 'Quest' }]
     missionsState.loading = false
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('ts-success'))
     fireEvent.click(screen.getByText('preview-match'))
 
@@ -163,7 +162,7 @@ describe('GuestUserModal (antibot + preview)', () => {
   it('shows the loading card while the missions are on their way', () => {
     missionsState.missions = []
     missionsState.loading = true
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('ts-success'))
     fireEvent.click(screen.getByText('preview-match'))
     expect(screen.getByTestId('loading-card')).toBeInTheDocument()
@@ -171,7 +170,7 @@ describe('GuestUserModal (antibot + preview)', () => {
   })
 
   it('passes Turnstile then shows matches; previewing swaps + closes the left page', () => {
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('ts-success'))
     // human → matches list visible
     fireEvent.click(screen.getByText('preview'))
@@ -182,15 +181,23 @@ describe('GuestUserModal (antibot + preview)', () => {
   })
 
   it('expire triggers a fresh antibot check', () => {
-    render(<GuestUserModal />)
+    render(<PlayerBook />)
     fireEvent.click(screen.getByText('ts-expire'))
     expect(screen.getByText('antibot.verifying')).toBeInTheDocument()
   })
 
-  it('renders nothing when the modal is closed', () => {
-    guestCtx.guestModalOpen = false
-    const { container } = render(<GuestUserModal />)
-    expect(container.firstChild).toBeNull()
-    guestCtx.guestModalOpen = true
+  it('v1.13.0 — reads the preloaded list once: the page clearing the context copy does not refetch', () => {
+    guestCtx.matches = [{ uuid: 'm1' }, { uuid: 'm2' }]
+    const { rerender } = render(<PlayerBook />)
+    fireEvent.click(screen.getByText('ts-success'))
+    expect(screen.getByTestId('preloaded').textContent).toBe('2')
+    guestCtx.matches = null
+    rerender(<PlayerBook />)
+    expect(screen.getByTestId('preloaded').textContent).toBe('2')
+  })
+
+  it('v1.13.0 — always renders: the /player route decides when it shows', () => {
+    const { container } = render(<PlayerBook />)
+    expect(container.firstChild).not.toBeNull()
   })
 })

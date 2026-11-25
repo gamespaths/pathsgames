@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
-// Coverage-focused companion to StartBookModal.test.jsx: it drives the class
+// Coverage-focused companion to StartBook.test.jsx: it drives the class
 // re-validation branch (an incompatible character/trait is re-picked or dropped)
 // and the option lists the main suite never asks for.
 
@@ -56,7 +56,7 @@ vi.mock('../features/start-book/StartBookMobile', () => ({
   ),
 }))
 
-import StartBookModal from '../features/start-book/StartBookModal'
+import StartBook from '../features/start-book/StartBook'
 import { getStoryDetail } from '../api/stories'
 
 // c1 is the class the warrior template requires; c2 is the one the brave trait forbids.
@@ -77,10 +77,10 @@ const STORY = {
 }
 
 function wrap(story = STORY) {
-  return render(<MemoryRouter><StartBookModal story={story} onClose={vi.fn()} /></MemoryRouter>)
+  return render(<MemoryRouter><StartBook story={story} /></MemoryRouter>)
 }
 
-describe('StartBookModal — class re-validation', () => {
+describe('StartBook — class re-validation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getStoryDetail.mockResolvedValue(STORY)
@@ -177,7 +177,7 @@ describe('StartBookModal — class re-validation', () => {
   })
 })
 
-describe('StartBookModal — the left page while a picker is open (v0.38.3)', () => {
+describe('StartBook — the left page while a picker is open (v0.38.3)', () => {
   const BUDGETED = {
     ...STORY,
     traits: [{ uuid: 't1', id: 21, name: 'Brave', costPositive: 2, life: 5, card: { title: 'Brave' } }],
@@ -212,7 +212,7 @@ describe('StartBookModal — the left page while a picker is open (v0.38.3)', ()
   })
 })
 
-describe('StartBookModal — reopened with a loadout (v0.38.3)', () => {
+describe('StartBook — reopened with a loadout (v0.38.3)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getStoryDetail.mockResolvedValue(STORY)
@@ -222,7 +222,7 @@ describe('StartBookModal — reopened with a loadout (v0.38.3)', () => {
   // and keeps it once the story detail lands.
   it('starts from initialConfig and keeps it after the detail load', async () => {
     const initialConfig = { character: STORY.characterTemplates[1], class: STORY.classes[1], traits: [], difficulty: STORY.difficulties[0] }
-    render(<MemoryRouter><StartBookModal story={STORY} onClose={vi.fn()} initialConfig={initialConfig} /></MemoryRouter>)
+    render(<MemoryRouter><StartBook story={STORY} initialConfig={initialConfig} /></MemoryRouter>)
     await screen.findByTestId('config-view')
     expect(screen.getByTestId('sel-class')).toHaveTextContent('Mage')
     expect(screen.getByTestId('sel-character')).toHaveTextContent('Wanderer')
@@ -230,7 +230,7 @@ describe('StartBookModal — reopened with a loadout (v0.38.3)', () => {
   })
 })
 
-describe('StartBookModal — difficulty budgets over the trait selection (v0.38.3)', () => {
+describe('StartBook — difficulty budgets over the trait selection (v0.38.3)', () => {
   // Easy pays for both traits; Hard pays for the first one only.
   const BUDGETS = {
     ...STORY,
@@ -274,7 +274,7 @@ describe('StartBookModal — difficulty budgets over the trait selection (v0.38.
   })
 })
 
-describe('StartBookModal — traits hidden from the start-match page (v0.35.2)', () => {
+describe('StartBook — traits hidden from the start-match page (v0.35.2)', () => {
   // The hidden one comes FIRST on purpose: that is the case that used to arm the loadout
   // with a trait the picker never shows, leaving nobody able to remove it.
   const HIDDEN_FIRST = {

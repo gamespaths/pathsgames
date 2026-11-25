@@ -42,7 +42,15 @@ describe('UserMatchesList', () => {
 
   it('shows title heading', async () => {
     wrap(<UserMatchesList accessToken="tok" />)
-    expect(await screen.findByText('matches.title')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('matches.title')).toBeInTheDocument())
+  })
+
+  it('v1.13.0 — no heading over the cards: kept in the markup, marked book-cards-heading (hidden by CSS)', async () => {
+    const { container } = wrap(<UserMatchesList accessToken="tok" />)
+    await waitFor(() => expect(screen.getByText('matches.title')).toBeInTheDocument())
+    const heading = container.querySelector('.matches-list-title')
+    expect(heading).toHaveClass('book-cards-heading')
+    expect(heading.nextElementSibling).toHaveClass('selection-list')
   })
 
   it('v1.8.0 — no matches: only the statistics card of the user, no empty text', async () => {
