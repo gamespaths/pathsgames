@@ -47,7 +47,8 @@ vi.mock('../features/gameplay/PageRight', async () => {
       </div>
     )
   }
-  return { default: ({ view, previewRight, onOpenMap, onOpenItems, onPreview, onCloseRight, onMoved, onEndGame }) => (
+  return { default: ({ view, previewRight, onOpenMap, onOpenItems, onPreview, onCloseRight, onMoved, onEndGame,
+    onDone, onSlept, onItemUsed, onExpUsed }) => (
     <div data-testid="right">right:{view}:{previewRight?.kind ?? '-'}
       <PlayedEnd onEndGame={onEndGame} />
       <button data-testid="open-map" onClick={onOpenMap}>map</button>
@@ -55,6 +56,11 @@ vi.mock('../features/gameplay/PageRight', async () => {
       <button data-testid="preview" onClick={() => onPreview({ card: { title: 'c' }, type: 'action', side: 'right' })}>i</button>
       <button data-testid="close-right" onClick={onCloseRight}>x</button>
       <button data-testid="moved" onClick={() => onMoved({})}>move</button>
+      <button data-testid="slept" onClick={() => onSlept({ counterZero: [] })}>sleep</button>
+      <button data-testid="done-still" onClick={() => onDone({ movementApplied: false, locationChanges: [] })}>do</button>
+      <button data-testid="done-forced" onClick={() => onDone({ locationChanges: [{ characterUuid: 'c1' }] })}>forced</button>
+      <button data-testid="item-used" onClick={() => onItemUsed({ card: { title: 'potion' } })}>use</button>
+      <button data-testid="exp-used" onClick={() => onExpUsed({})}>train</button>
       <button data-testid="end" onClick={() => onEndGame({ uuid: 'e1' })}>end</button>
     </div>
   ) }
@@ -161,6 +167,33 @@ describe('GameBook — the turns of the board (step 15)', () => {
     await act(async () => { waapi.finishAll() })
     expect(stage()).not.toHaveAttribute('inert')
     expect(stage()).not.toHaveClass('is-busy')
+  })
+
+  // Step 15 §9 — a play that leaves the character where it is fades; a move turns forward; item and exp turn back.
+  it.each([
+    ['slept', 'fade'], ['done-still', 'fade'], ['done-forced', 'forward'], ['item-used', 'back'], ['exp-used', 'back'],
+  ])('a play answer (%s) is held, then released as %s', async (id, expected) => {
+    let finishReload
+    const onReload = vi.fn(() => new Promise(res => { finishReload = res }))
+    renderBoard({ onReload })
+    await act(async () => { fireEvent.click(screen.getByTestId(id)) })
+    expect(layer().children).toHaveLength(2)
+    const before = waapi.animations.length
+    await act(async () => { finishReload() })
+    await tick()
+    expect(direction()).toBe(expected)
+    const fresh = waapi.animations.slice(before)
+    if (expected === 'fade') {
+      // the held copy fades out over the new pages: no sheet turns
+      expect(layer().querySelector('.page-flipper')).toBeNull()
+      expect(fresh).toHaveLength(2)
+      fresh.forEach(a => expect(a.keyframes).toEqual([{ opacity: 1 }, { opacity: 0 }]))
+    } else {
+      expect(layer().querySelector(`.page-flipper.${expected === 'back' ? 'is-back' : 'is-fwd'}`)).not.toBeNull()
+    }
+    await act(async () => { waapi.finishAll() })
+    expect(layer()).toBeEmptyDOMElement()
+    expect(stage()).not.toHaveAttribute('inert')
   })
 
   // Step 15 (6.2) — the weather call answering last still lands inside the ONE turn: no fade cuts the flip.

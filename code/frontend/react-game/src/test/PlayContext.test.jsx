@@ -290,7 +290,8 @@ describe('flightTarget', () => {
     nav.remove()
   })
 
-  it('step 16 — on phones: the top of the visible slice of the book (under the navbar and the tab row)', () => {
+  // Step 15 — the tabs stand on the book's edge: a tab row on the screen no longer pushes the target down.
+  it('step 16 — on phones: the top of the visible slice of the book, under the navbar only', () => {
     window.matchMedia = vi.fn(() => ({ matches: true }))
     const nav = setBox(document.createElement('nav'), { top: 0, height: 56 })
     nav.className = 'navbar-medieval'
@@ -298,7 +299,7 @@ describe('flightTarget', () => {
     const book = setBox(document.createElement('div'), { left: 8, top: -300, width: 344, height: 2000 })
     book.innerHTML = '<div class="book-bookmarks-row"></div>'
     setBox(book.querySelector('.book-bookmarks-row'), { left: 8, top: 56, width: 344, height: 48 })
-    expect(flightTarget(book)).toEqual({ x: 180, y: 164 })
+    expect(flightTarget(book)).toEqual({ x: 180, y: 116 })
     nav.remove()
   })
 })

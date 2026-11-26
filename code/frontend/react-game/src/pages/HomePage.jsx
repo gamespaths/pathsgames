@@ -10,7 +10,8 @@ import TutorialButton from '../features/catalog/TutorialButton'
 import Book from '@/components/book/Book'
 import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
-import useAntibot from '../hooks/useAntibot'
+import useAntibot, { useAntibotSuccess } from '../hooks/useAntibot'
+import AntibotSuccess from '@/components/ui/AntibotSuccess'
 import { storyHasBlockingMatch, findResumableMatch } from '../utils/matchStatus'
 import { RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES, HIDE_STORIES } from '../constants/features'
 import { withComingSoonStories } from '../utils/comingSoonStories'
@@ -20,9 +21,6 @@ import Card from '@/components/layout/Card'
 import { useHomeStatus } from '@/context/HomeStatusContext'
 import { RATE_LIMITED } from '@/utils/rateLimit'
 import { buildImageCard } from '@/utils/loadoutCards'
-
-// How long "Success! You are human." stays under the intro text after the check passed.
-const ANTIBOT_SUCCESS_MS = 4000
 
 export default function HomePage() {
   const { t, lang } = useTranslation()
@@ -47,17 +45,8 @@ export default function HomePage() {
   // it gates is the card footer (Play/Resume buttons) and the click handler.
   const gate = useAntibot({ cookie: true })
   const { setError: setHomeError } = useHomeStatus()
-  // Step 14 — the success line follows a check passed on this visit, then goes away.
-  const [successShown, setSuccessShown] = useState(false)
-  const lastPhase = useRef(gate.phase)
-  useEffect(() => {
-    const was = lastPhase.current
-    lastPhase.current = gate.phase
-    if (gate.phase !== 'ready' || was !== 'checking') return undefined
-    setSuccessShown(true)
-    const timer = setTimeout(() => setSuccessShown(false), ANTIBOT_SUCCESS_MS)
-    return () => clearTimeout(timer)
-  }, [gate.phase])
+  // Step 14 — the success line follows a check passed on this visit, then goes away (step 15: shared hook).
+  const successShown = useAntibotSuccess(gate.phase)
 
   // The in-flight catalog request and its language: StrictMode (dev) runs the effect
   // twice on mount, the second run joins the first request instead of repeating it.
@@ -178,7 +167,7 @@ export default function HomePage() {
     // ask again which match to open: jump straight into it.
     const resumable = RESUME_WITHOUT_MODAL ? findResumableMatch(list, story.uuid) : null
     if (resumable) {
-      navigate(`/play/${story.uuid}`, { state: { matchUuid: resumable.uuid } })
+      navigate(`/play/${story.uuid}`, { state: { matchUuid: resumable.uuid, story } })
     } else if (storyHasBlockingMatch(list, story.uuid)) {
       openPlayerPage(list)
     } else {
@@ -200,11 +189,7 @@ export default function HomePage() {
         />
       </div>
     </div>
-  ) : gate.phase === 'ready' && successShown ? (
-    <p className="home-antibot-success" data-testid="antibot-success">
-      <i className="fas fa-check-circle me-2" aria-hidden="true" />{t('antibot.success')}
-    </p>
-  ) : null
+  ) : gate.phase === 'ready' && successShown ? <AntibotSuccess /> : null
 
   // Left page: the fixed intro card, the photo credited by the page's credits bar.
   const intro = (

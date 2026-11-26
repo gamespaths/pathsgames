@@ -69,7 +69,7 @@ export default function Footer() {
           <span className="footer-copy" data-testid="footer-copy">
             <i className="fas fa-dice-d20 me-1" />
             <span className="gold-light">PATHS GAMES</span>{' '}
-            v1.14.0 &nbsp;
+            v1.15.0 &nbsp;
             &copy; {t('footer.rights').toUpperCase()}
           </span>
         </div>

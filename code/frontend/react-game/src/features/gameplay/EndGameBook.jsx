@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
 import Card from '../../components/layout/Card'
@@ -22,7 +23,7 @@ import useBookTurn from '@/hooks/useBookTurn'
  * Step 15 — GameBook shows them in its own Book (`enter` turns forward); back arrows turn back, a step (i) fades.
  * Phones stack the same two pages, the end card on top (v1.14.0). The book's home tab goes home.
  */
-export function useEndGamePages({ story, endGameCard, missions = [] }) {
+export function useEndGamePages({ story, endGameCard, missions = [], onHome = null }) {
   const { t } = useTranslation()
   const rows = Array.isArray(missions) ? missions : []
   const { pageKey, direction, turnTo } = useBookTurn()
@@ -37,9 +38,9 @@ export function useEndGamePages({ story, endGameCard, missions = [] }) {
 
   const storyCard = story?.card ?? null
 
+  // Step 15 — "Back to home" goes home in the app (the book changes; it was a reload).
   function goToHome() {
-    // For now we just reload to home, but we could also navigate with state to show a "Game ended" message or similar
-    window.location.href = '/'
+    onHome?.()
   }
 
   /** The game ended: back to the first reading, with ONE forward turn from the board. */
@@ -107,9 +108,11 @@ export function useEndGamePages({ story, endGameCard, missions = [] }) {
 
 /** EndGameBook — the end-game pages in a Book of their own (GameBook uses the hook in its Book). */
 export default function EndGameBook({ story, endGameCard, missions = [] }) {
-  const pages = useEndGamePages({ story, endGameCard, missions })
+  const navigate = useNavigate()
+  const pages = useEndGamePages({ story, endGameCard, missions, onHome: () => navigate('/') })
   return (
     <Book
+      coverTitle={story?.title}
       wrapperClass={pages.wrapperClass}
       left={pages.left}
       right={pages.right}

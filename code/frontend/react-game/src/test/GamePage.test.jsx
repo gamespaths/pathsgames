@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 vi.mock('../api/game', () => ({
@@ -49,7 +49,10 @@ import { getMatchInfo } from '../api/game'
 import { listMatches } from '../api/matches'
 import { getStory, getStoryDetail } from '../api/stories'
 
-function StoryStub() { return <div data-testid="story-page">{useLocation().pathname}</div> }
+function StoryStub() {
+  const { pathname, state } = useLocation()
+  return <div data-testid="story-page" data-redirected={String(Boolean(state?.redirected))}>{pathname}</div>
+}
 
 function wrap(storyId = 'abc', state = {}) {
   return render(
@@ -57,6 +60,7 @@ function wrap(storyId = 'abc', state = {}) {
       <Routes>
         <Route path="/play/:storyId" element={<GamePage />} />
         <Route path="/story/:storyId" element={<StoryStub />} />
+        <Route path="/" element={<div data-testid="home-page" />} />
       </Routes>
     </MemoryRouter>
   )
@@ -122,6 +126,8 @@ describe('GamePage', () => {
       listMatches.mockResolvedValue([{ uuid: 'm1', storyUuid: 'abc', status: 'ENDED' }])
       wrap('abc')
       expect(await screen.findByTestId('story-page')).toHaveTextContent('/story/abc')
+      // Step 15 — a silent redirect: no book change, no turn
+      expect(screen.getByTestId('story-page')).toHaveAttribute('data-redirected', 'true')
       expect(getMatchInfo).not.toHaveBeenCalled()
     })
 
@@ -206,18 +212,12 @@ describe('GamePage', () => {
     expect(container.querySelector('.book-page-left')).toHaveTextContent('Story card')
   })
 
-  it('redirects to home when close is clicked (location.href)', async () => {
-    const originalHref = window.location.href
-    delete window.location
-    window.location = { href: '' }
-
+  it('step 15 — close (Leave) goes home in the app, no reload', async () => {
     getMatchInfo.mockResolvedValue({ locations: [] })
     getStory.mockResolvedValue({ uuid: 'abc' })
-    const { getByText } = wrap('abc', { matchUuid: 'match-1' })
+    wrap('abc', { matchUuid: 'match-1' })
     await screen.findByTestId('game-book')
-    getByText('close').click()
-    expect(window.location.href).toBe('/')
-
-    window.location = { href: originalHref }
+    act(() => { screen.getByText('close').click() })
+    expect(screen.getByTestId('home-page')).toBeInTheDocument()
   })
 })

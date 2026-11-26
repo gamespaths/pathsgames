@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import BookPages, { turnRequest, useBookTurning, HOLD_SAFETY_MS } from '../components/book/BookPages'
 import { installWaapi } from './fixtures/waapi'
+import RouteBook from '../components/book/RouteBook'
 
 // Step 15 — the turn engine of the Book: snapshot before the commit, strategy after it (WAAPI stubbed).
 
@@ -53,6 +54,20 @@ describe('turnRequest', () => {
     // ONE commit with the chapter closing and the close card fading: the page's fade wins
     expect(turnRequest({ ...base, chapterKind: 'privacy' }, { ...base, pageKey: 2, direction: 'fade' })).toBe('fade')
     expect(turnRequest(base, base)).toBeNull()
+  })
+})
+
+describe('useBookTurning — step 15', () => {
+  it('also true while the routes\' book is busy (its opening, a book change, a route turn)', async () => {
+    const anim = { cover: true, turn: true, turnMode: 'full', reduced: false, timings: { open: 650 } }
+    render(
+      <RouteBook location={{ pathname: '/', key: 'k' }} anim={anim}>
+        {() => <Book />}
+      </RouteBook>,
+    )
+    expect(turning()).toBe('true')
+    await act(async () => { waapi.finishAll() })
+    expect(turning()).toBe('false')
   })
 })
 
@@ -156,6 +171,29 @@ describe('BookPages', () => {
     unmount()
     expect(sheets()).toHaveLength(0)
     expect(document.querySelector('.m-blocker')).toBeNull()
+  })
+
+  // Step 15 §9 — every page change goes back to the very top on phones, also when no strategy runs.
+  it('phones with the engine off: a forward or back page change jumps to the top once; a fade, a chapter and desktop never', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    window.matchMedia = vi.fn(() => ({ matches: true }))
+    const off = { ...ANIM, turn: false }
+    const { rerender } = render(<Book pageKey={0} anim={off} />)
+    rerender(<Book pageKey={1} direction="forward" anim={off} />)
+    expect(scrollTo).toHaveBeenCalledTimes(1)
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' })
+    rerender(<Book pageKey={2} direction="back" anim={{ ...ANIM, reduced: true }} />)
+    expect(scrollTo).toHaveBeenCalledTimes(2)
+    rerender(<Book pageKey={3} direction="fade" anim={off} />)
+    rerender(<Book pageKey={3} direction="fade" anim={off} chapterKind="privacy" />)
+    rerender(<Book pageKey={3} direction="fade" anim={off} />)
+    rerender(<Book pageKey={3} direction="fade" anim={off} text="same key" />)
+    expect(scrollTo).toHaveBeenCalledTimes(2)
+    window.matchMedia = vi.fn(() => ({ matches: false }))
+    rerender(<Book pageKey={4} direction="forward" anim={off} />)
+    expect(scrollTo).toHaveBeenCalledTimes(2)
+    vi.restoreAllMocks()
   })
 
   it('a phone copy cannot turn on the desktop layout (rotated past the breakpoint during a hold): it is dropped', () => {

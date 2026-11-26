@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
-  MOBILE_MQ, isMobileViewport, scrollMobileIntoView, scrollBookToTop, setMobileTurnBusy, mobileTurnBusy,
+  MOBILE_MQ, SIDE_TABS_MQ, isMobileViewport, isSideTabsViewport, scrollMobileIntoView, scrollBookToTop,
+  setMobileTurnBusy, mobileTurnBusy,
 } from '@/features/gameplay/js/mobileView'
 
 describe('mobileView — when the stacked mobile layout is on', () => {
@@ -21,6 +22,18 @@ describe('mobileView — when the stacked mobile layout is on', () => {
   it('isMobileViewport is false when the browser has no matchMedia', () => {
     delete window.matchMedia
     expect(isMobileViewport()).toBe(false)
+  })
+
+  // Step 15 — the desktop side tabs: wider than 1120px (where the cards go from 2 to 3 columns).
+  it('SIDE_TABS_MQ and isSideTabsViewport: the desktop side column of tabs', () => {
+    expect(SIDE_TABS_MQ).toBe('(min-width: 1121px)')
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true })
+    expect(isSideTabsViewport()).toBe(true)
+    expect(window.matchMedia).toHaveBeenCalledWith(SIDE_TABS_MQ)
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false })
+    expect(isSideTabsViewport()).toBe(false)
+    delete window.matchMedia
+    expect(isSideTabsViewport()).toBe(false)
   })
 })
 
@@ -49,23 +62,32 @@ describe('mobileView v1.13.0 — the document scrolls, not .book-overlay', () =>
     expect(scrollIntoView).not.toHaveBeenCalled()
   })
 
-  it('scrollBookToTop brings the top of the stack (the left page, v1.14.0) into view, never scrolls .book-overlay', () => {
-    const { scrollIntoView, overlayScroll, qs } = stubDom()
+  // Step 15 — the tabs stand on the book's top edge (no sticky row): the very top of the document, tabs in view.
+  it('scrollBookToTop scrolls the window to the very top on phones, never .book-overlay nor a page', () => {
+    const { scrollIntoView, overlayScroll } = stubDom()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     window.matchMedia = vi.fn().mockReturnValue({ matches: true })
     scrollBookToTop()
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'instant', block: 'start' })
-    expect(qs).toHaveBeenCalledWith('.book-page-left')
-    expect(qs).not.toHaveBeenCalledWith('.book-overlay')
-    expect(overlayScroll).not.toHaveBeenCalled()
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' })
     scrollBookToTop('smooth')
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'smooth', block: 'start' })
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'smooth' })
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    expect(overlayScroll).not.toHaveBeenCalled()
   })
 
-  it('scrollBookToTop is a no-op on desktop: the one tree renders the left page there too', () => {
-    const { scrollIntoView } = stubDom()
+  it('scrollBookToTop is a no-op on desktop and under a mobile turn', () => {
+    stubDom()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     window.matchMedia = vi.fn().mockReturnValue({ matches: false })
     scrollBookToTop()
-    expect(scrollIntoView).not.toHaveBeenCalled()
+    expect(scrollTo).not.toHaveBeenCalled()
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true })
+    setMobileTurnBusy(true)
+    scrollBookToTop()
+    expect(scrollTo).not.toHaveBeenCalled()
+    setMobileTurnBusy(false)
+    scrollBookToTop()
+    expect(scrollTo).toHaveBeenCalledOnce()
   })
 
   it('step 16 — skipped while a mobile turn holds its sheet: the turn lands the scroll itself', () => {

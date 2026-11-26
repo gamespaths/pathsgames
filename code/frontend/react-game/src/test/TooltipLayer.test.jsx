@@ -306,6 +306,74 @@ describe('TooltipLayer — placement', () => {
     document.documentElement.style.removeProperty('--navbar-h')
   })
 
+  // Step 15 — the desktop side tabs: the tip opens on their left, over the cover.
+  it('left of a side tab: 8px away, centred on it, the arrow on its centre', () => {
+    const SIDE_VIEW = { width: 1920, height: 1000 }
+    expect(placeTooltip(rect(300, 380, 74, 60), TIP, SIDE_VIEW, 72, 'left'))
+      .toEqual({ placement: 'left', top: 315, left: 292, arrow: 15 })
+  })
+
+  it('left placement clamped between the navbar and the screen bottom, the arrow still on the tab', () => {
+    const SIDE_VIEW = { width: 1920, height: 1000 }
+    expect(placeTooltip(rect(60, 380, 74, 20), TIP, SIDE_VIEW, 72, 'left')).toEqual({ placement: 'left', top: 72, left: 292, arrow: 10 })
+    expect(placeTooltip(rect(985, 380, 74, 10), TIP, SIDE_VIEW, 72, 'left')).toEqual({ placement: 'left', top: 962, left: 292, arrow: 20 })
+    // no height known: only the navbar bounds it
+    expect(placeTooltip(rect(985, 380, 74, 10), TIP, { width: 1920 }, 72, 'left')).toMatchObject({ top: 975 })
+  })
+
+  it('no room on the left: above / below as before', () => {
+    expect(placeTooltip(rect(300, 50), TIP, VIEW, 72, 'left')).toMatchObject({ placement: 'above', top: 262 })
+    expect(placeTooltip(rect(90, 50), TIP, VIEW, 72, 'left')).toMatchObject({ placement: 'below' })
+  })
+
+  it('a data-tip-side tab opens on its left only where SIDE_TABS_MQ matches (desktop side column)', () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      return this.dataset.testid === 'pg-tooltip' ? { ...TIP, top: 0, left: 0, bottom: 30, right: 80 } : rect(300, 380, 74, 60)
+    })
+    const queries = []
+    window.matchMedia = vi.fn(q => { queries.push(q); return { matches: true } })
+    const { tab } = setup()
+    tab().setAttribute('data-tip-side', 'left')
+    fireEvent.pointerOver(tab(), { pointerType: 'mouse' })
+    expect(tooltip().dataset.placement).toBe('left')
+    expect(tooltip().style.getPropertyValue('left')).toBe('292px')
+    expect(tooltip().style.getPropertyValue('--pg-tip-arrow')).toBe('15px')
+    expect(queries).toContain('(min-width: 1121px)')
+    fireEvent.pointerOut(tab(), { pointerType: 'mouse', relatedTarget: document.body })
+    // a tablet: the same tab keeps the tip above it
+    window.matchMedia = vi.fn(q => ({ matches: q === '(hover: hover)' }))
+    fireEvent.pointerOver(tab(), { pointerType: 'mouse' })
+    expect(tooltip().dataset.placement).toBe('above')
+    spy.mockRestore()
+    delete window.matchMedia
+  })
+
+  it('a window that reports no inner size: the document client size bounds the tip', () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      return this.dataset.testid === 'pg-tooltip' ? { ...TIP, top: 0, left: 0, bottom: 30, right: 80 } : rect(985, 380, 74, 10)
+    })
+    const inner = { w: window.innerWidth, h: window.innerHeight }
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 0 })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 0 })
+    Object.defineProperty(document.documentElement, 'clientWidth', { configurable: true, value: 1920 })
+    Object.defineProperty(document.documentElement, 'clientHeight', { configurable: true, value: 1000 })
+    window.matchMedia = vi.fn(() => ({ matches: true }))
+    try {
+      const { tab } = setup()
+      tab().setAttribute('data-tip-side', 'left')
+      fireEvent.pointerOver(tab(), { pointerType: 'mouse' })
+      expect(tooltip().dataset.placement).toBe('left')
+      expect(tooltip().style.getPropertyValue('top')).toBe('962px')
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: inner.w })
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: inner.h })
+      delete document.documentElement.clientWidth
+      delete document.documentElement.clientHeight
+      spy.mockRestore()
+      delete window.matchMedia
+    }
+  })
+
   it('without a --navbar-h value it reads 0', () => {
     const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
       return this.dataset.testid === 'pg-tooltip' ? { ...TIP } : rect(60, 100)

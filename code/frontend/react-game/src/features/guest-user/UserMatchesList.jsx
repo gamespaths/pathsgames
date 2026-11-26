@@ -95,7 +95,8 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
               match={match}
               story={storyMap[match.storyUuid] ?? null}
               highlighted={highlightRef.current.has(match.uuid)}
-              onResume={() => navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } })}
+              onResume={() => navigate(`/play/${match.storyUuid}`,
+                { state: { matchUuid: match.uuid, story: storyMap[match.storyUuid] } })}
               onPreviewCard={onPreviewCard}
               onHistory={onOpenHistory}
             />

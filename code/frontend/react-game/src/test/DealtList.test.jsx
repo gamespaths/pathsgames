@@ -5,6 +5,7 @@ import DealtList from '../components/layout/DealtList'
 import useDeal, { slotCard, dealOrigin } from '../hooks/useDeal'
 import { AnimationProvider } from '../context/AnimationContext'
 import BookPages from '../components/book/BookPages'
+import RouteBook from '../components/book/RouteBook'
 import { installWaapi } from './fixtures/waapi'
 
 // Step 14 — the deal: jsdom has no IntersectionObserver and no layout, so both are faked here.
@@ -258,34 +259,24 @@ describe('DealtList — the origin of a batch', () => {
     expect(dealOrigin(loose)).toEqual({ x: window.innerWidth, y: window.innerHeight })
   })
 
-  it('waits for the book to finish opening before measuring the first batch', async () => {
-    let finish
-    dealt(<Shell />)
-    screen.getByTestId('shell').getAnimations = () => [
-      { playState: 'running', finished: new Promise(r => { finish = r }) },
-      { playState: 'finished', finished: Promise.resolve() },
-    ]
-    io().fire([card(0)])
-    expect(card(0)).toHaveAttribute('data-deal', 'waiting')
-    await act(async () => { finish() })
-    expect(card(0)).toHaveAttribute('data-deal', 'flying')
-  })
-
-  it('a cancelled opening still deals; an unmount during it does not', async () => {
-    dealt(<Shell />)
-    screen.getByTestId('shell').getAnimations = () => [{ playState: 'running', finished: Promise.reject(new Error('cancel')) }]
-    io().fire([card(0)])
-    await waitFor(() => expect(card(0)).toHaveAttribute('data-deal', 'flying'))
-
-    FakeIO.instances = []
-    let finish
-    const { unmount } = dealt(<Shell />)
-    const later = screen.getAllByTestId('c0')[1]
-    screen.getAllByTestId('shell')[1].getAnimations = () => [{ playState: 'running', finished: new Promise(r => { finish = r }) }]
-    io().fire([later])
-    unmount()
-    await act(async () => { finish() })
-    expect(later).toHaveAttribute('data-deal', 'waiting')
+  it('step 15 — the cards wait while the routes\' book is busy (its first-load opening), then are dealt', async () => {
+    const waapi = installWaapi()
+    try {
+      const anim = { cover: true, reduced: false, turn: true, turnMode: 'full', timings: { open: 650 } }
+      dealt(
+        <RouteBook location={{ pathname: '/', key: 'k0' }} anim={anim}>
+          {() => <div className="book-wrapper"><Shell /></div>}
+        </RouteBook>,
+      )
+      expect(card(0)).toHaveAttribute('data-deal', 'waiting')
+      expect(io().targets.size).toBe(0)
+      await act(async () => { waapi.finishAll() })
+      expect(io().targets.size).toBe(1)
+      io().fire([card(0)])
+      expect(card(0)).toHaveAttribute('data-deal', 'flying')
+    } finally {
+      waapi.restore()
+    }
   })
 })
 

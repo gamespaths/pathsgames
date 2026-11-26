@@ -39,9 +39,11 @@ cp .env.example .env
 | `VITE_ANIM_TURN_MODE` | `full` | `full` or `simple` (anything else = `full`) |
 | `VITE_ANIM_SPEED` | `0.25` | Speed factor, clamped to 0.1-4 (invalid = `0.25`) |
 | `VITE_ANIM_DECK` | `under` | Desktop deck pile beside the book: `under` or `over` the book edge |
-| `VITE_SHOW_MOBILE_CARD_CHARACTERISTICS` | `false` | Show the game-status card on phones (the sticky pills row already says it) |
+| `VITE_ANIM_COVER` | `true` | Book cover animation when the book changes between routes (desktop fold/slide/open, phone cover) |
+| `VITE_ANIM_COVER_MAX_S` | `10` | Longest cover animation in seconds, `0` = no limit (env only, no preference row) |
+| `VITE_SHOW_MOBILE_CARD_CHARACTERISTICS` | `false` | Show the game-status card on phones (the icon tabs already say it) |
 
-The OS "reduced motion" setting turns every animation flag off whatever the env says (`VITE_ANIM_DECK` is a placement and stays). The player can override these defaults on this device (see **Preferences** below). Settings are read through `useAnimationSettings()` (`src/context/AnimationContext.jsx`, config in `src/constants/animations.js`; timings written as `--t-*` CSS variables on `<html>`). The same seven keys are required in the alpha deploy ([`code/scripts/alpha/README.md`](../../scripts/alpha/README.md)).
+The OS "reduced motion" setting turns every animation flag off whatever the env says (`VITE_ANIM_DECK` is a placement and stays). The player can override these defaults on this device (see **Preferences** below). Settings are read through `useAnimationSettings()` (`src/context/AnimationContext.jsx`, config in `src/constants/animations.js`; timings written as `--t-*` CSS variables on `<html>`). The same nine keys are required in the alpha deploy ([`code/scripts/alpha/README.md`](../../scripts/alpha/README.md)).
 
 ## Project Structure
 ```
@@ -58,11 +60,12 @@ src/
 │   ├── cookieConsent.js      # initCookieConsent(lang), openCookiePreferences(), setConsentLanguage(lang)
 │   └── cookieconsent-theme.css  # Maps --cc-* tokens to site design variables (dark bg + gold)
 ├── constants/
-│   └── animations.js   # (v1.14.0) readAnimationEnv, resolveAnimations, applyAnimationTimings for the seven VITE_ANIM_* keys
+│   └── animations.js   # (v1.14.0) readAnimationEnv, resolveAnimations, applyAnimationTimings for the nine VITE_ANIM_* keys (v1.15.0: cover keys, timings `slide`, `close`)
 ├── preferences/        # (v1.14.0, step 16) settings.js (whitelist, defaults, column limits per layout, effective settings), PreferencesContext.jsx (`usePreferences()`, writes `pathsgames.preferences`)
 ├── hooks/
 │   ├── useDeal.js      # (v1.14.0) deal-in-sequence hook for card grids
-│   └── useBookTurn.js  # (v1.14.0, step 15) page key + turn direction for books whose pages live in useState
+│   ├── useBookTurn.js  # (v1.14.0, step 15) page key + turn direction for books whose pages live in useState
+│   └── useAntibot.js   # (v1.15.0) anti-bot check hook; `useAntibotSuccess` + `ANTIBOT_SUCCESS_MS` for the success line
 ├── context/
 │   ├── AnimationContext.jsx  # (v1.14.0) AnimationProvider + useAnimationSettings(); follows prefers-reduced-motion
 │   ├── HomeButtonContext.jsx  # home tab handler (in a match the home tab and the brand open the close card)
@@ -77,9 +80,9 @@ src/
 ├── components/
 │   ├── layout/     # Navbar (sticky, home tab), Footer (env/server badges + policy links), ErrorCard (right page of the book),  GameCard, GameCardCreditsBar (credits row), GameCardInfoButton (legacy, no longer used by GameCard), Card.jsx (onForward prop, v0.28.5; front and back faces and `titleTag`, v1.14.0), CardBack.jsx (d20 back face, v1.14.0), DealtList.jsx (card grid that deals its children, 16 grids, v1.14.0), FadeIn.jsx (fade for pages that do not turn, step 15), LoadingCard.jsx, Map.jsx (MapPage — interactive world map, v0.28.5)
 │   ├── modals/     # no app modal left (CardPreviewModal deleted, v1.14.0); the cookie banner is the only modal (vanilla-cookieconsent)
-│   ├── ui/         # TooltipLayer (drawn tooltip for every `[data-tip]`), BonusBadgeList, TipNote, SafeHtml, TurnstileWidget
+│   ├── ui/         # TooltipLayer (drawn tooltip for every `[data-tip]`; left tooltips for the side tabs, v1.15.0), AntibotSuccess (shared success line of Home and start match, v1.15.0), BonusBadgeList, TipNote, SafeHtml, TurnstileWidget
 │   ├── common/     # BonusBadgeList (shared pill-badge row component)
-│   ├── book/       # Book, BookBookmarks, BookPageLeft, BookPageRight, Deck (table pile of card backs beside the book, `VITE_ANIM_DECK`, v1.14.0), BookPages (v1.14.0, step 15: spine, two pages and the turn layer; takes `pageKey`/`direction`), pageTurn.js (turn strategies full / simple / fade, `canAnimate`, `cleanClone`), mobileTurn.js (phone turn, step 16), PolicyChapter (`usePolicyChapter`: policy book as a chapter of the current book)
+│   ├── book/       # RouteBook (v1.15.0: wraps `<Routes>`, swaps the book when the book changes between routes; desktop fold/slide/open, phone cover, simple mode; navigation waits during animations, latest route wins), bookSwap.js (swap animations and the first-load opening, replaces the CSS `bookOpen`), Book, BookBookmarks (side tabs, v1.15.0), BookPageLeft, BookPageRight, Deck (table pile of card backs beside the book, `VITE_ANIM_DECK`, v1.14.0), BookPages (v1.14.0, step 15: spine, two pages and the turn layer; takes `pageKey`/`direction`), pageTurn.js (turn strategies full / simple / fade, `canAnimate`, `cleanClone`), mobileTurn.js (phone turn, step 16), PolicyChapter (`usePolicyChapter`: policy book as a chapter of the current book)
 │   └── CookieConsentManager.jsx  # Headless component; mounts consent banner once, syncs language; placed in App.jsx
 ├── features/
 │   ├── home/       # StoryCard (Netflix card), StoryCatalog (one list of all stories with category badges, v1.14.0)
@@ -133,10 +136,14 @@ src/
 - **Deal** (`useDeal`, `DealtList`): cards fly from the deck when they enter the screen; on desktop the table pile (`Deck`) is always shown while the deal is on. On phones the deal runs on scroll and the sticky page deck stands in for the pile.
 - **Play** (`PlayContext`): the played card lifts and glows during the API call, the other small cards fall, a copy on `body > .flying-card` flies into the story (the whole card, also from a reading page). While a play or a turn runs, the Book root is `inert` + `aria-busy`.
 - **Page turn** (`BookPages`, `pageTurn.js`, `bookTurns.js`): the old pages are cloned before the commit and turned over the new ones; modes `full`, `simple`, and a fade for changes that keep the pages. On phones `mobileTurn.js` turns one page hinged on its left edge; scroll jumps use `behavior: 'instant'`.
-- **Phones** (step 16): one book tree on every screen (no `GameBookMobile`/`StartBookMobile`); vertical book with a sticky pills row (`BookBookmarks`) and sticky page deck; landscape layout; touch guards; a 15 ms vibration on a play where supported.
+- **Fade on no move** (v1.15.0, step 15): a play that does not change the location (`movedBy` in `chromeScope.js`) fades the pages instead of turning; movement turns forward; use item and use exp keep their back turn.
+- **Book change between routes** (v1.15.0, `RouteBook`, `bookSwap.js`): the book swaps whenever the book changes (Home book `/` and `/player`; story book set-up, start, game, end game); inside a book the page turns. Desktop: fold, slide and open; phones: cover; `simple` turn mode: simple swap. `VITE_ANIM_COVER` / the "Book cover" preference switch it, `VITE_ANIM_COVER_MAX_S` caps it. Navigation waits while an animation runs (the latest route wins), at most 15 s (`NAV_WAIT_MAX_MS`), then the pending route is shown anyway; same-path changes (only state or query differ) apply at once with no animation or wait. The navbar brand reloads only when Home is shown and settled (`routeBookStatus()`); a click during a running or pending change to `/` does nothing. Leave, Back to home, fatal error and the navbar brand go home inside the app; account deletion and sign-out still reload. The first-load opening runs in code. New timings `slide`, `close`.
+- **Bookmarks per screen size** (v1.15.0, `BookBookmarks`, `mobileView.js` `SIDE_TABS_MQ` / `isSideTabsViewport`): desktop (over 1120 px) a right column kept on every page, game tabs from the top, home tab at the bottom, deck pile just above it and under every tab; tablet tabs on top; phones icon-only tabs on the book's top edge. Tab look: light inside plus a 6 px band of the cover's dark tooled leather (`--leather`, `--leather-noise`, `--side-tab-w` in `variables.css`).
+- **Start match success line** (v1.15.0): `AntibotSuccess` with `useAntibotSuccess`, shared by Home and start match.
+- **Phones** (step 16): one book tree on every screen (no `GameBookMobile`/`StartBookMobile`); vertical book with icon-only tabs on the book's top edge and the home tab hanging under its bottom-right corner (no sticky pills row, no `--book-pills-h`), back to the very top on every page change, and a sticky page deck; landscape layout; touch guards; a 15 ms vibration on a play where supported.
 
 ## Preferences (v1.14.0, step 16)
-The player page has a Preferences card (`PreferencesCard`) that opens `PreferencesEditor` on the right page: language, theme (medieval / parchment), text size, card columns (auto or a number within the limits of the layout), animation flags, turn mode, speed, deck placement, vibration, reset. Every choice applies at once. Choices are stored only on the device in localStorage key `pathsgames.preferences` (never sent to the server) and override the env defaults; reduced motion still wins over the animation flags. The key is listed in the cookie table of `src/consent/cookieConsent.js` and in the privacy/cookies policy texts.
+The player page has a Preferences card (`PreferencesCard`) that opens `PreferencesEditor` on the right page: language, theme (medieval / parchment), text size, card columns (auto or a number within the limits of the layout), animation flags (including Book cover, `anim.cover`), turn mode, speed, deck placement, vibration, reset. Every choice applies at once. Choices are stored only on the device in localStorage key `pathsgames.preferences` (never sent to the server) and override the env defaults; reduced motion still wins over the animation flags. The key is listed in the cookie table of `src/consent/cookieConsent.js` and in the privacy/cookies policy texts.
 
 All card size variants enforce `aspect-ratio: 2/3` (updated from `1/1.4`):
 
@@ -233,7 +240,8 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
     | 1.8.0 | Profile page replaced by a card; login card reworked | October 23, 2026 |
     | 1.13.0 | Pages replace pop-ups; player and story routes; tooltips | November 25, 2026 |
     | 1.14.0 | Home as a book; card back; deal animation settings; page turn; phone book | November 25, 2026 |
-- **Last Updated**: November 25, 2026 (v1.14.0)
+    | 1.15.0 | Book change animation; bookmarks per screen; start match line | November 26, 2026 |
+- **Last Updated**: November 26, 2026 (v1.15.0)
 - **Status**: Active development
 
 ---

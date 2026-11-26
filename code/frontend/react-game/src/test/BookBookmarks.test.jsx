@@ -89,4 +89,20 @@ describe('BookBookmarks', () => {
     render(<BookBookmarks items={[ITEM]} />)
     expect(screen.getByLabelText('Map')).not.toHaveClass('is-danger')
   })
+
+  // Step 15 — every tab asks for a side tooltip (read only by the desktop side column), icon only, badges kept.
+  it('every tab carries data-tip-side="left", no label span (also when active), badges still rendered', () => {
+    const { container } = render(<BookBookmarks items={[
+      { ...ITEM, active: true, badges: [{ key: 'life', label: 'Life', value: '3/10' }] },
+      { key: 'items', icon: 'fas fa-suitcase', label: 'Bag', danger: true },
+      { key: 'missions', icon: 'fas fa-clipboard-list', label: 'Missions', alert: true },
+    ]} />)
+    const tabs = container.querySelectorAll('.book-bookmark')
+    expect(tabs).toHaveLength(3)
+    tabs.forEach(t => expect(t).toHaveAttribute('data-tip-side', 'left'))
+    expect(container.querySelector('.book-bookmark__label')).toBeNull()
+    expect(screen.getByLabelText('Map').textContent).toBe('3/10')
+    expect(container.querySelector('.book-bookmark__badges .bonus-badge')).not.toBeNull()
+    expect(screen.getByLabelText('Missions')).toHaveClass('is-alert')
+  })
 })

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Book from '../components/book/Book'
+import RouteBook from '../components/book/RouteBook'
 import { LanguageProvider } from '../i18n/context'
 import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
 import { HomeButtonProvider, useHomeButtonHandler } from '../context/HomeButtonContext'
@@ -107,6 +108,43 @@ describe('Book', () => {
     }
   })
 
+  it('step 15 — the cover title rides on the wrapper (data-cover-title), none without one', () => {
+    const { container, rerender } = render(<Book left={null} right={null} coverTitle="The Lost Crown" />)
+    expect(container.querySelector('.book-wrapper')).toHaveAttribute('data-cover-title', 'The Lost Crown')
+    rerender(<Book left={null} right={null} coverTitle="" />)
+    expect(container.querySelector('.book-wrapper')).not.toHaveAttribute('data-cover-title')
+  })
+
+  it('step 15 — inside the routes\' book: inert while it opens or changes; its own play is reported (a navigation waits)', async () => {
+    const waapi = installWaapi()
+    try {
+      const anim = { cover: true, turn: true, turnMode: 'full', reduced: false, timings: { open: 650 } }
+      const playing = { state: { playId: 'a', phase: 'lift', small: true }, api: {} }
+      let routeBook = null
+      const tree = (controller, onBook) => (
+        <RouteBook ref={onBook} location={{ pathname: '/', key: 'k' }} anim={anim}>
+          {() => (controller
+            ? <PlayProvider controller={controller}><Book left={null} right={null} /></PlayProvider>
+            : <Book left={null} right={null} />)}
+        </RouteBook>
+      )
+      const { container, rerender, unmount } = render(tree(null, el => { routeBook = el }))
+      const stage = () => container.querySelector('.book-stage')
+      expect(stage()).toHaveAttribute('inert')
+      expect(stage()).toHaveAttribute('aria-busy', 'true')
+      await act(async () => { waapi.finishAll() })
+      expect(stage()).not.toHaveAttribute('inert')
+      expect(routeBook.state.bookBusy).toBe(false)
+      rerender(tree(playing, el => { routeBook = el }))
+      expect(routeBook.state.bookBusy).toBe(true)
+      rerender(tree(null, el => { routeBook = el }))
+      expect(routeBook.state.bookBusy).toBe(false)
+      unmount()
+    } finally {
+      waapi.restore()
+    }
+  })
+
   it('slots the bookmarks into the wrapper, one row per page', () => {
     const { container } = render(<Book left={null} right={null}
       bookmarksLeft={[{ key: 'information', label: 'Info' }]}
@@ -118,7 +156,7 @@ describe('Book', () => {
     expect(screen.getByLabelText('Info')).toBeInTheDocument()
   })
 
-  it('step 16 — both rows inside one .book-bookmarks-row (the phone pills), the right row last', () => {
+  it('step 15 — both groups inside one .book-bookmarks-row in .book-wrapper, the home tab last of --right', () => {
     const { container } = inRouter(<Book left={null} right={null}
       bookmarksLeft={[{ key: 'information', label: 'Info', active: true }, { key: 'map', label: 'Map' }]}
       bookmarksRight={[{ key: 'mp', label: 'MP' }]} />)
@@ -127,13 +165,35 @@ describe('Book', () => {
     expect(rows[0].parentElement).toHaveClass('book-wrapper')
     expect([...rows[0].children].map(c => c.className)).toEqual([
       'book-bookmarks book-bookmarks--left', 'book-bookmarks book-bookmarks--right'])
-    // the home tab ends the merged row: last pill of the last row
-    const pills = rows[0].querySelectorAll('.book-bookmark')
-    expect(pills[pills.length - 1]).toHaveClass('book-bookmark--home')
+    // the home tab ends the right group: last tab of the last group
+    const tabs = rows[0].querySelectorAll('.book-bookmark')
+    expect(tabs[tabs.length - 1]).toHaveClass('book-bookmark--home')
+    expect(rows[0].querySelector('.book-bookmarks--right .book-bookmark:last-child')).toHaveClass('book-bookmark--home')
     expect(homeTabs(container)).toHaveLength(1)
-    // only the active pill carries its label (shown by the phone layout only)
-    expect(container.querySelectorAll('.book-bookmark__label')).toHaveLength(1)
-    expect(screen.getByLabelText('Info').querySelector('.book-bookmark__label')).toHaveTextContent('Info')
+    // step 15 — icon only on every screen: no label span, not even on the active tab
+    expect(container.querySelector('.book-bookmark__label')).toBeNull()
+    expect(screen.getByLabelText('Info')).toHaveClass('is-active')
+    // the stage says which groups show (phones make room over and under the book)
+    const stage = container.querySelector('.book-stage')
+    expect(stage).toHaveClass('book-stage--game-tabs', 'book-stage--home-tab')
+    expect(stage).not.toHaveClass('book-stage--no-tabs')
+  })
+
+  it('step 15 — stage classes: home tab only, game tabs only (no router), none on the Home', () => {
+    const homeOnly = inRouter(<Book left={null} right={null} />).container.querySelector('.book-stage')
+    expect(homeOnly).toHaveClass('book-stage--home-tab')
+    expect(homeOnly).not.toHaveClass('book-stage--game-tabs')
+    const gameOnly = render(<Book left={null} right={null} bookmarksLeft={[{ key: 'a', label: 'A' }]} />)
+      .container.querySelector('.book-stage')
+    expect(gameOnly).toHaveClass('book-stage--game-tabs')
+    expect(gameOnly).not.toHaveClass('book-stage--home-tab')
+    const rightOnly = render(<Book left={null} right={null} bookmarksRight={[{ key: 'mp', label: 'MP' }]} />)
+      .container.querySelector('.book-stage')
+    expect(rightOnly).toHaveClass('book-stage--home-tab')
+    const home = render(<Book left={null} right={null} homeTab={false} />).container.querySelector('.book-stage')
+    expect(home).toHaveClass('book-stage--no-tabs')
+    expect(home).not.toHaveClass('book-stage--game-tabs')
+    expect(home).not.toHaveClass('book-stage--home-tab')
   })
 
   it('step 16 — a long press on a pill or on the home tab shows the drawn tooltip and never opens it; a tap opens', () => {

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
+import { isSideTabsViewport } from '@/features/gameplay/js/mobileView'
 
 /**
  * TooltipLayer — v1.13.0: one drawn tooltip for every `[data-tip]` target, mounted once in App: mouse hover,
@@ -41,8 +42,22 @@ function navbarHeight() {
   return Number.isFinite(value) ? value : 0
 }
 
+/** Step 15 — left of a side tab, over the cover: centred on it, clamped between the navbar and the screen bottom; null with no room. */
+function placeLeft(target, tip, viewport, navH) {
+  const left = target.left - tip.width - GAP_PX
+  if (left < EDGE_MARGIN_PX) return null
+  const centre = target.top + target.height / 2
+  const minTop = Math.max(EDGE_MARGIN_PX, navH)
+  const maxTop = Math.max(minTop, (viewport.height ?? Infinity) - tip.height - EDGE_MARGIN_PX)
+  const top = Math.min(Math.max(centre - tip.height / 2, minTop), maxTop)
+  const arrow = Math.min(Math.max(centre - top, 10), Math.max(10, tip.height - 10))
+  return { placement: 'left', top, left, arrow }
+}
+
 /** Above the target, below when there is no room or the navbar is in the way; centred, clamped, arrow on the target. */
-export function placeTooltip(target, tip, viewport, navH = 0) {
+export function placeTooltip(target, tip, viewport, navH = 0, side = null) {
+  const beside = side === 'left' ? placeLeft(target, tip, viewport, navH) : null
+  if (beside) return beside
   const width = tip.width
   let placement = 'above'
   let top = target.top - tip.height - GAP_PX
@@ -171,8 +186,11 @@ export default function TooltipLayer() {
     if (!tip || !el) return
     const r = tip.target.getBoundingClientRect()
     const box = el.getBoundingClientRect()
-    const { placement, top, left, arrow } = placeTooltip(r, box,
-      { width: window.innerWidth || document.documentElement.clientWidth }, navbarHeight())
+    // Step 15 — a side tab (desktop column only) shows its tip on its left; tablets and phones keep above / below.
+    const side = tip.target.getAttribute('data-tip-side') === 'left' && isSideTabsViewport() ? 'left' : null
+    const viewport = { width: window.innerWidth || document.documentElement.clientWidth,
+      height: window.innerHeight || document.documentElement.clientHeight }
+    const { placement, top, left, arrow } = placeTooltip(r, box, viewport, navbarHeight(), side)
     el.dataset.placement = placement
     el.style.setProperty('top', `${Math.round(top)}px`)
     el.style.setProperty('left', `${Math.round(left)}px`)

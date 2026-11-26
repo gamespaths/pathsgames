@@ -32,13 +32,6 @@ export function dealOrigin(list) {
 
 const inDomOrder = (a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1)
 
-/** Running animations of the book that holds the list (its opening): the first batch waits for them. */
-function openingOf(list) {
-  const shell = list.closest('.book-shell')
-  if (typeof shell?.getAnimations !== 'function') return []
-  return shell.getAnimations().filter(a => a.playState === 'running')
-}
-
 /** Deals the list's cards (off, reduced or no IntersectionObserver: all landed); `hold` keeps them waiting. */
 export default function useDeal(listRef, { hold = false } = {}) {
   const settings = useAnimationSettings()
@@ -51,7 +44,6 @@ export default function useDeal(listRef, { hold = false } = {}) {
     if (!list) return undefined
     const flying = new Map()
     let io = null
-    let cancelled = false
 
     const land = card => {
       flying.get(card)?.()
@@ -86,10 +78,7 @@ export default function useDeal(listRef, { hold = false } = {}) {
       if (batch.length === 0) return
       batch.forEach(card => io.unobserve(card))
       batch.sort(inDomOrder)
-      const opening = openingOf(list)
-      if (opening.length === 0) { fly(batch); return }
-      // The book is still opening: measure once it is drawn, so the cards leave the deck where it is.
-      Promise.all(opening.map(a => a.finished)).catch(() => {}).then(() => { if (!cancelled) fly(batch) })
+      fly(batch)
     }
 
     const adopt = card => {
@@ -115,7 +104,6 @@ export default function useDeal(listRef, { hold = false } = {}) {
     list.addEventListener('focusin', onFocus)
 
     return () => {
-      cancelled = true
       io?.disconnect()
       mo?.disconnect()
       list.removeEventListener('focusin', onFocus)

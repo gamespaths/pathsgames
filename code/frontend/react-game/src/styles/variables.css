@@ -81,6 +81,10 @@
   --navbar-h:       72px;
   --book-tabs-h:    46px;
 
+  /* === LEATHER (step 15) — the cover's noise and brown gradient, shared by the cover and the tabs' band === */
+  --leather-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23l)' opacity='0.18'/%3E%3C/svg%3E");
+  --leather: linear-gradient(135deg, var(--color-brown-warm) 0%, var(--color-brown-mid) 45%, var(--color-brown-dark) 100%);
+
   /* === LAYERS === */
   --z-navbar:       1000;
   --z-banner:       1010;
@@ -89,8 +93,13 @@
 }
 
 @media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  /* Step 16 — the height of the book's sticky tab row on phones (mobile.css). */
-  :root { --navbar-h: 56px; --book-pills-h: 3rem; }
+  /* Step 15 — phones: the icon tabs standing on the book's top edge (mobile.css). */
+  :root { --navbar-h: 56px; --book-tabs-h: 44px; }
+}
+
+/* Step 15 — desktop: the column of side tabs right of the book (book.css). */
+@media (min-width: 1121px) {
+  :root { --side-tab-w: 78px; }
 }
 
 /* Card columns, in this order: narrow under 1120px, wide again on a phone turned sideways, one under 331px. */

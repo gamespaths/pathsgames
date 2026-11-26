@@ -105,9 +105,10 @@ describe('useBookView — openPreview', () => {
   })
 
   // v1.14.0 — CardPreviewModal is gone: on mobile a left preview is the top card of the one tree.
-  it('opens a left preview on the left page on mobile too, and scrolls the phone to it', () => {
+  it('opens a left preview on the left page on mobile too, and takes the phone back to the very top (step 15)', () => {
     window.matchMedia = vi.fn(() => ({ matches: true }))
     const scrollIntoView = vi.fn()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     vi.spyOn(document, 'querySelector').mockImplementation(sel =>
@@ -116,7 +117,33 @@ describe('useBookView — openPreview', () => {
     act(() => result.current[1].openPreview({ card: { title: 'c' }, type: 'trait' }))
     expect(result.current[0].previewLeft).toMatchObject({ type: 'trait' })
     expect(result.current[0]).not.toHaveProperty('previewModal')
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    expect(scrollIntoView).not.toHaveBeenCalled()
+  })
+
+  // Step 15 — the tab handlers no longer scroll: the turn (or BookPages with no turn) lands phones at the top.
+  it('tab handlers change the view with no scroll of their own; a map node and a right preview still scroll right', () => {
+    window.matchMedia = vi.fn(() => ({ matches: true }))
+    const scrollIntoView = vi.fn()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
+    const realQS = document.querySelector.bind(document)
+    vi.spyOn(document, 'querySelector').mockImplementation(sel =>
+      (sel.startsWith('.book-page-') && !sel.includes(' ') ? { scrollIntoView, sel } : realQS(sel)))
+    const { result } = renderHook(() => useBookView())
+    act(() => result.current[1].openItems())
+    act(() => result.current[1].openRegistry())
+    act(() => result.current[1].openMissions())
+    act(() => result.current[1].openMission({ mission: { uuid: 'm' }, card: { title: 'm' } }))
+    act(() => result.current[1].openMap())
+    act(() => result.current[1].openExp())
+    expect(result.current[0].view).toBe('exp')
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    expect(scrollTo).not.toHaveBeenCalled()
+    act(() => result.current[1].selectMapNode({ id: 'n1' }))
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    act(() => result.current[1].openPreview({ card: { title: 'c' }, type: 'action', side: 'right' }))
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
   })
 
   it('opens the left reading page on desktop (a stale modal option is ignored)', () => {

@@ -26,7 +26,10 @@ function scrollWindowTo(y) {
 export function PolicyBookProvider({ children }) {
   // Step 42 — `?policy=` opens its chapter on load; closing any chapter drops the parameter.
   const [policyBook, setPolicyBook] = useState(() => readPolicyDeepLink())
+  // Step 15 — the shown pathname the chapter belongs to (null: any, the deep link until a page adopts it).
+  const [openedOn, setOpenedOn] = useState(null)
   const openRef = useRef(policyBook)
+  const pathRef = useRef(null)
   const savedScroll = useRef(null)
   const pendingRestore = useRef(null)
 
@@ -36,9 +39,17 @@ export function PolicyBookProvider({ children }) {
     if (next && !openRef.current) {
       savedScroll.current = currentScrollY()
       scrollWindowTo(0)
+      setOpenedOn(pathRef.current)
     }
+    if (!next) setOpenedOn(null)
     openRef.current = next
     setPolicyBook(next)
+  }, [])
+
+  // Step 15 — the routes tell the shown pathname; `adopt` ties an open chapter to it (deep link, redirect).
+  const notePath = useCallback((pathname, adopt = false) => {
+    pathRef.current = pathname
+    if (adopt && openRef.current) setOpenedOn(pathname)
   }, [])
 
   // `{ restoreScroll: false }` (a route change) closes without going back to the old position.
@@ -47,6 +58,7 @@ export function PolicyBookProvider({ children }) {
     pendingRestore.current = restore ? savedScroll.current : null
     savedScroll.current = null
     openRef.current = null
+    setOpenedOn(null)
     setPolicyBook(null)
     clearPolicyDeepLink()
   }, [])
@@ -59,13 +71,13 @@ export function PolicyBookProvider({ children }) {
     scrollWindowTo(y)
   }, [policyBook])
 
-  const value = useMemo(() => ({ policyBook, openPolicyBook, closePolicyBook }),
-    [policyBook, openPolicyBook, closePolicyBook])
+  const value = useMemo(() => ({ policyBook, openedOn, openPolicyBook, closePolicyBook, notePath }),
+    [policyBook, openedOn, openPolicyBook, closePolicyBook, notePath])
   return <PolicyBookContext.Provider value={value}>{children}</PolicyBookContext.Provider>
 }
 
 // Outside a provider (isolated renders) the hook is inert: nothing opens, nothing breaks.
-const NOOP = { policyBook: null, openPolicyBook: () => {}, closePolicyBook: () => {} }
+const NOOP = { policyBook: null, openedOn: null, openPolicyBook: () => {}, closePolicyBook: () => {}, notePath: () => {} }
 
 export function usePolicyBook() {
   return useContext(PolicyBookContext) ?? NOOP

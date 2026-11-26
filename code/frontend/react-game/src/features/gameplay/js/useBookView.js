@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react'
-import { scrollMobileIntoView } from './mobileView'
+import { scrollBookToTop, scrollMobileIntoView } from './mobileView'
 import { turnFor } from './bookTurns'
 
 /**
@@ -132,9 +132,9 @@ export default function useBookView() {
       dispatch({ type: 'previewRight', value: { kind: 'preview', ...preview } })
     } else {
       dispatch({ type: 'previewLeft', value: preview })
-      // The left reading page scrolls its own content back to the top; a phone scrolls to it.
+      // The left reading page scrolls its own content back to the top; a phone goes to the very top (step 15).
       document.querySelector('.book-page-left .page-inner')?.scrollTo?.({ top: 0, behavior: 'smooth' })
-      scrollMobileIntoView('.book-page-left')
+      scrollBookToTop()
     }
   }, [])
 
@@ -153,17 +153,14 @@ export default function useBookView() {
           statItemsToPageContent: [], additionalProps: {} } })
       document.querySelector('.book-page-left .page-inner')?.scrollTo?.({ top: 0, behavior: 'smooth' })
     },
-    openMission: ({ mission, card, stats = [] }) => {
-      dispatch({ type: 'openMission', mission,
-        preview: { card, type: 'missions', lockedReason: null,
-          statItemsToPageContent: stats, additionalProps: {} } })
-      scrollMobileIntoView('.book-page-right')
-    },
-    openItems: direction => { dispatch({ type: 'openItems', direction: given(direction) }); scrollMobileIntoView('.book-page-right') },
-    openRegistry: () => { dispatch({ type: 'openRegistry' }); scrollMobileIntoView('.book-page-right') },
-    openMissions: () => { dispatch({ type: 'openMissions' }); scrollMobileIntoView('.book-page-right') },
-    openMap: () => { dispatch({ type: 'openMap' }); scrollMobileIntoView('.book-page-left') },
-    openExp: () => { dispatch({ type: 'openExp' }); scrollMobileIntoView('.book-page-right') },
+    // Step 15 — the view changes turn the page; the turn (or BookPages with no turn) lands phones at the top.
+    openMission: ({ mission, card, stats = [] }) => dispatch({ type: 'openMission', mission,
+      preview: { card, type: 'missions', lockedReason: null, statItemsToPageContent: stats, additionalProps: {} } }),
+    openItems: direction => dispatch({ type: 'openItems', direction: given(direction) }),
+    openRegistry: () => dispatch({ type: 'openRegistry' }),
+    openMissions: () => dispatch({ type: 'openMissions' }),
+    openMap: () => dispatch({ type: 'openMap' }),
+    openExp: () => dispatch({ type: 'openExp' }),
     setPreviewLeft: (value, direction) => dispatch({ type: 'previewLeft', value, direction: given(direction) }),
     setPreviewRight: (value, direction) => dispatch({ type: 'previewRight', value, direction: given(direction) }),
     setChoices: value => dispatch({ type: 'setChoices', value }),

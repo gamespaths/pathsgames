@@ -1,14 +1,16 @@
 # Step 16 — Mobile book and preferences: test list
 
-**Status: to test (November 25, 2026), version 1.14.0.** Step file: [Step16_MobileBookAndPreferences.md](../Step16_MobileBookAndPreferences.md),
+**Status: to test (November 25, 2026, version 1.14.0; updated November 26, 2026 for 1.15.0).** Step file: [Step16_MobileBookAndPreferences.md](../Step16_MobileBookAndPreferences.md),
 part B: the vertical book graphics (§6.3) and §6.4–6.10 (pills, sticky deck, mobile turn, touch, vibration, preferences,
 cookie and policy texts). Part A (§6.3, the one-tree switch) was built with step 15 and is tested in
 [Step15_PlayAndPageTurn.md](./Step15_PlayAndPageTurn.md) items 33–45: not repeated here (part B changes some of their phone
 expectations, item 52 and §3).
-Developed in react-game only. Java, Python, AWS, react-admin, OpenAPI, Flyway, Robot suites and env files are unchanged; no
-new env key. Unit tests and build are green (run again by the tester, four full runs); every manual check below is still to
-do (the developer opened no browser and no phone). Steps 14 and 15 are in the same working tree and still being tested: their
-lists stay [Step14_HomeBookAndCardFaces.md](./Step14_HomeBookAndCardFaces.md) and [Step15_PlayAndPageTurn.md](./Step15_PlayAndPageTurn.md).
+Developed in react-game only. Java, Python, AWS, react-admin, OpenAPI, Flyway and Robot suites are unchanged; step 16 adds
+no env key (1.15.0 adds two for step 15, §0). Unit tests and build are green (unit tests run again on November 26); every
+manual check below is still to do (the developer opened no browser and no phone). Step 15's 1.15.0 to-dos (bookmarks per
+screen size, book change between routes, plays that do not move fade) replaced the phone pills row and changed several
+items; items 55–59 are new, placed in their groups (§3, last note). Steps 14 and 15 are still being tested: their lists stay
+[Step14_HomeBookAndCardFaces.md](./Step14_HomeBookAndCardFaces.md) and [Step15_PlayAndPageTurn.md](./Step15_PlayAndPageTurn.md).
 
 Legend: `[ ]` to do · `[ DONE ]` checked by the owner · `[ UNIT ]` covered by unit tests ·
 `[ ROBOT ]` covered by Robot suites · `[ NOT TESTABLE ]` with the reason.
@@ -18,9 +20,10 @@ For each point: **Done** = what changed, **Test** = what to try, **Expected** = 
 
 ## 0. Before starting
 
-- **Environment variables:** none new, no env file changed. One code default changed: `VITE_SHOW_MOBILE_CARD_CHARACTERISTICS`
-  is now `false`. On November 25 `.env`, `.env.test` and `.env.alpha` have no `VITE_ANIM_*` and no `VITE_SHOW_*` key, so the
-  code defaults apply. To try a switch, add the key to react-game `.env` and restart `npm run dev` (Vite reads `.env` only at
+- **Environment variables:** none new for step 16. One code default changed: `VITE_SHOW_MOBILE_CARD_CHARACTERISTICS`
+  is now `false`. Step 15's 1.15.0 adds `VITE_ANIM_COVER` and `VITE_ANIM_COVER_MAX_S` to react-game `.env.example` and the
+  alpha workflow (last two rows). On November 26 `.env`, `.env.test` and `.env.alpha` have no `VITE_ANIM_*` and no
+  `VITE_SHOW_*` key, so the code defaults apply. To try a switch, add the key to react-game `.env` and restart `npm run dev` (Vite reads `.env` only at
   start); remove it afterwards. The agent never edits `.env*`. A choice made in the Preferences card wins over these env
   defaults; the OS reduced motion wins over both.
 
@@ -31,6 +34,8 @@ For each point: **Done** = what changed, **Test** = what to try, **Expected** = 
   | `VITE_ANIM_TURN_MODE` | same | same → `mobileTurn.js` `run` | `full` (default) or `simple` | item 21 |
   | `VITE_ANIM_SPEED` | same | same; clamped to 0.1–4 | `0.25` (default) | item 24 |
   | `VITE_CF_TURNSTILE_KEY` | react-game `.env` | `src/utils/turnstile.js` | `1x00000000000000000000AA` (Cloudflare test key, `.env.example`) or empty (no check) | items 31, 45 |
+  | `VITE_ANIM_COVER` (1.15.0) | react-game `.env`, `.env.example`; alpha `vars.VITE_ANIM_COVER` | `src/constants/animations.js` → `RouteBook` | `true` (default); `false` = no book change and no first-load opening | items 58, 59 |
+  | `VITE_ANIM_COVER_MAX_S` (1.15.0, env only, no preference row) | same; alpha `vars.VITE_ANIM_COVER_MAX_S` | same → `swapTimings` in `bookSwap.js` | `10` (default, seconds); `0` = no limit; negative or text → 10 | item 58 |
 
 - **Servers** (start them yourself):
   - a backend on 8042: `cd code/backend/java && mvn -pl ms-launcher spring-boot:run`
@@ -46,12 +51,17 @@ For each point: **Done** = what changed, **Test** = what to try, **Expected** = 
   Reduced motion: DevTools → Rendering → "Emulate CSS media feature prefers-reduced-motion: reduce"; Android "Remove
   animations"; iPhone Settings → Accessibility → Motion → "Reduce Motion".
 - **Timings at the default speed 0.25** (written on `<html>` as `--t-*`): mobile sheet 2.48 s (`--t-sheet: 2480ms`), simple
-  swing 2.08 s, fade 0.8 s, lift 0.96 s, flight 2.24 s. At ½× all halve, at 1× the sheet takes 0.62 s.
+  swing 2.08 s, fade 0.8 s, lift 0.96 s, flight 2.24 s; 1.15.0 adds slide 2.4 s and close 1.04 s (a phone book change
+  2 × (sheet + slide) = 9.76 s, under the 10 s cap). At ½× all halve, at 1× the sheet takes 0.62 s.
 - **Test hooks:** `<html>` carries `data-pg-theme`, `data-pg-size`, `data-pg-cols` (absent with Auto) and `data-pg-reduced`
   (OS reduced motion only), plus the class `is-turning` while a phone sheet is up; the sheet is `div.m-sheet` on `<body>`,
   with `div.m-cast` and the touch blocker `div.m-blocker`; `.book-wrapper` keeps `data-direction` and `data-page-key`
-  (step 15). The choices live in localStorage under `pathsgames.preferences`.
-- **Git:** nothing staged, nothing committed. Step 16 B adds untracked files: `components/book/mobileTurn.js`,
+  (step 15). The choices live in localStorage under `pathsgames.preferences`. 1.15.0: during a phone book change `<body>`
+  holds `div.m-blocker`, the old slice copy `div.m-sheet.m-sheet--tabs` and the cover `div.m-sheet.m-cover`, and
+  `.route-book` has `is-swapping` (the live book hidden); the stage has `book-stage--game-tabs` and/or `book-stage--home-tab`.
+- **Git (November 26):** steps 14–16 B were committed with 1.14.0 (`eecbe160`); the 1.15.0 work is unstaged (untracked
+  `RouteBook.jsx`, `bookSwap.js`, `AntibotSuccess.jsx`, `RouteBook.test.jsx`, `bookSwap.test.js`), nothing staged, plus the
+  owner's 1.15.0 version bump. The rest of this point is the November 25 state. Step 16 B adds untracked files: `components/book/mobileTurn.js`,
   `utils/haptics.js`, `preferences/settings.js`, `preferences/PreferencesContext.jsx`,
   `features/preferences/PreferencesCard.jsx`, `features/preferences/PreferencesEditor.jsx`, `styles/preferences.css` and four
   test files (`mobileTurn`, `preferencesSettings`, `PreferencesContext`, `PreferencesCards`). Its changes to `providers.jsx`,
@@ -68,6 +78,8 @@ For each point: **Done** = what changed, **Test** = what to try, **Expected** = 
 
 - [ UNIT ] **1. Unit tests** (green, run again only after a change)
   - `cd code/frontend/react-game && npx vitest run --coverage`
+  - Result on November 26 (1.15.0, `npx vitest run`, run once by the tester): 191 files, 2255 passed, 0 failed, 3 skipped.
+    Coverage not measured again; the figures below are the 1.14.0 ones.
   - Result on November 25 (run again by the tester, same numbers as the dev report): 189 files, 2138 passed, 0 failed,
     3 skipped (before part B: 185 files, 2067 passed). Coverage overall: statements 99.13%, branches 95.47%, functions
     99.5%, lines 99.66%.
@@ -86,7 +98,8 @@ For each point: **Done** = what changed, **Test** = what to try, **Expected** = 
   - Expected: all green as in 1.13.0.
 - [ ] **4. Manual tests** of section 2: phone sizes in DevTools, a real Android and iPhone, desktop, both languages.
 - [ ] **5. Alpha deploy** (when you release): nothing new for step 16 (no env key). Step 14's seven `VITE_ANIM_*` variables
-  must still be set (step 14 list, item 3). After it, item 46 and the phone items on the alpha site.
+  must still be set (step 14 list, item 3), plus step 15's `VITE_ANIM_COVER` and `VITE_ANIM_COVER_MAX_S` (1.15.0, GitHub
+  `vars.*`). After it, item 50 and the phone items on the alpha site.
 - [ ] **6. Documentation:** `/doc-update`. To update: react-game `README.md` (new modules `preferences/`,
   `features/preferences/`, `components/book/mobileTurn.js`, `utils/haptics.js`, `styles/preferences.css`; the language
   buttons now live in the Preferences editor, §4 still says "language switcher in Navbar"; `pathsgames.preferences` in the
@@ -111,54 +124,72 @@ the item says otherwise.
     shading along their left edge (about 28px) and three thin page edges showing on their right side. The upper page is
     rounded at the top, the lower one at the bottom. Gold corners at the four outer corners; the leather cover with its gold
     frame and stitching wraps both pages; the red ribbon hangs under the bottom edge near the right corner (not in the
-    middle). No horizontal scroll.
+    middle), the house tab just left of it (item 56). No horizontal scroll.
 - [ ] **2. Book graphics on the other books**
   - Test: `/story/<id>`, `/start-match/<id>`, `/player`, a policy chapter (footer "Privacy"), the Home, an end game.
   - Expected: the same spine, headbands, edges, shading and ribbon on every book. On the end game the end card is on top
     (rounded at the top) and the story card below it.
 
-### Sticky pills row (§6.4)
+### Tabs on the book's edges (§6.4; the pills row was replaced by step 15's bookmarks per screen size, 1.15.0)
 
-- [ ] **3. One row with the desktop tabs** (in a match)
-  - Done: both tab rows sit in one `.book-bookmarks-row`; on phones it is a sticky row of pills; only the active pill shows
-    its name.
+- [ ] **3. Icon tabs on the book's top edge** (in a match)
+  - Done: step 16's sticky pills row is gone (step 15 to-do "Bookmarks per screen size"): on phones the game tabs stand on
+    the book's top edge, icon only, no badges; the house tab hangs under the book (item 56).
   - Test: look at the top of the book at 390×844, then at the same match at 1440×900.
-  - Expected: one dark row of round pills at the top of the book: Position, Information (with its stat badges), Backpack
-    (weight badge), Map, Missions, then the house tab last at the right end; the same icons and badges as the desktop tabs.
-    Only the active pill shows its name next to its icon ("Position" / "Posizione"). Red Information or Backpack pill when a
-    stat is critical or the bag is overloaded, light gold Missions pill after a mission changed, as on desktop.
-- [ ] **4. Sticky**
+  - Expected: phone: no bar under the navbar; five icon tabs (Position, Information, Backpack, Map, Missions) stand on
+    the cover's top edge, no badges and no names; the house tab is not up there. Red Information or Backpack tab when a stat
+    is critical or the bag is overloaded, light gold Missions tab after a mission changed, as on desktop. 1440: the tabs
+    hang down the cover's right edge (step 15 list).
+- [ ] **4. No sticky bar: the tabs scroll with the book**
   - Test: scroll down to the last action card and back up.
-  - Expected: the row stays right under the navbar (opaque dark background, nothing shows through) while the pages slide
-    under it; it scrolls away only when the book ends. The navbar stays on top.
-- [ ] **5. Sideways scroll, house tab pinned**
-  - Test: at 320×640 and 360×740 swipe the pills row to the left and back.
-  - Expected: the pills stay on one line and the row scrolls sideways with no visible scroll bar; the page itself never
-    scrolls sideways. The house tab stays fixed at the right end on the row's dark background; the other pills slide under
-    it.
+  - Expected: the tabs go up with the book's top edge and leave the screen; nothing but the navbar stays at the top; back
+    at the top they stand on the book's edge again.
+- [ ] **5. No sideways scroll** (360×740)
+  - Test: swipe left and right starting on the tabs.
+  - Expected: nothing scrolls sideways (there is no row to swipe) and the page never scrolls sideways; all five tabs show
+    on the book, none cut by the screen edge.
 - [ ] **6. A tap opens**
-  - Test: tap Backpack, then Map, then Position; tap the active pill.
-  - Expected: each tap opens its page (with the turn of items 14–16); the tapped pill turns gold and shows its name
-    ("Backpack" / "Zaino", "Map" / "Mappa", "Position" / "Posizione"); the active pill does nothing.
+  - Test: tap Backpack, then Map, then Position; tap the active tab.
+  - Expected: each tap opens its page (with the turn of items 14–16) and the page goes back to the very top (item 57); the
+    tapped tab turns parchment-light (active) and shows no name; the active tab does nothing.
 - [ ] **7. Long press: tooltip only** (DevTools touch and a real phone, Android and iPhone)
-  - Test: press and hold the Map pill for about a second, release; the same on the house tab; then a short tap on Map;
-    then a swipe that starts on a pill.
-  - Expected: after about half a second the drawn tooltip "Map" / "Mappa" shows by the pill and hides about 1.5 s after the
+  - Test: press and hold the Map tab for about a second, release; the same on the house tab under the book; then a short
+    tap on Map; then a swipe that starts on a tab.
+  - Expected: after about half a second the drawn tooltip "Map" / "Mappa" shows by the tab and hides about 1.5 s after the
     release; nothing opens, no system menu, no text selection. On the house tab the tooltip reads "Back to the home page" /
-    "Torna alla pagina iniziale" and the page stays. The short tap opens Map. The swipe scrolls the row and shows no tooltip.
+    "Torna alla pagina iniziale" and the page stays. The short tap opens Map. The swipe scrolls the page up or down and
+    shows no tooltip.
 - [ ] **8. Books without game tabs**
   - Test: `/story/<id>`, `/start-match/<id>`, `/player`, a policy chapter opened inside a match; then the Home.
-  - Expected: the row holds the house tab alone at its right end, sticky as in item 4; in a match with a chapter open the
-    game pills are gone and only the house tab stays. The Home has no row (the book starts right under the navbar).
+  - Expected: no tab on the top edge (the book starts about 8px under the navbar); the house tab alone hangs under the
+    book's bottom edge (item 56); in a match with a chapter open the game tabs are gone and only the house tab stays under
+    the book. The Home has no tab at all.
+- [ ] **55. Phone tabs at 390 and 320 wide, and sideways** (new, 1.15.0)
+  - Done: tabs `padding: 6px 10px 12px` with a 6px band, `font-size: 1rem`; under 360px `padding: 6px 3px 12px`
+    (`mobile.css`); same look on every screen (`book.css`).
+  - Test: a match at 390×844, at 320×640 (custom) and at 844×390; one tab active, a red one if you can (low life or an
+    overloaded bag).
+  - Expected: the five tabs on one line on the top edge, the first about 42px from the left corner, the last clear of the
+    right corner; at 320 narrower, all five still on the book, none cut or wrapped. Each tab: light tan inside framed by a
+    6px band of the cover's dark tooled leather on top and sides, a thin gold line and dashed stitching in the band, open
+    at the bottom where it meets the cover; dark brown icon; the active tab parchment-light with a brighter gold line; red
+    and gold tabs keep their colours. 844×390: the same tabs, icons only.
+- [ ] **56. Phone house tab under the book** (new, 1.15.0)
+  - Test: in a match, on `/story/<id>` and on `/player` scroll to the end of the book; tap the house tab.
+  - Expected: the house tab hangs under the book's bottom edge, about 72px from the right corner, just left of the red
+    ribbon, upside down (band on the sides and bottom, open at the top against the cover, shadow downwards), with about
+    46px of free page under it; it scrolls with the book, never pinned. The tap goes to the Home (in a match through the
+    close card).
 - [ ] **9. Status card gone on phones**
   - Done: `SHOW_MOBILE_CARD_CHARACTERISTICS` defaults to `false` (`constants/features.js`).
   - Test: in a match look at the top of the right page; then set `VITE_SHOW_MOBILE_CARD_CHARACTERISTICS=true`, restart,
     reload, and look at 390 and at 1440.
   - Expected: default: no status card at the top of the board (no "Map", "Missions", "Backpack" rows with names). With
     `true`: the status card is back on phones only, its shortcuts one per row with names; never on desktop.
-- [ UNIT ] **10. Row details:** one `.book-bookmarks-row` holding both rows, house tab last, label only on the active tab, a
-  long press shows the tooltip and never opens (also the house tab), a page with the house tab alone, no row without tabs;
-  the new default of the status card flag (`Book`, `features` tests).
+- [ UNIT ] **10. Tab details:** one `.book-bookmarks-row` holding both groups, house tab last of `--right`, no
+  `.book-bookmark__label` (icon only, 1.15.0), stage classes `book-stage--game-tabs` / `book-stage--home-tab` (none on the
+  Home), badges still in the markup, a long press shows the tooltip and never opens (also the house tab), a page with the
+  house tab alone; the new default of the status card flag (`Book`, `BookBookmarks`, `GameBookBookmarks`, `features` tests).
 
 ### Sticky deck and deal on scroll (§6.4, §6.6)
 
@@ -185,73 +216,108 @@ the item says otherwise.
   - Done: `components/book/mobileTurn.js` is the phone strategy of step 15's turn: the visible slice is copied on a fixed
     sheet, scrolling is locked, the scroll jumps under the sheet, then the sheet turns on its left edge.
   - Test: in a match scrolled to the middle of the board, tap Backpack; watch `<html>` and `<body>` in Elements.
-  - Expected: what was on screen freezes as a sheet under the pills row; behind it the page already shows the top of the
-    bag (the right page's top, just under the pills row); the sheet swings away to the left around its left edge, darkening,
-    while a shadow on the page fades (about 2.5 s). `<html>` has `class="is-turning"` and `<body>` holds `div.m-sheet`,
+  - Expected: what was on screen freezes as a sheet under the navbar; behind it the page has already jumped to the very
+    top (1.15.0: not the right page's top any more); the sheet swings away to the left around its left edge, darkening,
+    while a shadow on the page fades (about 2.5 s), and shows the tabs on the book's edge and the left page first, the bag
+    below it. `<html>` has `class="is-turning"` and `<body>` holds `div.m-sheet`,
     `div.m-cast` and `div.m-blocker` only during the turn; then all are gone. `.book-wrapper` has
     `data-direction="forward"`.
 - [ ] **15. Forward turn, left page changes**
   - Test: on the board tap Information ("Informazioni"); on `/story/<id>` tap "Change" / "Cambia" on the class card.
-  - Expected: the same sheet; underneath, the page lands at the top of the book (the pills row right under the navbar, the
-    new upper page first).
+  - Expected: the same sheet; underneath, the page lands at the very top (the tabs on the book's edge under the navbar, the
+    new upper page first), as in item 14.
 - [ ] **16. Back turn**
   - Test: from the bag tap Position; from the map tap Position; on `/player` open a match's (i), then its back arrow
     "Back" / "Indietro".
-  - Expected: the old view freezes, the page jumps under it, then the new view swings in from the left edge over it while a
-    shadow grows (about 2.5 s); then both copies go and the live page is exactly where the incoming sheet showed it.
+  - Expected: the old view freezes, the page jumps under it to the very top, then the new view swings in from the left
+    edge over it while a shadow grows (about 2.5 s); then both copies go and the live page is exactly where the incoming
+    sheet showed it.
     `data-direction="back"`.
 - [ ] **17. A turn from the end of a long page** (§3, risk 1)
   - Test: in the bag (or the `/player` grid with many matches) scroll to the very end, then tap Position (or a match's (i)).
     Repeat from the end of the Home list with the footer "Credits" / "Crediti".
-  - Expected: only the part on screen turns. While the sheet turns the page underneath is already at its landing place;
+  - Expected: only the part on screen turns. While the sheet turns the page underneath is already at the very top;
     when the sheet leaves, nothing slides, jumps or scrolls any more.
-- [ ] **18. Play on a phone: flight, hold, one turn**
-  - Done: the flight aims at the top of the visible slice; the hold is the sheet itself.
-  - Test: a movement's (i) → "Move" / "Muovi"; an action "Do" / "Agisci"; an item "Use" / "Usa" in the bag. Once with
-    Network → "Slow 3G".
-  - Expected: the picture lifts, then the whole card flies to the top centre of the visible book (about 60px under the pills row); the
-    emptied view is held (no scrolling) while the board reloads; then ONE forward turn landing at the top of the book on the
-    new location ("Use": ONE back turn landing on the right page). With Slow 3G the view is held about 1 s, then the turn
-    shows the loading page and the new board appears with no second turn. This replaces step 15 item 34 ("no hold, no
-    turn") on phones.
+- [ ] **57. Back to the very top on every page change** (new, 1.15.0; replaces step 16's "right page top" landing)
+  - Done: `land()` in `mobileTurn.js` is `window.scrollTo({ top: 0 })` for forward, back, simple and a fade release;
+    `landingOf` / `pageSignature` removed; `viewTop` is the navbar bottom only; `scrollBookToTop()` scrolls the document top.
+  - Test: in a match scroll halfway down, then tap Backpack; scroll down the bag, tap Position; open Missions and its back
+    arrow; "Sleep" / "Dormi". Repeat with Turn style "Simple" / "Semplice" and with Page turn "Off" / "Spento". After each,
+    type `window.scrollY` in the console.
+  - Expected: after every page change the screen shows the tabs on the book's edge right under the navbar and the left
+    page first; `window.scrollY` is `0`; never the right page's top. Only right previews (a board card's (i), a map node,
+    the close card) still jump to the lower page (item 20).
+- [ ] **18. Play on a phone: flight, hold, one turn or a fade**
+  - Done: the flight aims at the top of the visible slice; the hold is the sheet itself. 1.15.0 (step 15 to-do): a play
+    that does not move the character releases the hold with a fade (`runFade`) instead of a turn.
+  - Test: a movement's (i) → "Move" / "Muovi"; an action "Do" / "Agisci" that leaves the character where it is, and one
+    with a forced movement if the story has it; "Sleep" / "Dormi"; an item "Use" / "Usa" in the bag. Once with Network →
+    "Slow 3G".
+  - Expected: the picture lifts, then the whole card flies to the top centre of the visible book (about 60px under the
+    navbar); the emptied view is held (no scrolling) while the board reloads. Move and the forced movement: ONE forward
+    turn, landing at the very top on the new location. "Do" with no move and Sleep: no turn, the held view fades out
+    (about 0.8 s) over the page already at the very top. "Use": ONE back turn, landing at the very top. With Slow 3G the
+    view is held about 1 s, then the turn (or fade) shows the loading page and the new board appears with no second turn.
+    This replaces step 15 item 34 ("no hold, no turn") on phones.
 - [ ] **19. Scroll lock and the navbar during a turn** (speed ¼×; DevTools and a real iPhone)
-  - Test: during a turn swipe the page, tap a card and a pill; during another turn tap the navbar user button.
+  - Test: during a turn swipe the page, tap a card and a tab; during another turn tap the navbar user button.
   - Expected: nothing scrolls or reacts under the sheet, on iOS too. The navbar stays usable (the blocker starts under it):
     the user button opens `/player`, no sheet, blocker or `is-turning` stays behind and the new page scrolls normally.
 - [ ] **20. Previews on phones: fade, no sheet**
   - Test: the (i) of a movement card, a map node, a loadout card on `/story/<id>`; their back arrows.
-  - Expected: no sheet: the page jumps to the card (meant to be instant, see §3 risk 1) and the card fades in (0.8 s); the
+  - Expected: no sheet: the movement (i) and the map node jump to the card on the lower page; the loadout card's (i) (a
+    left preview) goes back to the very top (1.15.0); every jump is instant (§3 risk 1) and the card fades in (0.8 s); the
     back arrow fades back.
 - [ ] **21. Simple mode**
   - Test: `VITE_ANIM_TURN_MODE=simple` and restart (or Preferences "Turn style" → "Simple" / "Semplice"); repeat items 14
     and 16.
-  - Expected: no sheet; the page jumps at once, the upper page fades in from a light blur and the lower page swings in from
-    35° (around its left edge forward, its right edge back), about 2.1 s.
+  - Expected: no sheet; the page jumps at once to the very top, the upper page fades in from a light blur and the lower
+    page swings in from 35° (around its left edge forward, its right edge back), about 2.1 s.
 - [ ] **22. Turn off**
   - Test: `VITE_ANIM_TURN=false` and restart (or Preferences "Page turn" → "Off" / "Spento"); a tab, a movement, "Change"
     on `/story/<id>`.
-  - Expected: no sheet and no fade; the page goes straight to its landing place; a play still lifts and flies, then the
-    loading page shows.
+  - Expected: no sheet and no fade; the page goes straight to the very top (1.15.0: `BookPages` jumps once with no turn);
+    a play still lifts and flies, then the loading page shows.
 - [ ] **23. Reduced motion on a phone**
   - Test: turn reduced motion on (DevTools, Android or iPhone setting); a tab, a movement, an (i).
   - Expected: `<html data-pg-reduced="true">`; no sheet, lift, flight, fade or deal, and no page deck; pages change at once
-    and the page jumps instantly. Turned off again, the next tab turns.
+    and the page jumps instantly to the very top; a book change (item 58) just shows the new book. Turned off again, the
+    next tab turns.
 - [ ] **24. Speed**
   - Test: Preferences "Speed" / "Velocità" ¼×, ½×, 1×; after each, look at the `style` of `<html>` and turn a tab.
   - Expected: `--t-sheet: 2480ms` / `1240ms` / `620ms` (and `--t-flip` 3600 / 1800 / 900ms, `--t-fade` 800 / 400 / 200ms);
     the sheet turns in about 2.5 s / 1.2 s / 0.6 s.
-- [ UNIT ] **25. Engine details:** the visible slice under the navbar and the pills row, the copy without `id`,
-  `data-testid`, `data-tip` and iframes (empty boxes), the landing rule (book top when the left page's text or pictures
-  changed, right page top otherwise), forward and back layers added and removed, scroll lock and busy flag released, the plain
-  path without WAAPI, a book off screen, a held sheet released with a fade fading out where it is, simple mode, phone scroll
-  jumps skipped while a sheet is up (`mobileTurn`, `MobileView`, `BookPages` tests). A copy taken on the other layout (the
-  phone rotated past the breakpoint during a hold) is dropped with no turn; the 10 s hold safety (`BookPages` tests).
+- [ UNIT ] **25. Engine details:** the visible slice under the navbar only (1.15.0: no tab row), the copy without `id`,
+  `data-testid`, `data-tip` and iframes (empty boxes), forward, back, simple and a fade release all landing at the document
+  top (1.15.0, the `landingOf` rule removed), forward and back layers added and removed, scroll lock and busy flag released,
+  the plain path without WAAPI, a book off screen, a held sheet released with a fade, simple mode, phone scroll jumps
+  skipped while a sheet is up, `scrollBookToTop` → `window.scrollTo` top on phones, one jump when no strategy runs
+  (`mobileTurn`, `MobileView`, `BookPages` tests); the phone flight target under the navbar (`PlayContext`); sleep and a
+  non-moving action release with a fade, a forced movement turns forward (`useGameplayResultsPlay`, `GameBookTurns`). A
+  copy taken on the other layout (the phone rotated past the breakpoint during a hold) is dropped with no turn; the 10 s
+  hold safety (`BookPages` tests).
+
+### Book change on phones (step 15 to-do "Book change between routes", 1.15.0)
+
+- [ ] **58. A cover closes and the next book opens** (new, 1.15.0; 390×844)
+  - Done: `RouteBook.jsx` and `bookSwap.js` (`phoneCover`): the visible slice, tabs included, copied; a cover closes over
+    it, slides out left, the page goes to the top, the cover comes back from the right with the new title and opens.
+  - Test: on the Home scroll halfway, tap a story card (Home → `/story/<id>`); then tap the house tab (→ Home); then
+    `/player` → a match's "Resume". Once with Turn style "Simple" / "Semplice", once with `VITE_ANIM_COVER_MAX_S=0`.
+  - Expected: what is on screen of the old book, its tabs too, freezes; a leather cover with the gold frame, the gold d20
+    and the old book's title closes over it from its left edge, slides out to the left, comes back from the right with the
+    new title over the new book (now at the very top) and opens on its left edge. Titles: Home book "Paths Games" with
+    "Web gamebook" / "Librogame web"; a story book its title with "Paths Games". About 9.8 s at ¼× (under the 10 s cap, so
+    the same with `0`), 2.4 s at 1×. During it `<html>` has `is-turning`, `<body>` holds `div.m-cover` and `div.m-blocker`,
+    nothing scrolls; then all are gone, the new cards are dealt after the cover opens. Simple: the copy tilts, shrinks and
+    fades, then the new book opens (about 3.6 s at ¼×). Home ↔ `/player` is a page turn, not a book change.
 
 ### Phone sideways (§6.6)
 
 - [ ] **26. Landscape 844×390**
-  - Test: a match, `/story/<id>`, `/player`, the Home; tap a pill; open the Preferences editor.
-  - Expected: the pills show icons and badges only, the active pill too (no name); the picture beside the description
+  - Test: a match, `/story/<id>`, `/player`, the Home; tap a tab; open the Preferences editor.
+  - Expected: the tabs stand on the book's top edge, icons only (no badges, no name, 1.15.0), the house tab under the book
+    (items 55, 56); the picture beside the description
     (part A); card grids in 3 columns; the page deck at the bottom right and no table pile; a tab turns as in item 14. In
     the editor the "Card columns" options "1" and "4" are disabled.
 
@@ -260,18 +326,18 @@ the item says otherwise.
 - [ ] **27. No stuck hover**
   - Done: the lift and zoom hover rules apply only under `(hover: hover)`.
   - Test: DevTools touch preset (or a real phone): tap a story card on the Home, the body of a small action card, a loadout
-    card cover, a choice card, a pill. Then on desktop hover the same with the mouse.
+    card cover, a choice card, a tab. Then on desktop hover the same with the mouse.
   - Expected: on touch nothing stays lifted, zoomed or recoloured after the tap (the small card's type badge may show: that
     rule is not a lift). On desktop the hover still lifts a card (up 3px, 3% larger), zooms its picture and colours a tab.
 - [ ] **28. Tap feedback** (real phone)
-  - Test: press and hold a card button ("Move" / "Muovi"), a pill that is not active, a language button in the Preferences
+  - Test: press and hold a card button ("Move" / "Muovi"), a tab that is not active, a language button in the Preferences
     editor, "Start Game" / "Inizia Gioco".
   - Expected: each shrinks a little (to 96%) while pressed and comes back on release; no grey or blue tap flash on Android.
-    The active pill and disabled buttons do not shrink.
+    The active tab and disabled buttons do not shrink.
 - [ ] **29. Vibration on Android** (Chrome, the phone's vibration not muted)
   - Done: `utils/haptics.js` calls `navigator.vibrate(15)` inside the tap that starts a play.
   - Test: in a match tap "Move" / "Muovi", "Do" / "Agisci", a choice "Do" / "Scegli", "Sleep" / "Dormi", "Use" / "Usa",
-    "Improve" / "Migliora", "End Game" / "Termina Partita"; then an (i), a pill, a back arrow, "Drop" / "Getta", "Change" /
+    "Improve" / "Migliora", "End Game" / "Termina Partita"; then an (i), a tab, a back arrow, "Drop" / "Getta", "Change" /
     "Cambia" on the Preferences card. Then set Preferences "Vibration" → "Off" / "Spento" and tap "Move" again.
   - Expected: one very short tick at the tap of each play, also with Play off or reduced motion; nothing for the other
     buttons; nothing after Vibration Off.
@@ -295,19 +361,27 @@ the item says otherwise.
   - Expected: desktop: a forward turn; the right page shows the page "Preferences" / "Preferenze" with the text "Your
     display choices for this device: they apply at once and stay in this browser, never on our servers." / "Le tue scelte di
     visualizzazione per questo dispositivo: valgono subito e restano in questo browser, mai sui nostri server."; the user
-    card stays on the left; the back arrow turns back to the grid. Phone: the sheet turns and the page lands at the top of
-    the editor (the user card above it); back lands at the top of the grid.
+    card stays on the left; the back arrow turns back to the grid. Phone: the sheet turns and the page lands at the very
+    top (the user card first, the editor below it, 1.15.0); back lands at the very top too, the grid below the user card.
 - [ ] **34. The rows**
   - Expected: each row is a group of pill buttons, the chosen one gold with a check mark: "Language" (ENGLISH, ITALIANO),
     "Theme" (Medieval, Parchment), "Text size" (Small, Normal, Large), "Card columns" (Auto, 1, 2, 3, 4); the heading
-    "Animations"; "Deal", "Face-down deal", "Play", "Page turn" (On, Off each), "Turn style" (Full, Simple), "Speed" (¼×,
-    ½×, 1×), "Deck" (Under the book, Over the book), "Vibration" (On, Off; shown only where the browser has the Vibration
-    API: Chrome and Edge, desktop included, and Android; not Safari); then "Back to defaults". IT: "Lingua", "Tema"
-    (Medievale, Pergamena), "Dimensione del testo" (Piccolo, Normale, Grande), "Colonne di carte", "Animazioni",
-    "Distribuzione", "Distribuzione coperta", "Giocata", "Giro pagina" (Attivo, Spento), "Stile del giro" (Completo,
-    Semplice), "Velocità", "Mazzo" (Sotto il libro, Sopra il libro), "Vibrazione", "Torna ai valori predefiniti". Checked by
-    default: the current language, Medieval, Normal, Auto, On ×4, Full, ¼×, Under the book, On. On a phone each row name
+    "Animations"; "Deal", "Face-down deal", "Play", "Page turn", "Book cover" (1.15.0) (On, Off each), "Turn style" (Full,
+    Simple), "Speed" (¼×, ½×, 1×), "Deck" (Under the book, Over the book), "Vibration" (On, Off; shown only where the
+    browser has the Vibration API: Chrome and Edge, desktop included, and Android; not Safari); then "Back to defaults".
+    IT: "Lingua", "Tema" (Medievale, Pergamena), "Dimensione del testo" (Piccolo, Normale, Grande), "Colonne di carte",
+    "Animazioni", "Distribuzione", "Distribuzione coperta", "Giocata", "Giro pagina", "Copertina" (Attivo, Spento), "Stile
+    del giro" (Completo, Semplice), "Velocità", "Mazzo" (Sotto il libro, Sopra il libro), "Vibrazione", "Torna ai valori predefiniti". Checked by
+    default: the current language, Medieval, Normal, Auto, On ×5, Full, ¼×, Under the book, On. On a phone each row name
     sits on its own line above its pills.
+- [ ] **59. "Book cover" / "Copertina" row** (new, 1.15.0; desktop and phone)
+  - Done: `anim.cover` in `ANIM_FLAGS` (`settings.js`), whitelisted; default from `VITE_ANIM_COVER`.
+  - Test: set "Book cover" Off; go from the Home to a story and back with the house tab; reload; look at DevTools
+    Application → Local Storage; set it On and repeat the trip.
+  - Expected: Off: the new book just appears in place, no close, slide or open (phone: no cover, no `is-turning`), and no
+    opening zoom after the reload; Home ↔ `/player` still turns (Page turn row). After the reload still Off;
+    `pathsgames.preferences` has `"cover":false` inside `"anim"`; the card badge stays "On ¼×" / "Attivo ¼×". On: the book
+    change of item 58 runs again.
 - [ ] **35. Language: guest and Google user**
   - Test: as a guest, with DevTools Network open, press ITALIANO. Then on http://localhost:5174 sign in with Google, press
     ENGLISH and reload.
@@ -321,9 +395,9 @@ the item says otherwise.
     brings the brown pages back.
 - [ ] **37. Text size**
   - Test: Small, Large, then Normal; desktop and phone.
-  - Expected: `<html data-pg-size="small">` (`large`, `normal`); titles, descriptions, buttons and pills get smaller
-    (87.5%) or larger (112.5%) at once; card widths do not change; on phones the pills row gets taller with Large and stays
-    one line. Badge "S" / "L" / "M" (IT "P" / "G" / "M").
+  - Expected: `<html data-pg-size="small">` (`large`, `normal`); titles, descriptions, buttons and tabs get smaller
+    (87.5%) or larger (112.5%) at once; card widths do not change; on phones the tabs on the book's edge get bigger with
+    Large and the five still fit on one line at 320 wide (item 55). Badge "S" / "L" / "M" (IT "P" / "G" / "M").
 - [ ] **38. Card columns per layout**
   - Test: at 1440×900 choose 4, then Auto; choose 4 again and narrow to 1024×768; then 390×844 (choose 1, then 2),
     320×640 and 844×390.
@@ -332,18 +406,19 @@ the item says otherwise.
     "4" disabled, "2" checked; 1 → one column. 320: only Auto and 1 enabled, always one column. 844×390: "1" and "4"
     disabled, Auto gives 3 columns. Resizing updates the disabled options with no reload.
 - [ ] **39. Animation rows on desktop** (1440, a match and the Home)
-  - Test: one at a time, then back: Deal Off; Face-down deal Off; Play Off; Page turn Off; Turn style Simple; Speed 1×;
-    Deck "Over the book", then "Under the book".
+  - Test: one at a time, then back: Deal Off; Face-down deal Off; Play Off; Page turn Off; Book cover Off (Home → a story);
+    Turn style Simple; Speed 1×; Deck "Over the book", then "Under the book".
   - Expected: Deal Off: no table pile, cards shown at once. Face-down Off: cards fly face up, no back, no flip. Play Off: no
-    lift or flight on "Move", the turn still runs. Page turn Off: pages change at once. Simple: step 15's simple swing.
-    1×: everything four times faster. Deck Over: the ten-card pile lies over the cover's edge at once; Under puts it back
-    under. All four flags Off: badge "Off" / "Spento"; Speed 1×: "On 1×" / "Attivo 1×". On a phone the Deck row changes
+    lift or flight on "Move", the turn still runs. Page turn Off: pages change at once. Book cover Off: the story book just
+    appears (item 59). Simple: step 15's simple swing. 1×: everything four times faster. Deck Over: the ten-card pile lies
+    over the cover's edge at once; Under puts it back under. All five flags Off: badge "Off" / "Spento"; Speed 1×: "On 1×"
+    / "Attivo 1×". On a phone the Deck row changes
     nothing (no pile); the other rows act as items 21–24.
 - [ ] **40. Reduced motion in the editor**
   - Test: open the editor, turn reduced motion on (no reload), then off.
   - Expected: the note "Your device asks for reduced motion: the animations stay off." / "Il dispositivo chiede movimento
-    ridotto: le animazioni restano spente." appears; the seven rows Deal to Deck are greyed and cannot be pressed; Language,
-    Theme, Text size, Card columns, Vibration and "Back to defaults" still work; the badge reads "Off" / "Spento". Off
+    ridotto: le animazioni restano spente." appears; the eight rows Deal to Deck (Book cover included) are greyed and
+    cannot be pressed; Language, Theme, Text size, Card columns, Vibration and "Back to defaults" still work; the badge reads "Off" / "Spento". Off
     again: the note goes, the rows work, the stored choices apply again.
 - [ ] **41. Back to defaults**
   - Test: change theme, size, columns, speed and vibration; press "Back to defaults" / "Torna ai valori predefiniti".
@@ -367,8 +442,8 @@ the item says otherwise.
   - Expected (as coded): the right page shows the error line and no grid, so no Preferences card and no way to change the
     language; after the restart the card is back. Decide if this is acceptable.
 - [ UNIT ] **46. Preferences module:** whitelist of stored values (bad JSON, unknown values, an `anim.deck` other than
-  under/over), storage that throws, `devicePreferencesBody()` still language and high contrast only (a first Google sign-in
-  sends nothing new), env then choice then OS reduced motion, columns limits and clamping per layout, `<html>` attributes,
+  under/over; `anim.cover` boolean, 1.15.0), `VITE_ANIM_COVER` / `VITE_ANIM_COVER_MAX_S` parsing (`animations`), storage
+  that throws, `devicePreferencesBody()` still language and high contrast only (a first Google sign-in sends nothing new), env then choice then OS reduced motion, columns limits and clamping per layout, `<html>` attributes,
   both `matchMedia` listener APIs and none, the `storage` event, reset, every editor row writing, rows disabled under
   reduced motion, vibration row only with the API, language through the profile for Google and the device for guests, EN/IT
   key parity (`preferencesSettings`, `PreferencesContext`, `PreferencesCards`, `UserMatchesList`, `PlayerBook*` tests).
@@ -409,16 +484,18 @@ the item says otherwise.
 
 - [ ] **52. Step 15 phone items with part B**
   - Test: step 15 list items 33, 34, 38, 42 and 43, at 390×844 and 844×390.
-  - Expected: as written there, except where part B changed them: item 33 → spine and headbands on the left edge, the
-    pills row instead of the lone house tab, no status card; item 34 → hold and one turn (item 18 here); item 38 → the end
-    game turns on phones too; item 42 → the house tab ends the pills row; item 43 → turns and holds now run on the phone
-    layout.
+  - Expected: as written there, except where part B and 1.15.0 changed them: item 33 → spine and headbands on the left
+    edge, the icon tabs on the book's top edge and the house tab under the book (items 3, 56), no status card; item 34 →
+    hold and one turn or a fade (item 18 here); item 38 → the end game turns on phones too; item 42 → icon tabs, no
+    badges, the house tab under the book (items 26, 55); item 43 → turns and holds now run on the phone layout.
 - [ ] **53. Desktop unchanged**
   - Test: 1440×900 and 800×1000: a match, `/story/<id>`, the Home; click the tabs and the house tab; move.
-  - Expected: as before part B: game tabs on the top-left edge of the cover and the house tab on the top-right edge, icons
-    and badges only (no name on the active tab), drawn tooltips on hover; the spine in the middle with its headbands; step
-    15's full flip; no pills row and no page deck (the table pile beside the book, step 14); the house tab goes to the Home
-    (in a match through the close card). The portrait tablet (800×1000) keeps the desktop book.
+  - Expected: as before part B, except step 15's 1.15.0 bookmarks (tested in the step 15 list): at 1440 the game tabs
+    hang down the cover's right edge and the house tab sits at the foot of that column; at 800×1000 (tablet) the game tabs
+    stay on the top-left edge and the house tab on the top-right edge. Icons and badges only (no name on the active tab),
+    the new tab look (item 55), drawn tooltips on hover; the spine in the middle with its headbands; step 15's full flip; no
+    page deck (the table pile beside the book, step 14); the house tab goes to the Home (in a match through the close
+    card). The portrait tablet keeps the desktop book.
 - [ ] **54. Things that must not change** (phone and desktop)
   - Test: one full tour of the game.
   - Expected: page pictures a third of the screen high on phones and card texts as big as before; every Card special
@@ -474,14 +551,16 @@ the item says otherwise.
 - Not seen in a browser or on a device by the developer: everything in step file §7.2 (Android and iOS, portrait and
   landscape, sticky behaviour, long press, vibration).
 - Known noise: the "chunks larger than 500 kB" build warning; StrictMode doubles dev-mode requests.
+- November 26, 2026 (1.15.0), step 15 to-dos: "Bookmarks per screen size" changed items 1, 3–8, 10, 14–17, 19–23, 25–29, 33, 37, 52, 53 and added 55–57 (deviations 2 and 8 above are gone); "Book change between routes" changed items 23, 34, 39, 40, 46 and added 58, 59; "No page turn when a play does not change the location" changed items 18 and 25.
 
 ---
 
 # Version Control
-- **Document Version**: 1.14.0
+- **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.14.0 | Test list for phone book, pills and preferences | November 25, 2026 |
+  | 1.15.0 | Phone tabs on the book, book cover, top landing | November 26, 2026 |
 
-- **Last Updated**: November 25, 2026 (v1.14.0)
+- **Last Updated**: November 26, 2026 (v1.15.0)

@@ -9,7 +9,8 @@ import { usePolicyBook } from '@/context/PolicyBookContext'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
-import useAntibot from '@/hooks/useAntibot'
+import useAntibot, { useAntibotSuccess } from '@/hooks/useAntibot'
+import AntibotSuccess from '@/components/ui/AntibotSuccess'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
 import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rateLimit'
 import { buildCharacterAttributesCard, buildGameTypeCard, buildGoogleLoginCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
@@ -17,7 +18,7 @@ import { createMatch, joinMatch, startMatch } from '@/api/matches'
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
 import { traitBudgetItems } from '@/utils/traitBudget'
-import { scrollMobileIntoView } from '@/features/gameplay/js/mobileView'
+import { scrollBookToTop } from '@/features/gameplay/js/mobileView'
 import DealtList from '@/components/layout/DealtList'
 import FadeIn, { previewKey } from '@/components/layout/FadeIn'
 import useBookTurn from '@/hooks/useBookTurn'
@@ -76,6 +77,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
   // Always challenge (cookie:false): the backend consumes a fresh single-use
   // token on match creation.
   const gate = useAntibot({ cookie: false })
+  // Step 15 — as on the Home: "Success! You are human." under the left card's text for 4 s after a passed check.
+  const successShown = useAntibotSuccess(gate.phase)
 
   // phase: 'confirm' → 'starting' → 'creating' → 'joining' → 'created' | 'error'
   const [phase, setPhase] = useState('confirm')
@@ -93,11 +96,11 @@ export default function StartMatchFlow({ story, config, storyId }) {
   useEffect(() => { tokenRef.current = gate.token }, [gate.token])
   const { pageKey, direction, turnTo } = useBookTurn()
 
-  // The (i) lens: the card on the left page (phones: the top card, scrolled to), faded in.
+  // The (i) lens: the card on the left page (phones: the top card, the screen back to the very top), faded in.
   function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent, loginPage = false) {
     setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent, loginPage } : null)
     turnTo('fade')
-    if (card) scrollMobileIntoView('.book-page-left')
+    if (card) scrollBookToTop()
   }
   function closePreview() {
     setPreview(null)
@@ -344,6 +347,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
     </DealtList>
   )
   const boardBlock = phase === 'confirm' ? cardsBlock : phasesBlock
+  const antibotSuccess = successShown && <div className="home-intro-antibot"><AntibotSuccess /></div>
 
   // The widget stays mounted for the whole flow (hidden once passed): unmounting
   // it kills Turnstile's auto-refresh and the 300s token expires before the POST.
@@ -378,6 +382,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
 
   return (
     <Book
+      coverTitle={story?.title}
       stageClass="start-match-stage"
       wrapperClass="book-wrapper start-match-wrapper"
       pageKey={pageKey}
@@ -396,8 +401,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
         : guestLoginPage
           // a guest page shown unasked loads Google only on click (privacy rule): no autoStart here
           ? <Card variant="page" card={guestPageCard} entityType="login" story={story} loading={false}
-              extraContent={googleLoginPanel(false)} />
-          : <Card variant="page" card={story.card} story={story} loading={false} />}
+              afterDescription={antibotSuccess} extraContent={googleLoginPanel(false)} />
+          : <Card variant="page" card={story.card} story={story} loading={false} afterDescription={antibotSuccess} />}
       right={
         <div className="start-match-right">
           <div className="start-match-cards">{boardBlock}</div>

@@ -89,17 +89,22 @@ describe('PreferencesEditor', () => {
     expect(pill('deck', 'Under the book')).toHaveClass('lang-btn', 'active')
   })
 
-  it('every row writes at once: theme, size, columns and the seven animation rows (Deck under / over included)', () => {
+  it('every row writes at once: theme, size, columns and the eight animation rows (Deck, step 15 Book cover)', () => {
     withPrefs(<PreferencesEditor onBack={vi.fn()} />)
     fireEvent.click(pill('theme', 'Parchment'))
     fireEvent.click(pill('size', 'Small'))
     fireEvent.click(pill('columns', '2'))
-    for (const flag of ['deal', 'dealFaceDown', 'play', 'turn']) fireEvent.click(within(row(flag)).getByRole('radio', { name: /Off/ }))
+    expect(row('cover')).toHaveTextContent(en.preferences.rows.cover)
+    for (const flag of ['deal', 'dealFaceDown', 'play', 'turn', 'cover']) fireEvent.click(within(row(flag)).getByRole('radio', { name: /Off/ }))
     fireEvent.click(pill('turnMode', 'Simple'))
     fireEvent.click(pill('speed', '1×'))
     fireEvent.click(pill('deck', 'Over the book'))
     expect(stored()).toEqual({ v: 1, theme: 'parchment', size: 'small', columns: 2,
-      anim: { deal: false, dealFaceDown: false, play: false, turn: false, turnMode: 'simple', speed: 1, deck: 'over' } })
+      anim: { deal: false, dealFaceDown: false, play: false, turn: false, cover: false, turnMode: 'simple', speed: 1,
+        deck: 'over' } })
+    // language, theme, size, columns, the eight animation rows, then vibration only with the Vibration API
+    const vibration = screen.queryByTestId('pref-vibration') ? 1 : 0
+    expect(document.querySelectorAll('.pref-row')).toHaveLength(12 + vibration)
     expect(html).toHaveAttribute('data-pg-theme', 'parchment')
     expect(html).toHaveAttribute('data-pg-size', 'small')
     expect(html).toHaveAttribute('data-pg-cols', '2')
@@ -123,7 +128,7 @@ describe('PreferencesEditor', () => {
     window.matchMedia = vi.fn(q => ({ matches: q === REDUCED_MOTION_MQ }))
     withPrefs(<PreferencesEditor onBack={vi.fn()} />)
     expect(screen.getByTestId('pref-reduced-note')).toHaveTextContent(en.preferences.reducedNote)
-    for (const id of ['deal', 'dealFaceDown', 'play', 'turn', 'turnMode', 'speed', 'deck']) {
+    for (const id of ['deal', 'dealFaceDown', 'play', 'turn', 'cover', 'turnMode', 'speed', 'deck']) {
       within(row(id)).getAllByRole('radio').forEach(b => expect(b).toBeDisabled())
     }
     // the configured value stays checked (env on), even though the effect is off

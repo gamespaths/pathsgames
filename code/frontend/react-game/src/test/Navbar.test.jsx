@@ -131,13 +131,32 @@ describe('Navbar', () => {
     expect(link).not.toHaveAttribute('title')
   })
 
-  it('brand without a handler keeps href="/" (a full load of the home)', () => {
+  it('step 15 — brand without a handler off the Home goes home in the app (no reload: the book changes)', () => {
+    mockNavigate.mockClear()
     renderNavbar('/story/s1')
     const brand = screen.getByText('nav.brand').closest('a')
     expect(brand).toHaveAttribute('href', '/')
     const click = new MouseEvent('click', { bubbles: true, cancelable: true })
     brand.dispatchEvent(click)
-    expect(click.defaultPrevented).toBe(false)
+    expect(click.defaultPrevented).toBe(true)
+    expect(mockNavigate).toHaveBeenCalledWith('/')
+  })
+
+  it('step 15 — on the Home the brand keeps its full load; a new tab or window keeps the link', () => {
+    mockNavigate.mockClear()
+    const { unmount } = renderNavbar('/')
+    const home = new MouseEvent('click', { bubbles: true, cancelable: true })
+    screen.getByText('nav.brand').closest('a').dispatchEvent(home)
+    expect(home.defaultPrevented).toBe(false)
+    unmount()
+    renderNavbar('/play/123', vi.fn())
+    const brand = screen.getByText('nav.brand').closest('a')
+    for (const init of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }]) {
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true, ...init })
+      brand.dispatchEvent(click)
+      expect(click.defaultPrevented).toBe(false)
+    }
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
   it('brand with a handler (a running match) prevents the reload and runs it', () => {

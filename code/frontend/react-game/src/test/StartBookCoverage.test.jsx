@@ -150,10 +150,11 @@ describe('StartBook — class re-validation', () => {
     expect(screen.getByTestId('sel-traits')).toHaveTextContent('Brave')
   })
 
-  // Step 15 — an (i) preview fades on the left page; on phones it is the top card, scrolled to.
-  it('an (i) preview fades in on the left page, scrolled into view on phones', async () => {
+  // Step 15 — an (i) preview fades on the left page; on phones it is the top card, the screen back at the very top.
+  it('an (i) preview fades in on the left page, the phone back at the very top', async () => {
     window.matchMedia = vi.fn(() => ({ matches: true }))
     const scrollIntoView = vi.fn()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(sel =>
@@ -164,12 +165,14 @@ describe('StartBook — class re-validation', () => {
       fireEvent.click(screen.getByText('preview-bonuses'))
       expect(screen.getByTestId('book').dataset).toMatchObject({ key: '1', direction: 'fade' })
       expect(document.querySelector('.pg-fade-in .card-preview-overlay')).not.toBeNull()
-      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+      expect(scrollIntoView).not.toHaveBeenCalled()
       fireEvent.click(screen.getAllByText('page-back').at(-1))
       expect(screen.getByTestId('book').dataset).toMatchObject({ key: '2', direction: 'fade' })
       expect(document.querySelector('.card-preview-overlay')).toBeNull()
+      expect(scrollTo).toHaveBeenCalledTimes(1) // closing it fades back, no jump
     } finally {
-      raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
+      scrollTo.mockRestore(); raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
     }
   })
 

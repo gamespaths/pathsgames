@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { chromeScopeFor } from './chromeScope'
+import { chromeScopeFor, movedBy } from './chromeScope'
 import { getInventory, selectChoice } from '@/api/matches'
 import { grantedItemUuids, itemRowForUuid, lastEffectCard } from '@/utils/gameResults'
 import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils/statBadges'
@@ -15,6 +15,8 @@ const DROP_ANSWER = Object.freeze({ timeEnded: false })
 export const SLOW_RELOAD_MS = 1000
 // Step 15 — a hold never lasts longer than this (BookPages drops its copy at the same time).
 export const HOLD_MAX_MS = 10000
+// Step 15 — a play that moved the character turns forward; one that left it where it was fades.
+const turnOf = result => (movedBy(result) ? 'forward' : 'fade')
 
 /**
  * useGameplayResults — everything the board does with the ANSWER of a gameplay call
@@ -24,7 +26,7 @@ export const HOLD_MAX_MS = 10000
  * The priority is the same for every path and lives here once: an edge state (coma, sadness
  * overflow) outranks a granted item, which outranks the effect narrative. A pending choice
  * short-circuits all of it — nothing was applied yet.
- * Step 15 — a played answer lands (`play`), the old pages are held while the board reloads, then ONE page turns.
+ * Step 15 — a played answer lands (`play`), the old pages are held while the board reloads, then ONE page turns (a fade when the play did not move).
  */
 export default function useGameplayResults({
   matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather, clock,
@@ -377,9 +379,9 @@ export default function useGameplayResults({
   }, [reloadBoard, applyChoicesPending, applyEdgeState, stopLoading, playerStats, playerUuid,
     t, viewActions, matchUuid, accessToken, lang, gameData, timeEndTail])
 
-  // Step 15 — an executed event answers with ONE forward turn.
+  // Step 15 — an executed event answers with ONE forward turn when it moved the character, else a fade.
   const handleEventExecuted = useCallback((result, fallbackCard = null) =>
-    played('forward', () => applyEvent(result, fallbackCard)), [played, applyEvent])
+    played(turnOf(result), () => applyEvent(result, fallbackCard)), [played, applyEvent])
 
   // Step 33 — a movement answers with what the destination did about the arrival.
   // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
@@ -395,7 +397,8 @@ export default function useGameplayResults({
 
   // Step 33 — a sleep answers with the location counters that ran out while the party slept,
   // already filtered for this player. Empty is the normal case and renders nothing.
-  const handleSlept = useCallback(result => played('forward', () => {
+  // Step 15 — a sleep never moves: the held pages fade.
+  const handleSlept = useCallback(result => played('fade', () => {
     const reload = reloadBoard(result)
     const fired = result?.counterZero ?? []
     viewActions.setCounterZero(fired.length ? fired : null)
@@ -469,7 +472,7 @@ export default function useGameplayResults({
     try {
       const result = await selectChoice(matchUuid, choice.uuid, accessToken, lang)
       // The option stays "in flight" until the new board has landed, not just until answered.
-      await played('forward', () => applyChoice(result))
+      await played(turnOf(result), () => applyChoice(result))
     } catch (e) {
       // Step 15 — the lifted option is put down; it stays on screen: the cycle is still open.
       play?.cancel?.()

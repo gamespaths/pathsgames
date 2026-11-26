@@ -38,12 +38,15 @@ describe('settings — sanitizePreferences', () => {
   it('keeps every valid field and drops unknown or invalid values', () => {
     const raw = {
       v: 1, theme: 'parchment', size: 'large', columns: 4, vibration: false, extra: 'x',
-      anim: { deal: false, dealFaceDown: true, play: 'yes', turn: true, turnMode: 'simple', speed: 0.5, deck: 'over', fly: 1 },
+      anim: { deal: false, dealFaceDown: true, play: 'yes', turn: true, cover: false, turnMode: 'simple', speed: 0.5,
+        deck: 'over', fly: 1, coverMax: 3 },
     }
+    // Step 15 — `cover` is a choice (on / off); `coverMax` is env only and never stored
     expect(sanitizePreferences(raw)).toEqual({
       theme: 'parchment', size: 'large', columns: 4, vibration: false,
-      anim: { deal: false, dealFaceDown: true, turn: true, turnMode: 'simple', speed: 0.5, deck: 'over' },
+      anim: { deal: false, dealFaceDown: true, turn: true, cover: false, turnMode: 'simple', speed: 0.5, deck: 'over' },
     })
+    expect(sanitizePreferences({ anim: { cover: 'off' } })).toEqual({})
     expect(sanitizePreferences({ theme: 'dark', size: 'huge', columns: 5, vibration: 'on',
       anim: { speed: 2, turnMode: 'slow', deck: 'beside' } })).toEqual({})
     expect(sanitizePreferences({ columns: 'auto', anim: [] })).toEqual({ columns: 'auto' })

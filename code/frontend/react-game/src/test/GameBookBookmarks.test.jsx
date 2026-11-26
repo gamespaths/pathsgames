@@ -207,10 +207,11 @@ describe('GameBook — the book bookmarks', () => {
   describe('the position tab', () => {
     it('is the pin alone: the page it returns to names the location in full', () => {
       renderBook()
-      // Step 16 — the active tab carries its name for the phone pills only (hidden on desktop by book.css).
-      const label = tab('game.bookmarks.position').querySelector('.book-bookmark__label')
-      expect(label).toHaveAttribute('aria-hidden', 'true')
-      expect(tab('game.bookmarks.position').textContent).toBe(label.textContent)
+      // Step 15 — icon only on every screen (the phone pills and their label are gone).
+      const position = tab('game.bookmarks.position')
+      expect(position.querySelector('.book-bookmark__label')).toBeNull()
+      expect(position.textContent).toBe('')
+      expect(position.querySelector('i')).not.toBeNull()
     })
 
     it('is lit and inert while the board is what is already showing', () => {

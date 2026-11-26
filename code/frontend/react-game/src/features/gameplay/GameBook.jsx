@@ -65,7 +65,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const [view, viewActions] = useBookView()
   const { effective: prefs } = usePreferences()
   const play = usePlayController({ onPlayStart: () => vibratePlay(prefs.vibration) })
-  const endPages = useEndGamePages({ story, endGameCard, missions: gameData?.info?.missions })
+  const endPages = useEndGamePages({ story, endGameCard, missions: gameData?.info?.missions, onHome: onClose })
   const { closePolicyBook } = usePolicyBook()
   // The close card, never straight to the Home: also from an open policy chapter, which gives way.
   useHomeButtonHandler(gameEnded ? null : () => {
@@ -147,24 +147,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // Back to the board itself: the location on the left, the main screen on the right — where
   // every back arrow lands. Deliberately NOT the statistics list, even when the page was
   // opened from there: closing a page returns to the game, not to the menu that led to it.
+  // Step 15 — the bag, registry, missions and training pages close the same way: the back turn lands phones at the top.
   function handleBackOrClose() {
     viewActions.closeAll()
-  }
-  function closeItemsView() {
-    viewActions.closeAll()
-    scrollMobileIntoView('.book-page-left')
-  }
-  function closeRegistryView() {
-    viewActions.closeAll()
-    scrollMobileIntoView('.book-page-left')
-  }
-  function closeMissionsView() {
-    viewActions.closeAll()
-    scrollMobileIntoView('.book-page-left')
-  }
-  function closeExpView() {
-    viewActions.closeAll()
-    scrollMobileIntoView('.book-page-left')
   }
   // v0.37.1 — opening the panel is reading the news: the gold tab goes out here, and nowhere
   // else, so it stays lit until the player has actually looked.
@@ -180,11 +165,11 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     actualLocationCard={actualLocationCard} storyCard={storyCard} loading={results.loading}
     onCloseChoices={viewActions.closeChoices}
     onCloseLeft={() => viewActions.setPreviewLeft(null)}
-    onCloseItems={closeItemsView}
-    onCloseRegistry={closeRegistryView}
-    onCloseMissions={closeMissionsView}
+    onCloseItems={handleBackOrClose}
+    onCloseRegistry={handleBackOrClose}
+    onCloseMissions={handleBackOrClose}
     onCloseMission={viewActions.openMissions}
-    onCloseExp={closeExpView}
+    onCloseExp={handleBackOrClose}
     onSelectMapNode={viewActions.selectMapNode}
     onBack={handleBackOrClose} />
 
@@ -233,13 +218,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     return (
       <PlayProvider controller={play}>
         <Book left={endPages.left} right={endPages.right} wrapperClass={endPages.wrapperClass}
-          pageKey={`end:${endPages.pageKey}`} direction={endPages.direction} />
+          pageKey={`end:${endPages.pageKey}`} direction={endPages.direction} coverTitle={story?.title} />
       </PlayProvider>
     )
   }
   return (
     <PlayProvider controller={play}>
       <Book
+        coverTitle={story?.title}
         left={leftContent}
         right={right}
         bookmarksLeft={buildBookmarksLeft({ t, view: view.view, previewLeft: view.previewLeft,

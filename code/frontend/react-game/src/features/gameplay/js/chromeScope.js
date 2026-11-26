@@ -30,11 +30,17 @@ export function chromeScopeFor(result, knownClock = null) {
   }
 
   const weather = clock || result.weatherApplied === true
-  const moved = result.movementApplied === true
-    || result.toLocationUuid != null
-    || (Array.isArray(result.locationChanges) && result.locationChanges.length > 0)
+  const moved = movedBy(result)
   const registry = Array.isArray(result.registryChanges) && result.registryChanges.length > 0
   const locations = weather || moved || registry
 
   return { clock, weather, locations }
+}
+
+/** Step 15 — whether an answer moved the character: a movement, `movementApplied` or a forced movement. */
+export function movedBy(result) {
+  if (!result || typeof result !== 'object') return false
+  return result.movementApplied === true
+    || result.toLocationUuid != null
+    || (Array.isArray(result.locationChanges) && result.locationChanges.length > 0)
 }

@@ -136,7 +136,7 @@ const LIST = [
 
 function PlayStub() {
   const { pathname, state } = useLocation()
-  return <div data-testid="play-page">{pathname}|{state?.matchUuid}</div>
+  return <div data-testid="play-page">{pathname}|{state?.matchUuid}|{state?.story?.title}</div>
 }
 
 function renderList(props = {}) {
@@ -162,7 +162,8 @@ describe('UserMatchesList', () => {
     )
     await screen.findByText('T-s1')
     fireEvent.click(screen.getByText('matches.resume'))
-    expect(await screen.findByTestId('play-page')).toHaveTextContent('/play/s1|m-run')
+    // step 15 — the story rides along: the incoming cover shows its title while the game loads
+    expect(await screen.findByTestId('play-page')).toHaveTextContent('/play/s1|m-run|T-s1')
   })
 
   it('v1.8.0 — a list of only cancelled matches still shows them', async () => {

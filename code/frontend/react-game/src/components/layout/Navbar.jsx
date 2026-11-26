@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import usePlayerPage from '@/features/guest-user/usePlayerPage'
@@ -8,6 +9,7 @@ import EnvBadge from './EnvBadge'
 import { rateLimitMessage } from '@/utils/rateLimit'
 import { authErrorText } from '@/features/guest-user/UserAccountPanel'
 import { SESSION_ALERT_CODES, SESSION_LIMIT } from '@/auth/sessionAlerts'
+import { routeBookStatus } from '@/components/book/RouteBook'
 
 /** v1.13.0 — writes the bar's real height on <html> as `--navbar-h`; without a ResizeObserver the CSS fallback stays. */
 export function useNavbarHeight(ref) {
@@ -35,6 +37,8 @@ export default function Navbar() {
     authError, clearAuthError } = useGuestUser()
   const { openPlayerPage } = usePlayerPage()
   const homeButton = useHomeButton()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const navRef = useRef(null)
   useNavbarHeight(navRef)
   // v1.2.0 — a Google picture that fails to load falls back to the usual icon
@@ -59,10 +63,19 @@ export default function Navbar() {
     openPlayerPage()
   }
   // v1.13.0 — the brand obeys the page's home handler (a running match opens the close card first).
+  // Step 15 — off the Home it goes there in the app (the book changes); a new tab or window keeps the link.
   const onBrandClick = (e) => {
-    if (!homeButton.hasHandler()) return
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (homeButton.hasHandler()) {
+      e.preventDefault()
+      homeButton.run()
+      return
+    }
+    // The reload only with the Home shown and its book settled; a change to it running or waiting: nothing.
+    const book = routeBookStatus()
+    if (pathname === '/' && (!book || (book.pathname === '/' && book.settled))) return
     e.preventDefault()
-    homeButton.run()
+    if (pathname !== '/') navigate('/')
   }
 
   // v0.35.7 — same socials as the landing page; CSS hides them when the bar runs out of room.

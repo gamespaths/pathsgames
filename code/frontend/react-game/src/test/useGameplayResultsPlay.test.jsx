@@ -105,8 +105,8 @@ describe('useGameplayResults — turn on (WAAPI)', () => {
     expect(order).toEqual(['land', 'hold', 'end', 'reset', 'reload'])
     await act(async () => { reload.resolve(); await done })
     expect(viewActions.releaseTurn).not.toHaveBeenCalled() // the weather of the same answer is still coming
+    // Released one task after the news effects (the order is checked by the weather test below): no tick-exact check.
     await act(async () => { chrome.resolve() })
-    expect(viewActions.releaseTurn).not.toHaveBeenCalled() // after the news effects of that commit
     await tick()
     expect(viewActions.releaseTurn).toHaveBeenCalledTimes(1)
     expect(viewActions.releaseTurn).toHaveBeenCalledWith('forward')
@@ -136,17 +136,46 @@ describe('useGameplayResults — turn on (WAAPI)', () => {
     expect(order).toEqual(['weather', 'release:forward'])
   })
 
-  it('play off, turn on: no landing, still held and released with one turn', async () => {
+  it('play off, turn on: no landing, still held; a sleep never moves: released with a fade', async () => {
     const { result, order, viewActions } = setup()
     await act(async () => { await result.current.handleSlept({ counterZero: [] }) })
     await tick()
     expect(order.slice(0, 4)).toEqual(['land', 'hold', 'end', 'reset'])
+    expect(viewActions.releaseTurn).toHaveBeenCalledTimes(1)
+    expect(viewActions.releaseTurn).toHaveBeenCalledWith('fade')
+  })
+
+  // Step 15 §9 — no page turn when a play does not change the location.
+  it('an action that leaves the character where it is: held, then ONE fade', async () => {
+    const { result, order, viewActions } = setup()
+    await act(async () => { await result.current.handleEventExecuted({ movementApplied: false, locationChanges: [] }) })
+    await tick()
+    expect(order.slice(0, 4)).toEqual(['land', 'hold', 'end', 'reset'])
+    expect(viewActions.releaseTurn).toHaveBeenCalledTimes(1)
+    expect(viewActions.releaseTurn).toHaveBeenCalledWith('fade')
+  })
+
+  it('an event that moved (movementApplied or a forced movement) turns forward', async () => {
+    const { result, viewActions } = setup()
+    await act(async () => { await result.current.handleEventExecuted({ movementApplied: true }) })
+    await tick()
+    expect(viewActions.releaseTurn).toHaveBeenLastCalledWith('forward')
+    await act(async () => { await result.current.handleEventExecuted({ locationChanges: [{ characterUuid: 'c1' }] }) })
+    await tick()
+    expect(viewActions.releaseTurn).toHaveBeenLastCalledWith('forward')
+    expect(viewActions.releaseTurn).toHaveBeenCalledTimes(2)
+  })
+
+  it('a movement always turns forward, an empty answer too', async () => {
+    const { result, viewActions } = setup()
+    await act(async () => { await result.current.handleMovementDone({}) })
+    await tick()
     expect(viewActions.releaseTurn).toHaveBeenCalledWith('forward')
   })
 
-  it('item use and training close their page: ONE back turn', async () => {
+  it('item use and training close their page: ONE back turn, kept even with no move', async () => {
     const { result, viewActions } = setup()
-    await act(async () => { await result.current.handleItemUsed({ card: { title: 'potion' } }) })
+    await act(async () => { await result.current.handleItemUsed({ card: { title: 'potion' }, movementApplied: false }) })
     await tick()
     expect(viewActions.releaseTurn).toHaveBeenLastCalledWith('back')
     await act(async () => { await result.current.handleExpUsed({}) })
@@ -199,8 +228,8 @@ describe('useGameplayResults — turn on (WAAPI)', () => {
     expect(viewActions.releaseTurn).toHaveBeenCalledTimes(1)
   })
 
-  it('a choice: select-choice answers, lands, holds, turns forward', async () => {
-    selectChoice.mockResolvedValue({ status: 'OK' })
+  it('a choice that moved: select-choice answers, lands, holds, turns forward', async () => {
+    selectChoice.mockResolvedValue({ status: 'OK', movementApplied: true })
     const landing = deferred()
     const { result, order, viewActions } = setup({ landing: landing.promise })
     let done
@@ -211,6 +240,19 @@ describe('useGameplayResults — turn on (WAAPI)', () => {
     expect(viewActions.closeChoices).toHaveBeenCalled()
     await tick()
     expect(viewActions.releaseTurn).toHaveBeenCalledWith('forward')
+  })
+
+  it('a choice that did not move (also a linked choice-event): held, then a fade', async () => {
+    selectChoice.mockResolvedValueOnce({ status: 'OK', locationChanges: [] })
+    const { result, viewActions } = setup()
+    await act(async () => { await result.current.handleSelectChoice({ uuid: 'c1' }) })
+    await tick()
+    expect(viewActions.releaseTurn).toHaveBeenLastCalledWith('fade')
+    selectChoice.mockResolvedValueOnce({ status: 'CHOICES_PENDING', choices: [] })
+    await act(async () => { await result.current.handleSelectChoice({ uuid: 'c2' }) })
+    await tick()
+    expect(viewActions.releaseTurn).toHaveBeenLastCalledWith('fade')
+    expect(viewActions.releaseTurn).toHaveBeenCalledTimes(2)
   })
 
   it('a refused choice puts the lifted card down and says why', async () => {

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useInRouterContext, useNavigate } from 'react-router-dom'
 import BookPages from './BookPages'
 import BookBookmarks from './BookBookmarks'
 import Deck from './Deck'
 import { usePolicyChapter } from './PolicyChapter'
+import { useRouteBook } from './RouteBook'
 import { useTranslation } from '@/i18n/context'
 import { useHomeButton } from '@/context/HomeButtonContext'
 import { SHOW_BOOK_BOOKMARKS } from '@/constants/features'
@@ -27,28 +28,36 @@ export default function Book({
   direction      = null,                // 'forward' | 'back' | 'fade' | null (no turn)
   holdTurn       = false,               // step 15: the old pages stay on screen until it goes false
   deck           = true,                // step 14: the decks the cards are dealt from (only while the deal is on)
+  coverTitle     = null,                // step 15: the title on this book's cover when the book changes
 }) {
   const chapter = usePolicyChapter()
   const anim = useAnimationSettings()
+  const route = useRouteBook()
   const [turning, setTurning] = useState(false)
-  const busy = Boolean(usePlayState()) || turning
+  // Step 15 — its own play or turn is reported to the routes' book (a navigation waits); a book change makes it busy too.
+  const own = Boolean(usePlayState()) || turning
+  useReportBusy(route?.report, own)
+  const busy = own || Boolean(route?.busy)
   const withDeck = deck && anim.deal
   const showHome = useInRouterContext() && homeTab
   const tabsLeft = !chapter && showBookmarks ? visibleTabs(bookmarksLeft) : []
   const tabsRight = !chapter && showBookmarks ? visibleTabs(bookmarksRight) : []
-  const noTabs = !showHome && tabsLeft.length === 0 && tabsRight.length === 0
+  const homeTabs = showHome || tabsRight.length > 0
+  const noTabs = !homeTabs && tabsLeft.length === 0
   const covered = chapter ? 'book-content book-content--covered' : 'book-content'
   // Step 15 — while a card is played or the pages turn, the book is inert, tabs included (the navbar stays live).
-  const stage = ['book-stage', stageClass, noTabs ? 'book-stage--no-tabs' : '', busy ? 'is-busy' : '']
+  // Step 15 — the stage says which groups show: phones make room over the book (game tabs) or under it (home tab).
+  const stage = ['book-stage', stageClass, noTabs ? 'book-stage--no-tabs' : '',
+    tabsLeft.length > 0 ? 'book-stage--game-tabs' : '', homeTabs ? 'book-stage--home-tab' : '', busy ? 'is-busy' : '']
     .filter(Boolean).join(' ')
 
   return (
     <div className={stage} inert={busy ? '' : undefined} aria-busy={busy ? 'true' : undefined}>
       <div className="book-shell">
         <div className={wrapperClass} data-page-key={chapter ? `policy:${chapter.kind}` : (pageKey ?? undefined)}
-          data-direction={direction ?? undefined}>
+          data-direction={direction ?? undefined} data-cover-title={coverTitle || undefined}>
           <BookOrnaments />
-          {/* Inside the wrapper: the tabs belong to the cover. Step 16: one row, the sticky pills on phones (mobile.css). */}
+          {/* Inside the wrapper: the tabs belong to the cover. Step 15: desktop side column, tablet top edge, phone edges (CSS). */}
           {!noTabs && (
             <div className="book-bookmarks-row">
               {tabsLeft.length > 0 && <BookBookmarks items={tabsLeft} side="left" />}
@@ -73,6 +82,14 @@ export default function Book({
       </div>
     </div>
   )
+}
+
+/** Step 15 — tells the routes' book whether this book is busy (play, hold, turn), and not busy once unmounted. */
+function useReportBusy(report, busy) {
+  const token = useRef(null)
+  if (token.current === null) token.current = {}
+  useEffect(() => { report?.(token.current, busy) }, [report, busy])
+  useEffect(() => () => report?.(token.current, false), [report])
 }
 
 function visibleTabs(items) {

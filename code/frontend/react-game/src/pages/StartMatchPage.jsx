@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import StartMatchFlow from '@/features/start-match/StartMatchFlow'
+import { REDIRECT_STATE } from '@/components/book/bookSwap'
 
 /**
  * StartMatchPage — route shell for `/start-match/:storyId`.
@@ -19,7 +20,7 @@ export default function StartMatchPage() {
   const config = state?.config ?? null
 
   useEffect(() => {
-    if (!story || !config) navigate(`/story/${storyId}`, { replace: true })
+    if (!story || !config) navigate(`/story/${storyId}`, { replace: true, state: REDIRECT_STATE })
   }, [story, config, navigate, storyId])
 
   if (!story || !config) return null

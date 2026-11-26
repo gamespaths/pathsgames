@@ -11,7 +11,7 @@ export const COLUMN_OPTIONS = Object.freeze(['auto', 1, 2, 3, 4])
 export const TURN_MODES = Object.freeze(['full', 'simple'])
 export const SPEEDS = Object.freeze([0.25, 0.5, 1])
 export const DECKS = Object.freeze(['under', 'over'])
-export const ANIM_FLAGS = Object.freeze(['deal', 'dealFaceDown', 'play', 'turn'])
+export const ANIM_FLAGS = Object.freeze(['deal', 'dealFaceDown', 'play', 'turn', 'cover'])
 export const DEFAULT_THEME = 'medieval'
 export const DEFAULT_SIZE = 'normal'
 export const DEFAULT_COLUMNS = 'auto'
@@ -36,7 +36,7 @@ export const COLUMN_LAYOUT_QUERIES = Object.freeze([
 const isBool = value => typeof value === 'boolean'
 const oneOf = list => value => list.includes(value)
 const ANIM_RULES = Object.freeze({
-  deal: isBool, dealFaceDown: isBool, play: isBool, turn: isBool,
+  deal: isBool, dealFaceDown: isBool, play: isBool, turn: isBool, cover: isBool,
   turnMode: oneOf(TURN_MODES), speed: oneOf(SPEEDS), deck: oneOf(DECKS),
 })
 

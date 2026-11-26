@@ -41,6 +41,7 @@
     "success": "Success! You are human."
   },
   "book": {
+    "coverSub": "Web gamebook",
     "updateMatch": "Match update",
     "configureAdventure": "Start your Adventure",
     "character": "Character",
@@ -878,6 +879,7 @@
       "dealFaceDown": "Face-down deal",
       "play": "Play",
       "turn": "Page turn",
+      "cover": "Book cover",
       "turnMode": "Turn style",
       "speed": "Speed",
       "deck": "Deck",

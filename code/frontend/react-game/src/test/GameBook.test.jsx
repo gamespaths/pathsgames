@@ -230,11 +230,9 @@ describe('GameBook', () => {
   // scrolled back to the top so the new card is in view.
   it('scrolls the board to the top after a sleep reload (new gameData)', () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true })
-    const scrollTo = vi.fn()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
-    const realQS = document.querySelector.bind(document)
-    const qs = vi.spyOn(document, 'querySelector').mockImplementation(
-      sel => (sel === '.book-page-left' ? { scrollIntoView: scrollTo } : realQS(sel)))
+    const qs = vi.spyOn(document, 'querySelector')
     try {
       const props = { matchUuid: 'm1', story: STORY, onReload: vi.fn(), onClose: vi.fn() }
       const { rerender } = render(<GameBook gameData={GAME_DATA} {...props} />)
@@ -244,10 +242,10 @@ describe('GameBook', () => {
       scrollTo.mockClear()
       // The parent delivers a fresh board (new gameData reference).
       rerender(<GameBook gameData={{ ...GAME_DATA }} {...props} />)
-      // v1.13.0 — the document scrolls: the top of the stacked column comes into view
-      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ block: 'start', behavior: 'instant' }))
+      // step 15 — the document goes back to its very top: the tabs on the book's edge in view
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     } finally {
-      raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
+      scrollTo.mockRestore(); raf.mockRestore(); qs.mockRestore(); delete window.matchMedia
     }
   })
 

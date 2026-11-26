@@ -69,6 +69,8 @@ jobs:
           VITE_ANIM_TURN_MODE: ${{ vars.VITE_ANIM_TURN_MODE }}
           VITE_ANIM_SPEED: ${{ vars.VITE_ANIM_SPEED }}
           VITE_ANIM_DECK: ${{ vars.VITE_ANIM_DECK }}
+          VITE_ANIM_COVER: ${{ vars.VITE_ANIM_COVER }}
+          VITE_ANIM_COVER_MAX_S: ${{ vars.VITE_ANIM_COVER_MAX_S }}
         run: |
           : > .env.alpha
           for key in $(sed -n 's/^\(VITE_[A-Za-z0-9_]*\)=.*/\1/p' .env.example | sort -u); do

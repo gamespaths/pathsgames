@@ -8,6 +8,7 @@ documents and the other versions are listed in the global index
 |---|---|---|
 | `Roadmap.md` | Plan of the 42 steps of V1, steps 1-13 done, 14-16 developed | roadmap, steps, beta, draft |
 | `website_concepts_v0/v1.13.0/` | Prototype of card animations: deal, play, page turn, mobile | animation, deal, page turn, book, mobile |
+| `website_concepts_v0/v1.15.0/` | Prototype aligned to react-game 1.14.0: bookmarks, book change rules, tab look | bookmarks, book change, screen sizes, tab look, phone |
 | `Step01_Version1Launch.md` | V1 launch: daily AWS smoke test Lambda, schedule, alarms, TTL | smoke test, alarms, fast locations, registry lock, OpenAPI |
 | `Step02_GoogleSsoIdentityModel.md` | Google SSO identity table, nickname rules, username mapping (developed 1.2.0) | identities, nickname, users table, migration, DynamoDB |
 | `Step03_GoogleSsoBackendFlow.md` | Google ID token login, hashed sessions, replay, rate limit, admin bootstrap (developed 1.2.0) | google login, ID token, nonce, refresh, JWKS |
@@ -21,13 +22,13 @@ documents and the other versions are listed in the global index
 | `Step11_AdminUserManagementPages.md` | Developed 1.7.0: react-admin users list, detail and action dialogs | users page, dialogs, reason, suspend date |
 | `Step12_PaginationAndMultiDeviceContinuity.md` | Developed 1.7.0: admin paging residuals, session cap 12, logout-all, refresh 250 days, A-B-C Robot | pagination, SESSION_LIMIT, sessions_valid_after, SameSite, knownAccount |
 | `Step13_BookLayoutWithoutModals.md` | Developed 1.13.0, closed: in-flow books, /player and /story routes, policy chapter, navbar X, footer | no modals, routes, policy chapter, navbar, footer, sticky |
-| `Step14_HomeBookAndCardFaces.md` | Developed 1.14.0, waiting for owner's test: Home book, card back, animation env, deal | home book, card back, d20, VITE_ANIM, deal, columns |
-| `Step15_PlayAndPageTurn.md` | Developed 1.14.0, waiting for owner's test: play, page turn, (i) fade; one to do open | play, page turn, snapshot, fade, PlayContext, LoadingCard |
-| `Step16_MobileBookAndPreferences.md` | Developed 1.14.0, waiting for owner's test: one tree, phone book, preferences | mobile book, sticky deck, vibration, preferences, localStorage, columns |
+| `Step14_HomeBookAndCardFaces.md` | Developed 1.15.0, waiting for owner's test: Home book, card back, animation env, deal | home book, card back, d20, VITE_ANIM, deal, columns |
+| `Step15_PlayAndPageTurn.md` | Developed 1.15.0, waiting for owner's test: play, page turn, (i) fade; four to-dos developed | play, page turn, fade, book change, bookmarks |
+| `Step16_MobileBookAndPreferences.md` | Developed 1.15.0, waiting for owner's test: one tree, phone book, preferences | mobile book, sticky deck, vibration, preferences, localStorage, columns |
 | `test/` | Owner's test lists, one per step (`StepXX_Name.md`, same name as the step file), fixes included | test list, manual tests, checklist, fixes, release |
 
 # Version Control
-- **Document Version**: 1.14.0
+- **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -42,8 +43,9 @@ documents and the other versions are listed in the global index
   | 1.11.0 | Test status and last fixes noted | October 29, 2026 |
   | 1.13.0 | Animation concepts added; roadmap steps reordered | November 24, 2026 |
   | 1.14.0 | Steps 14 to 16 developed, waiting for test | November 25, 2026 |
+  | 1.15.0 | New concept prototype for bookmarks and book change | November 26, 2026 |
 
-- **Last Updated**: November 25, 2026 (v1.14.0)
+- **Last Updated**: November 26, 2026 (v1.15.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

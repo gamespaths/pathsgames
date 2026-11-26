@@ -12,6 +12,7 @@ import policies from '@/data/policies.json'
 import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
 import { STORY_LICENSE, STORY_LICENSE_URL } from '@/utils/cardCredits'
 import DealtList from '@/components/layout/DealtList'
+import { useRouteBook } from './RouteBook'
 
 /**
  * PolicyChapter — v1.13.0: the Privacy / Terms / Cookies / Credits / Devlog chapter of the current book
@@ -142,7 +143,10 @@ export function usePolicyChapter() {
   const i18n = useTranslation()
   const t = i18n?.t ?? IDENTITY
   const lang = i18n?.lang ?? 'en'
-  const { policyBook, openPolicyBook, closePolicyBook } = usePolicyBook()
+  const { policyBook, openedOn, openPolicyBook, closePolicyBook } = usePolicyBook()
+  // Step 15 — a chapter stays with the page it opened on: the next route's book mounts without it.
+  const shownPath = useRouteBook()?.pathname ?? null
+  const away = Boolean(shownPath && openedOn && openedOn !== shownPath)
   // Credits only: the catalog stories join the shipped ones. getStoriesCatalog is memoised,
   // so the home's answer is reused; a failure leaves the teasers alone, no error shown.
   const [serviceStories, setServiceStories] = useState([])
@@ -155,7 +159,7 @@ export function usePolicyChapter() {
     return () => { cancelled = true }
   }, [policyBook, lang])
 
-  const policy = POLICIES[policyBook]
+  const policy = away ? null : POLICIES[policyBook]
   if (!policy) return null
 
   // Left: the home-* image with the paths.games manifesto; right: the policy's own title.

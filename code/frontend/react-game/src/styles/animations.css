@@ -12,6 +12,8 @@
   --t-simple: 520ms;
   --t-sheet: 620ms;
   --t-fade: 200ms;
+  --t-close: 260ms;
+  --t-slide: 600ms;
   --card-back-dice: var(--color-gold-light);
   --card-back-dice-dim: rgba(232, 184, 48, 0.45);
 }
@@ -114,6 +116,9 @@
 }
 /* Under the book's edge by default (.book-wrapper is z-index 1); VITE_ANIM_DECK=over lies on the cover. */
 .deck-pile[data-place="over"] { z-index: 2; }
+/* Step 15 — the pile's size comes from --pile-scale on .book-shell (1; 0.82 up to 1360px; 0.7 on short desktops). */
+.book-shell { --pile-scale: 1; }
+.deck-pile { transform: scale(var(--pile-scale)); transform-origin: left bottom; }
 .deck-pile__card {
   position: absolute;
   width: 84px;
@@ -134,7 +139,16 @@
 
 /* Little room beside the book: the pile comes closer and smaller; under ~1100px only its edge shows. */
 @media (max-width: 1360px) {
-  .deck-pile { right: -100px; transform: scale(0.8); transform-origin: left bottom; }
+  .book-shell { --pile-scale: 0.82; }
+  .deck-pile { right: -100px; }
+}
+/* Step 15 — owner's rule: the home tab at the column foot, the pile just above it (its lowest card behind the tab). */
+@media (min-width: 1121px) {
+  .deck-pile { bottom: calc(var(--home-bottom) + 24px); }
+}
+/* Short desktop screens: a smaller pile, less of it under the game tabs. */
+@media (min-width: 1121px) and (max-height: 820px) {
+  .book-shell { --pile-scale: 0.7; }
 }
 
 /* The page deck: three backs at the end of the right page; only phones show it, sticky (mobile.css, step 16). */
@@ -288,7 +302,7 @@ html.is-turning { overflow: hidden; }
   will-change: transform;
 }
 .m-sheet__book { position: absolute; animation: none !important; }
-/* The tab row of the copy stays on the live book (the slice starts below it). */
+/* A sheet never shows the copy's tabs (they stand on the live book's edges, outside the slice). */
 .m-sheet .book-bookmarks-row { visibility: hidden; }
 .m-cast {
   position: fixed;
@@ -297,6 +311,94 @@ html.is-turning { overflow: hidden; }
   pointer-events: none;
   background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent 75%);
 }
+
+/* ═══ BOOK CHANGE (RouteBook.jsx, bookSwap.js) — step 15: copies on fixed layers over the hidden live book ═══ */
+.route-book { display: contents; }
+.route-book.is-swapping { visibility: hidden; }
+/* The whole screen under the navbar (as .m-sheet): the desktop side column is never clipped, only what leaves it. */
+.book-swap {
+  position: fixed;
+  inset: 0;
+  z-index: 990;
+  overflow: hidden;
+  overflow: clip;
+  perspective: 2600px;
+}
+.book-swap__book { position: absolute; margin: 0; perspective: 2600px; animation: none !important; }
+.book-flap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 5;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  will-change: transform;
+}
+.flap-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flap-front { border-radius: 0 14px 14px 0; }
+.flap-back { transform: rotateY(180deg); border-radius: 14px 0 0 14px; }
+.flap-copy { position: absolute; top: 0; margin: 0; animation: none !important; }
+.flap-copy .book-bookmarks-row { visibility: hidden; }
+/* Phones: the slice of a book change starts at the tabs over the cover, so its copy shows them. */
+.m-sheet.m-sheet--tabs .book-bookmarks-row { visibility: visible; }
+/* The front cover (concept .cover-face): the .book-wrapper leather and gold frame, the card back's d20, the title. */
+.cover-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 28px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 214, 150, 0.14), transparent 55%),
+    radial-gradient(ellipse at 80% 95%, rgba(0, 0, 0, 0.45), transparent 60%),
+    var(--leather-noise),
+    var(--leather);
+  box-shadow: inset 0 0 0 1px var(--color-brown-deep), inset 0 0 50px rgba(0, 0, 0, 0.55);
+}
+.cover-frame {
+  position: absolute;
+  inset: 14px;
+  border: 2px solid rgba(200, 150, 10, 0.65);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 6px rgba(26, 10, 2, 0.45), inset 0 0 0 7px rgba(200, 150, 10, 0.3);
+  pointer-events: none;
+}
+.cover-d20 {
+  display: block;
+  width: clamp(3.5rem, 7vw, 6rem);
+  height: auto;
+  overflow: visible;
+  color: var(--color-gold);
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 0 18px rgba(255, 215, 0, 0.35));
+}
+.cover-title {
+  max-width: 80%;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 2.6rem);
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--color-gold-light);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 16px rgba(232, 184, 48, 0.4);
+}
+.cover-sub {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-variant: small-caps;
+  letter-spacing: 0.3em;
+  color: var(--color-gold-dark);
+}
+.m-cover { border-radius: 12px; }
 
 /* ═══ (i) FADE (FadeIn.jsx) — phones only; on desktop the wrapper is no box and the Book fades the page ═══ */
 .pg-fade-in { display: contents; }

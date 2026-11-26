@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chromeScopeFor, CHROME_ALL, CHROME_NONE } from '../features/gameplay/js/chromeScope'
+import { chromeScopeFor, movedBy, CHROME_ALL, CHROME_NONE } from '../features/gameplay/js/chromeScope'
 
 const ALL = { clock: true, weather: true, locations: true }
 const NONE = { clock: false, weather: false, locations: false }
@@ -49,5 +49,29 @@ describe('chromeScopeFor (v0.37.6) — what an action answer makes stale', () =>
 
   it('a drop-item style answer (only timeEnded:false) touches nothing', () => {
     expect(chromeScopeFor({ timeEnded: false }, 7)).toEqual(NONE)
+  })
+})
+
+describe('movedBy (step 15) — whether a play moved the character', () => {
+  it('a movement always moves (toLocationUuid)', () => {
+    expect(movedBy({ toLocationUuid: 'l2' })).toBe(true)
+  })
+
+  it('an event, a choice or an item that moved: movementApplied or a forced movement', () => {
+    expect(movedBy({ movementApplied: true })).toBe(true)
+    expect(movedBy({ movementApplied: false, locationChanges: [{ characterUuid: 'c1' }] })).toBe(true)
+  })
+
+  it('no move: flags false, an empty locationChanges, a sleep or training answer', () => {
+    expect(movedBy({ movementApplied: false, locationChanges: [] })).toBe(false)
+    expect(movedBy({ counterZero: [], currentClock: 4 })).toBe(false)
+    expect(movedBy({ statChanges: [{ key: 'life', value: 1 }] })).toBe(false)
+  })
+
+  it('an empty or missing answer never moves', () => {
+    expect(movedBy({})).toBe(false)
+    expect(movedBy(null)).toBe(false)
+    expect(movedBy(undefined)).toBe(false)
+    expect(movedBy('nope')).toBe(false)
   })
 })

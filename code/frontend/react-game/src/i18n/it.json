@@ -41,6 +41,7 @@
     "success": "Verifica superata! Sei umano."
   },
   "book": {
+    "coverSub": "Librogame web",
     "updateMatch": "Aggiornamento partita",
     "configureAdventure": "Inizia la tua Avventura",
     "character": "Personaggio",
@@ -878,6 +879,7 @@
       "dealFaceDown": "Distribuzione coperta",
       "play": "Giocata",
       "turn": "Giro pagina",
+      "cover": "Copertina",
       "turnMode": "Stile del giro",
       "speed": "Velocità",
       "deck": "Mazzo",

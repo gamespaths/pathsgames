@@ -1,21 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import {
   readAnimationEnv, resolveAnimations, applyAnimationTimings, scaledTimings,
-  parseSpeed, parseTurnMode, parseDeck, BASE_TIMINGS, DEAL_MAX_STAGGER, DEFAULT_SPEED,
+  parseSpeed, parseTurnMode, parseDeck, parseCoverMax, BASE_TIMINGS, DEAL_MAX_STAGGER, DEFAULT_SPEED, DEFAULT_COVER_MAX,
 } from '../constants/animations'
 
 // Step 14 — the animation settings: env parsing, overrides, reduced motion, timings on <html>.
 describe('readAnimationEnv', () => {
   it('defaults every key when the env names none', () => {
     expect(readAnimationEnv({})).toEqual({
-      deal: true, dealFaceDown: true, play: true, turn: true, turnMode: 'full', speed: 0.25, deck: 'under',
+      deal: true, dealFaceDown: true, play: true, turn: true, cover: true, turnMode: 'full', speed: 0.25, deck: 'under',
+      coverMax: 10,
     })
     expect(readAnimationEnv(null)).toEqual(readAnimationEnv({}))
   })
 
   it('reads the build env by default', () => {
     expect(Object.keys(readAnimationEnv()).sort()).toEqual(
-      ['deal', 'dealFaceDown', 'deck', 'play', 'speed', 'turn', 'turnMode'])
+      ['cover', 'coverMax', 'deal', 'dealFaceDown', 'deck', 'play', 'speed', 'turn', 'turnMode'])
   })
 
   it('parses the four flags with parseFlag: false / 0 / no / off turn them off, empty keeps the default', () => {
@@ -54,6 +55,38 @@ describe('readAnimationEnv', () => {
     expect(parseDeck('under')).toBe('under')
     expect(parseDeck('beside')).toBe('under')
     expect(parseDeck(null)).toBe('under')
+  })
+})
+
+describe('readAnimationEnv — step 15 book change', () => {
+  it('VITE_ANIM_COVER: on by default, off with false / 0 / no / off', () => {
+    expect(readAnimationEnv({}).cover).toBe(true)
+    expect(readAnimationEnv({ VITE_ANIM_COVER: '' }).cover).toBe(true)
+    expect(readAnimationEnv({ VITE_ANIM_COVER: 'false' }).cover).toBe(false)
+    expect(readAnimationEnv({ VITE_ANIM_COVER: 'off' }).cover).toBe(false)
+  })
+
+  it('VITE_ANIM_COVER_MAX_S: seconds >= 0 (0 = no limit kept), default 10; negative, text or empty is 10', () => {
+    expect(DEFAULT_COVER_MAX).toBe(10)
+    expect(readAnimationEnv({}).coverMax).toBe(10)
+    expect(readAnimationEnv({ VITE_ANIM_COVER_MAX_S: '6' }).coverMax).toBe(6)
+    expect(readAnimationEnv({ VITE_ANIM_COVER_MAX_S: ' 2.5 ' }).coverMax).toBe(2.5)
+    expect(readAnimationEnv({ VITE_ANIM_COVER_MAX_S: '0' }).coverMax).toBe(0)
+    expect(parseCoverMax(4)).toBe(4)
+    for (const bad of ['-1', -3, 'ten', '', '  ', null, undefined, true, Infinity, NaN]) expect(parseCoverMax(bad)).toBe(10)
+  })
+
+  it('the new phases slide and close are scaled as the others (¼×: 2.4 s, 1.04 s)', () => {
+    expect(BASE_TIMINGS).toMatchObject({ slide: 600, close: 260 })
+    expect(scaledTimings(0.25)).toMatchObject({ slide: 2400, close: 1040 })
+  })
+
+  it('`cover` is a flag (overridable, off under reduced motion); `coverMax` is env only', () => {
+    const env = { VITE_ANIM_COVER_MAX_S: '4' }
+    expect(resolveAnimations({ env })).toMatchObject({ cover: true, coverMax: 4 })
+    expect(resolveAnimations({ env, overrides: { cover: false, coverMax: 99 } })).toMatchObject({ cover: false, coverMax: 4 })
+    expect(resolveAnimations({ env, reducedMotion: true })).toMatchObject({ cover: false, coverMax: 4 })
+    expect(resolveAnimations({ defaults: { ...readAnimationEnv({}), coverMax: undefined } }).coverMax).toBe(10)
   })
 })
 

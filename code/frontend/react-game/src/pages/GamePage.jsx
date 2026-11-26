@@ -16,6 +16,7 @@ import { findResumableMatch } from '@/utils/matchStatus'
 import { useServer } from '@/context/ServerContext'
 import { STALE_EVENT, getMatchVersion, isStaleMatch } from '@/api/matchVersion'
 import useMatchRefetchOnReturn from '@/hooks/useMatchRefetchOnReturn'
+import { REDIRECT_STATE } from '@/components/book/bookSwap'
 
 /** v1.7.0 step 12 — the match changed elsewhere: this device knew a version and the refetch brought another. */
 export function changedElsewhere(before, after) {
@@ -53,7 +54,7 @@ export default function GamePage() {
   const accessToken = user?.accessToken ?? null
   useEffect(() => {
     if (matchUuid) return undefined
-    const toStory = () => navigate(`/story/${storyId}`, { replace: true })
+    const toStory = () => navigate(`/story/${storyId}`, { replace: true, state: REDIRECT_STATE })
     if (!accessToken) {
       if (guestError || sessionIdle) toStory()
       return undefined
@@ -153,10 +154,8 @@ export default function GamePage() {
     return () => { cancelled = true }
   }, [story?.uuid, lang])
 
-  const gotoHomePage = (message) => {
-    // For now we just reload to home, but we could also navigate with state to show a "Game ended" message or similar
-    window.location.href = '/'
-  }
+  // Step 15 — Leave and the fatal error close go home in the app: the book changes (it was a reload).
+  const gotoHomePage = () => navigate('/')
 
   // Surface an API error raised inside GameBook (e.g. startMovement). `transient`
   // errors take the board's right page and are dismissed in place; fatal match-load errors
@@ -172,7 +171,7 @@ export default function GamePage() {
 
   const handleErrorClose = () => {
     if (matchError?.transient) setMatchError(null)
-    else gotoHomePage(null)
+    else gotoHomePage()
   }
 
   const banner = updatedBanner && (
@@ -189,20 +188,20 @@ export default function GamePage() {
   // v1.13.0 — every state is a Book: the loading card, the fatal error page, then the board.
   if (loading) {
     const left = <LoadingCard story={story} />
-    return <>{banner}<Book left={left} right={null} /></>
+    return <>{banner}<Book left={left} right={null} coverTitle={story?.title} /></>
   }
   if (matchError && !matchError.transient) {
     const left = story?.card
       ? <Card variant="page" card={story.card} story={story} entityType="story" loading={false} />
       : <Card variant="page" card={buildErrorCard(t)} entityType="error" loading={false} />
     const right = <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} />
-    return <>{banner}<Book left={left} right={right} /></>
+    return <>{banner}<Book left={left} right={right} coverTitle={story?.title} /></>
   }
   return (
     <>
       {banner}
       <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
-        onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError}
+        onReload={reloadGameData} onClose={gotoHomePage} onError={handleGameError}
         error={matchError} onErrorClose={handleErrorClose}
         reloadKey={reloadKey} openLogKey={openLogKey} staleKey={staleKey} />
     </>

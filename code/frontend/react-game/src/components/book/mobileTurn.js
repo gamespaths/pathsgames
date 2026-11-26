@@ -1,4 +1,4 @@
-import { DONE, canAnimate, cleanClone, handleOf, pageOf, px, runSimple } from './pageTurn'
+import { DONE, canAnimate, cleanClone, handleOf, px, runSimple } from './pageTurn'
 import { setMobileTurnBusy } from '@/features/gameplay/js/mobileView'
 
 /* mobileTurn — step 16: the phone turn, one page hinged on its left edge. Only the visible slice of the book is
@@ -6,18 +6,17 @@ import { setMobileTurnBusy } from '@/features/gameplay/js/mobileView'
 
 const PERSPECTIVE = 'perspective(1400px)'
 
-/** The top of the free screen: under the sticky navbar and the book's sticky tab row. */
-export function viewTop(bookEl) {
+/** The top of the free screen: under the sticky navbar (step 15: the tabs stand on the book, outside the slice). */
+export function viewTop() {
   const nav = document.querySelector('.navbar-medieval')?.getBoundingClientRect()
-  const row = bookEl?.querySelector(':scope > .book-bookmarks-row')?.getBoundingClientRect()
-  return Math.max(0, nav?.bottom ?? 0, row?.bottom ?? 0)
+  return Math.max(0, nav?.bottom ?? 0)
 }
 
-/** The book's rectangle cut to the viewport, below the navbar and the tab row; null when none of it shows. */
+/** The book's rectangle cut to the viewport, below the navbar; null when none of it shows. */
 export function visibleSlice(bookEl) {
   if (!bookEl) return null
   const book = bookEl.getBoundingClientRect()
-  const top = Math.max(book.top, viewTop(bookEl))
+  const top = Math.max(book.top, viewTop())
   const bottom = Math.min(book.bottom, window.innerHeight)
   const left = Math.max(book.left, 0)
   const right = Math.min(book.right, window.innerWidth)
@@ -40,21 +39,9 @@ export function sheetOf(bookEl, slice) {
   return { sheet, scrolls: copy.scrolls }
 }
 
-/** What a page shows (its text and pictures): a left page that changed lands the jump at the top of the book. */
-export function pageSignature(page) {
-  if (!page) return ''
-  const pictures = [...page.querySelectorAll('img')].map(img => img.getAttribute('src')).join('|')
-  return `${page.textContent}#${pictures}`
-}
-
-/** Where the jump lands: the book's top when the left page changed, otherwise the top of the right page. */
-export function landingOf(bookEl, leftSig) {
-  const left = pageOf(bookEl, 'left')
-  return pageSignature(left) !== leftSig ? bookEl : pageOf(bookEl, 'right')
-}
-
-function land(bookEl, shot) {
-  landingOf(bookEl, shot.leftSig)?.scrollIntoView?.({ behavior: 'instant', block: 'start' })
+/** Step 15 — every page change lands at the very top of the document, the tabs on the book's edge in view. */
+function land() {
+  window.scrollTo({ top: 0, behavior: 'instant' })
 }
 
 function addLayer(shot, el, before = null) {
@@ -91,8 +78,7 @@ function release(shot) {
 /** Before the commit: scroll locked (root class and a touch blocker for iOS), the old slice copied on a still sheet. */
 function snapshot(bookEl, request = 'forward') {
   if (!bookEl || request === 'fade') return null
-  const shot = { mobile: true, leftSig: pageSignature(pageOf(bookEl, 'left')), layers: [], released: false,
-    sheet: null, slice: null }
+  const shot = { mobile: true, layers: [], released: false, sheet: null, slice: null }
   shot.dispose = () => release(shot)
   document.documentElement.classList.add('is-turning')
   setMobileTurnBusy(true)
@@ -118,8 +104,8 @@ function sheetAnimations(sheet, cast, timings, fwd) {
 }
 
 /** Forward: jump under the old sheet, then it turns away on its left edge (0 → −90deg) over a fading cast shadow. */
-function runForward(shot, bookEl, timings) {
-  land(bookEl, shot)
+function runForward(shot, timings) {
+  land()
   if (!shot.sheet || !canAnimate(shot.sheet)) {
     shot.dispose()
     return DONE
@@ -130,7 +116,7 @@ function runForward(shot, bookEl, timings) {
 
 /** Back: the old sheet stays still, jump, then a copy of the new slice turns in over it (−90deg → 0). */
 function runBack(shot, bookEl, timings) {
-  land(bookEl, shot)
+  land()
   const slice = visibleSlice(bookEl)
   if (!slice || !shot.sheet || !canAnimate(shot.sheet)) {
     shot.dispose()
@@ -141,8 +127,9 @@ function runBack(shot, bookEl, timings) {
   return handleOf(sheetAnimations(sheet, cast, timings, false), shot.dispose)
 }
 
-/** A held copy released with a fade: it fades out where it is (no jump, as every fade). */
+/** A held copy released with a fade (a play that did not move): the jump to the top under it, then it fades out. */
 function runFade(shot, timings) {
+  land()
   if (!shot.sheet || !canAnimate(shot.sheet)) {
     shot.dispose()
     return DONE
@@ -157,11 +144,11 @@ function run({ snapshot: shot, bookEl, layer, direction, timings, turnMode }) {
   if (!shot) return DONE
   if (direction === 'fade') return runFade(shot, timings)
   if (turnMode === 'simple') {
-    land(bookEl, shot)
+    land()
     shot.dispose()
     return runSimple({ bookEl, layer, direction, timings })
   }
-  return direction === 'back' ? runBack(shot, bookEl, timings) : runForward(shot, bookEl, timings)
+  return direction === 'back' ? runBack(shot, bookEl, timings) : runForward(shot, timings)
 }
 
 /** The `mobile` strategy of pageTurn: no Book fade on phones (FadeIn fades the previews), the hold is the sheet itself. */

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
-  viewTop, visibleSlice, sheetOf, pageSignature, landingOf, mobileStrategy,
+  viewTop, visibleSlice, sheetOf, mobileStrategy,
 } from '../components/book/mobileTurn'
 import { mobileTurnBusy, setMobileTurnBusy } from '../features/gameplay/js/mobileView'
 import { installWaapi } from './fixtures/waapi'
@@ -10,7 +10,7 @@ import { installWaapi } from './fixtures/waapi'
 const TIMINGS = { sheet: 620, simple: 520, fade: 200 }
 const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top })
 
-/** A phone book like Book renders it: wrapper > tab row, left page, right page, turn layer; plus the navbar. */
+/** A phone book like Book renders it: wrapper > tab row (step 15: on the book's edge), pages, turn layer; plus the navbar. */
 function makeBook({ left = 'old left', right = 'old right', bookTop = -200, rowBottom = 104 } = {}) {
   const nav = document.createElement('nav')
   nav.className = 'navbar-medieval'
@@ -38,7 +38,10 @@ const sheets = () => [...document.querySelectorAll('body > .m-sheet')]
 const html = document.documentElement
 
 let waapi = null
+let scrollTo = null
+beforeEach(() => { scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {}) })
 afterEach(() => {
+  scrollTo.mockRestore()
   waapi?.restore()
   waapi = null
   document.body.innerHTML = ''
@@ -47,19 +50,18 @@ afterEach(() => {
 })
 
 describe('mobileTurn — the visible slice', () => {
-  it('viewTop is under the navbar and under the sticky tab row, whichever is lower', () => {
-    const { book, nav } = makeBook({ rowBottom: 104 })
-    expect(viewTop(book)).toBe(104)
-    book.querySelector('.book-bookmarks-row').getBoundingClientRect = () => rect(0, -100, 360, 48)
-    expect(viewTop(book)).toBe(56)
+  // Step 15 — no sticky tab row any more: the tabs stand on the book's edge, so only the navbar bounds the slice.
+  it('viewTop is the navbar bottom only (a tab row lower down is ignored)', () => {
+    const { nav } = makeBook({ rowBottom: 104 })
+    expect(viewTop()).toBe(56)
     nav.remove()
-    expect(viewTop(null)).toBe(0)
+    expect(viewTop()).toBe(0)
   })
 
-  it('visibleSlice cuts the book to the screen below the bars; null when none of it shows', () => {
+  it('visibleSlice cuts the book to the screen below the navbar; null when none of it shows', () => {
     const { book } = makeBook({ bookTop: -200, rowBottom: 104 })
     const slice = visibleSlice(book)
-    expect(slice).toMatchObject({ left: 0, top: 104, width: 360, height: window.innerHeight - 104 })
+    expect(slice).toMatchObject({ left: 0, top: 56, width: 360, height: window.innerHeight - 56 })
     expect(slice.book.top).toBe(-200)
     // the book starts low on the screen: its own top bounds the slice
     book.getBoundingClientRect = () => rect(10, 300, 340, 200)
@@ -79,39 +81,19 @@ describe('mobileTurn — the visible slice', () => {
     const { sheet } = sheetOf(book, slice)
     expect(sheet).toHaveClass('m-sheet')
     expect(sheet).toHaveAttribute('aria-hidden', 'true')
-    expect(sheet.style.top).toBe('104px')
+    expect(sheet.style.top).toBe('56px')
     const copy = sheet.firstChild
     expect(copy).toHaveClass('book-wrapper', 'm-sheet__book')
     expect(copy).toHaveAttribute('inert')
-    expect(copy.style.top).toBe('-304px')
+    expect(copy.style.top).toBe('-256px')
     expect(copy.style.width).toBe('360px')
     expect(copy.querySelector('[id], [data-testid], [data-tip], iframe')).toBeNull()
     expect(copy.querySelector('.turn-iframe-box')).not.toBeNull()
     expect(copy.querySelector('.book-turn-layer')).toBeEmptyDOMElement()
     expect(copy.textContent).toContain('old left')
-    expect(pageSignature(book.querySelector('.book-page-right'))).toBe('old right#')
     // the live book keeps everything
     expect(book.querySelector('#l')).toHaveAttribute('data-tip', 'tip')
     expect(book.querySelector('iframe')).not.toBeNull()
-  })
-})
-
-describe('mobileTurn — landing', () => {
-  it('the book top when the left page changed (text or picture), the right page top otherwise', () => {
-    const { book } = makeBook()
-    const left = book.querySelector('.book-page-left')
-    const sig = pageSignature(left)
-    expect(sig).toContain('old left')
-    expect(sig).toContain('a.png')
-    expect(pageSignature(null)).toBe('')
-    expect(landingOf(book, sig)).toBe(book.querySelector('.book-page-right'))
-    setText(book, 'right', 'new right')
-    expect(landingOf(book, sig)).toBe(book.querySelector('.book-page-right'))
-    left.querySelector('img').setAttribute('src', 'b.png')
-    expect(landingOf(book, sig)).toBe(book)
-    left.querySelector('img').setAttribute('src', 'a.png')
-    setText(book, 'left', 'new left')
-    expect(landingOf(book, sig)).toBe(book)
   })
 })
 
@@ -130,10 +112,10 @@ describe('mobileTurn — the strategy', () => {
 
   it('the snapshot locks the scroll (root class, touch blocker), marks the turn busy and puts the still sheet up', () => {
     const { book } = makeBook()
-    book.querySelector('.book-bookmarks-row').scrollLeft = 30
+    book.querySelector('.book-page-left .page-inner').scrollTop = 30
     const shot = mobileStrategy.snapshot(book, 'hold')
-    // the sideways scroll of the tab row is copied once the sheet is on the page
-    expect(shot.sheet.querySelector('.book-bookmarks-row').scrollLeft).toBe(30)
+    // a scrolled box of the book is copied once the sheet is on the page
+    expect(shot.sheet.querySelector('.book-page-left .page-inner').scrollTop).toBe(30)
     expect(shot.mobile).toBe(true)
     expect(html).toHaveClass('is-turning')
     expect(mobileTurnBusy()).toBe(true)
@@ -153,7 +135,9 @@ describe('mobileTurn — the strategy', () => {
     const shot = mobileStrategy.snapshot(book, 'forward')
     setText(book, 'left', 'new left')
     const handle = mobileStrategy.run({ snapshot: shot, bookEl: book, layer, direction: 'forward', timings: TIMINGS })
-    expect(scrolls.book).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+    // step 15: every page change lands at the very top of the document, tabs in view
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    expect(scrolls.book).not.toHaveBeenCalled()
     expect(scrolls.right).not.toHaveBeenCalled()
     const cast = document.querySelector('body > .m-cast')
     expect(cast.nextElementSibling).toBe(shot.sheet)
@@ -179,7 +163,8 @@ describe('mobileTurn — the strategy', () => {
     const shot = mobileStrategy.snapshot(book, 'back')
     setText(book, 'right', 'new right')
     const handle = mobileStrategy.run({ snapshot: shot, bookEl: book, layer, direction: 'back', timings: TIMINGS })
-    expect(scrolls.right).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    expect(scrolls.right).not.toHaveBeenCalled()
     expect(sheets()).toHaveLength(2)
     expect(sheets()[0].textContent).toContain('old right')
     expect(sheets()[1].textContent).toContain('new right')
@@ -204,7 +189,7 @@ describe('mobileTurn — the strategy', () => {
   })
 
   it('the plain path (jsdom, no WAAPI): commit and jump at once, nothing left behind', async () => {
-    const { book, scrolls, layer } = makeBook()
+    const { book, layer } = makeBook()
     for (const direction of ['forward', 'back', 'fade']) {
       const shot = mobileStrategy.snapshot(book, direction === 'fade' ? 'hold' : direction)
       const handle = mobileStrategy.run({ snapshot: shot, bookEl: book, layer, direction, timings: TIMINGS })
@@ -212,31 +197,31 @@ describe('mobileTurn — the strategy', () => {
       expect(document.querySelector('.m-sheet, .m-cast, .m-blocker')).toBeNull()
       expect(html).not.toHaveClass('is-turning')
     }
-    expect(scrolls.right).toHaveBeenCalledTimes(2) // forward and back land; a fade keeps its place
+    expect(scrollTo).toHaveBeenCalledTimes(3) // forward, back and the fade release all land at the top
   })
 
   it('a book off the screen: no sheet, the jump still lands and the lock goes', () => {
     waapi = installWaapi()
-    const { book, scrolls, layer } = makeBook({ bookTop: 2000 })
+    const { book, layer } = makeBook({ bookTop: 2000 })
     const shot = mobileStrategy.snapshot(book, 'forward')
     expect(shot.sheet).toBeNull()
     expect(sheets()).toHaveLength(0)
     mobileStrategy.run({ snapshot: shot, bookEl: book, layer, direction: 'forward', timings: TIMINGS })
-    expect(scrolls.right).toHaveBeenCalled()
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     expect(waapi.animations).toHaveLength(0)
     expect(html).not.toHaveClass('is-turning')
   })
 
-  it('a held sheet released with a fade fades out where it is (no jump)', async () => {
+  // Step 15 §9 — a play that did not move: the jump to the top happens under the held sheet, which then fades.
+  it('a held sheet released with a fade: the jump to the top under it, then it fades out', async () => {
     waapi = installWaapi()
-    const { book, scrolls, layer } = makeBook()
+    const { book, layer } = makeBook()
     const shot = mobileStrategy.snapshot(book, 'hold')
     const handle = mobileStrategy.run({ snapshot: shot, bookEl: book, layer, direction: 'fade', timings: TIMINGS })
     expect(waapi.animations[0].target).toBe(shot.sheet)
     expect(waapi.animations[0].keyframes).toEqual([{ opacity: 1 }, { opacity: 0 }])
     expect(waapi.animations[0].options.duration).toBe(200)
-    expect(scrolls.book).not.toHaveBeenCalled()
-    expect(scrolls.right).not.toHaveBeenCalled()
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     waapi.finishAll()
     await handle.finished
     expect(sheets()).toHaveLength(0)
@@ -244,10 +229,10 @@ describe('mobileTurn — the strategy', () => {
 
   it('simple turn mode: the same jump, the sheet leaves, the live pages swing in as step 15\'s simple turn', () => {
     waapi = installWaapi()
-    const { book, scrolls, layer } = makeBook()
+    const { book, layer } = makeBook()
     const shot = mobileStrategy.snapshot(book, 'forward')
     mobileStrategy.run({ snapshot: shot, bookEl: book, layer, direction: 'forward', timings: TIMINGS, turnMode: 'simple' })
-    expect(scrolls.right).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     expect(sheets()).toHaveLength(0)
     expect(layer).toBeEmptyDOMElement()
     expect(waapi.animations.map(a => a.target.className)).toEqual(['page-inner', 'page-inner'])

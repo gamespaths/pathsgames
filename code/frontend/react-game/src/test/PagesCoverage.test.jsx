@@ -133,7 +133,10 @@ describe('GamePage — reload and fatal errors', () => {
   function wrap() {
     return render(
       <MemoryRouter initialEntries={[{ pathname: '/play/abc', state: { matchUuid: 'match-1' } }]}>
-        <Routes><Route path="/play/:storyId" element={<GamePage />} /></Routes>
+        <Routes>
+          <Route path="/play/:storyId" element={<GamePage />} />
+          <Route path="/" element={<div data-testid="home-page" />} />
+        </Routes>
       </MemoryRouter>
     )
   }
@@ -169,20 +172,13 @@ describe('GamePage — reload and fatal errors', () => {
 
   // A fatal match-load error has no board to go back to: closing it sends the
   // player home.
-  it('sends the player home when a fatal match error is closed', async () => {
-    const original = window.location
-    delete window.location
-    window.location = { ...original, href: 'http://localhost/play/abc' }
-    try {
-      getMatchInfo.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }))
-      wrap()
-      // v1.13.0 — the error page is the book's right page (and its mobile copy)
-      expect((await screen.findAllByTestId('error-card')).length).toBeGreaterThan(0)
-      expect(screen.queryByTestId('game-book')).not.toBeInTheDocument()
-      fireEvent.click(screen.getAllByTestId('close-error')[0])
-      expect(window.location.href).toBe('/')
-    } finally {
-      window.location = original
-    }
+  it('sends the player home when a fatal match error is closed (step 15: in the app, no reload)', async () => {
+    getMatchInfo.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }))
+    wrap()
+    // v1.13.0 — the error page is the book's right page (and its mobile copy)
+    expect((await screen.findAllByTestId('error-card')).length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('game-book')).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByTestId('close-error')[0])
+    expect(screen.getByTestId('home-page')).toBeInTheDocument()
   })
 })

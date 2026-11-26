@@ -1,7 +1,7 @@
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 /**
- * v0.35.5 — BookBookmarks: the tabs sticking out of the book's top edge, one row per page.
+ * v0.35.5 — BookBookmarks: the tabs sticking out of the book's edge, one group per side (step 15: per screen, book.css).
  * Each item is `{ key, icon, label, badges, onClick, active, disabled, title }`; `label` is
  * never printed — a tab is an icon and its badges, and the label names it to a screen
  * reader and to the tooltip.
@@ -11,7 +11,7 @@ import BonusBadgeList from '@/components/ui/BonusBadgeList'
  *
  * An active tab is inert — the page it opened is already there, and the way back is that
  * page's own arrow — and so is a disabled one (a feature that has not landed yet).
- * Step 16 — the active tab carries its label too: shown only by the phone pills (mobile.css).
+ * Step 15 — icon only on every screen; `data-tip-side="left"`: the desktop side tabs show their tip on their left.
  */
 export default function BookBookmarks({ items = [], side = 'left' }) {
   const visible = (items ?? []).filter(Boolean)
@@ -33,10 +33,10 @@ export default function BookBookmarks({ items = [], side = 'left' }) {
             aria-disabled={item.disabled ? 'true' : undefined}
             aria-current={item.active ? 'page' : undefined}
             data-tip={item.title ?? item.label}
+            data-tip-side="left"
             aria-label={item.label}
           >
             {item.icon && <i className={item.icon} />}
-            {item.active && <span className="book-bookmark__label" aria-hidden="true">{item.label}</span>}
             {item.badges?.length > 0 && (
               <BonusBadgeList items={item.badges} showZeros littleVersion withTitle={false}
                 className="book-bookmark__badges" />

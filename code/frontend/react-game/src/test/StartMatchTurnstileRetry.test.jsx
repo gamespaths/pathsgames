@@ -7,7 +7,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 // auto-refresh keeps minting), and a retry always sends a brand-new token.
 
 // Each widget mount issues its own token; `ts.last` is the freshest one minted.
-const ts = vi.hoisted(() => ({ minted: 0, last: null }))
+const ts = vi.hoisted(() => ({ minted: 0, last: null, auto: true }))
 vi.mock('@marsidev/react-turnstile', async () => {
   const { useEffect } = await import('react')
   const mint = (onSuccess) => {
@@ -16,10 +16,14 @@ vi.mock('@marsidev/react-turnstile', async () => {
     onSuccess?.(ts.last)
   }
   return {
-    Turnstile: ({ onSuccess }) => {
-      useEffect(() => { mint(onSuccess) }, [])
-      // Click = the widget refreshing an expired token on its own.
-      return <button data-testid="turnstile-mock" onClick={() => mint(onSuccess)} />
+    Turnstile: ({ onSuccess, onError, onExpire }) => {
+      useEffect(() => { if (ts.auto) mint(onSuccess) }, [])
+      // Click = the widget refreshing an expired token on its own; the other two = its error and expiry callbacks.
+      return <>
+        <button data-testid="turnstile-mock" onClick={() => mint(onSuccess)} />
+        <button data-testid="turnstile-error" onClick={() => onError?.()} />
+        <button data-testid="turnstile-expire" onClick={() => onExpire?.()} />
+      </>
     },
   }
 })
@@ -30,9 +34,11 @@ vi.mock('@/utils/turnstile', async (importOriginal) => {
 vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
+const guest = vi.hoisted(() => ({ value: null }))
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok-1' } }),
+  useGuestUser: () => guest.value ?? { user: { userUuid: 'u1', accessToken: 'tok-1' } },
 }))
+vi.mock('@/features/guest-user/GoogleSignInButton', () => ({ default: () => <div data-testid="google-signin" /> }))
 vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn(), startMatch: vi.fn() }))
 
 import StartMatchPage from '../pages/StartMatchPage'
@@ -46,9 +52,9 @@ const CONFIG = {
   difficulty: { uuid: 'df1', name: 'Normal' },
 }
 
-function renderPage() {
+function renderPage(story = STORY) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/start-match/s1', state: { story: STORY, config: CONFIG } }]}>
+    <MemoryRouter initialEntries={[{ pathname: '/start-match/s1', state: { story, config: CONFIG } }]}>
       <Routes>
         <Route path="/start-match/:storyId" element={<StartMatchPage />} />
         <Route path="/" element={<div>home-page</div>} />
@@ -119,5 +125,81 @@ describe('StartMatchFlow — Turnstile token freshness', () => {
     const [first, second] = createMatch.mock.calls
     expect(turnstileToken(second)).not.toBe(turnstileToken(first))
     expect(turnstileToken(second)).toBe(ts.last)
+  })
+})
+
+// Step 15 §9 — "Success! You are human." under the left card's text for 4 s after a check passed on this visit.
+describe('StartMatchFlow — the success line (as on the Home)', () => {
+  const STORY_DESC = { ...STORY, card: { title: 'The Lost Crown', description: 'A crown was lost.' } }
+  const line = () => screen.queryByTestId('antibot-success')
+  const leftPage = () => document.querySelector('.book-page-left')
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.minted = 0
+    ts.last = null
+    ts.auto = false
+    guest.value = null
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    ts.auto = true
+    guest.value = null
+    vi.useRealTimers()
+  })
+
+  const pass = () => act(() => { fireEvent.click(screen.getAllByTestId('turnstile-mock')[0]) })
+
+  it('no line while checking; inside the left card\'s .book-page-desc after success; gone after 4 s', () => {
+    renderPage(STORY_DESC)
+    expect(line()).toBeNull()
+    pass()
+    expect(line()).toHaveTextContent('antibot.success')
+    expect(line().closest('.book-page-desc')).not.toBeNull()
+    expect(leftPage().contains(line())).toBe(true)
+    expect(line().parentElement).toHaveClass('home-intro-antibot')
+    act(() => { vi.advanceTimersByTime(3999) })
+    expect(line()).not.toBeNull()
+    act(() => { vi.advanceTimersByTime(1) })
+    expect(line()).toBeNull()
+  })
+
+  it('a new check (an expired token, a retry after an error) shows it again once passed', () => {
+    renderPage(STORY_DESC)
+    pass()
+    act(() => { vi.advanceTimersByTime(4000) })
+    expect(line()).toBeNull()
+    // a refresh of a still valid token is no new check: no line
+    pass()
+    expect(line()).toBeNull()
+    // onExpire is retry: checking again, then a pass shows the line again
+    act(() => { fireEvent.click(screen.getAllByTestId('turnstile-expire')[0]) })
+    expect(line()).toBeNull()
+    pass()
+    expect(line()).not.toBeNull()
+    // an error hides it at once; the retry's pass shows it again
+    act(() => { fireEvent.click(screen.getAllByTestId('turnstile-error')[0]) })
+    expect(line()).toBeNull()
+    act(() => { fireEvent.click(screen.getAllByText('startMatch.retry')[0]) })
+    pass()
+    expect(line()).not.toBeNull()
+  })
+
+  it('on the guest login page too (a guest with Google on)', () => {
+    guest.value = { user: { userUuid: 'u1', accessToken: 'tok-1' }, isGoogleUser: false, googleEnabled: true }
+    renderPage(STORY_DESC)
+    pass()
+    expect(line()).not.toBeNull()
+    expect(leftPage().querySelector('[data-testid="google-signin"]')).not.toBeNull()
+    expect(line().closest('.book-page-desc')).not.toBeNull()
+  })
+
+  it('none behind an (i) preview, which covers the left card while the 4 s run', () => {
+    renderPage(STORY_DESC)
+    pass()
+    expect(line()).not.toBeNull()
+    act(() => { fireEvent.click(screen.getAllByLabelText('card.info')[0]) })
+    expect(screen.getAllByTestId('page-back').length).toBeGreaterThan(0)
+    expect(line()).toBeNull()
   })
 })

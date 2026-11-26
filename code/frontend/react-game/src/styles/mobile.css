@@ -115,8 +115,6 @@
   .book-wrapper .book-headband--top { top: 30px; }
   .book-wrapper .book-headband--bottom { bottom: 30px; }
   .book-wrapper .book-ribbon { left: auto; right: 46px; }
-  /* The corners over the tab row while it rests on the cover (it scrolls away from them once stuck). */
-  .book-wrapper .book-corner { z-index: 31; }
   /* clip does not stop position: sticky; visible is the fallback for old Safari. */
   .book-wrapper .book-page { width: 100%; height: auto; min-height: 0; overflow: visible; overflow: clip; }
   /* Both pages: gutter shading on the bound left edge, stacked page edges on the right. */
@@ -140,67 +138,48 @@
   /* The ending: the end card on top, the story card below (the missions keep the normal order). */
   .end-game-wrapper .book-page-right { order: -1; border-radius: 12px 12px 0 0; }
   .end-game-wrapper .book-page-left  { border-radius: 0 0 12px 12px; }
-  /* A scrolled-to page is not hidden under the sticky navbar and the sticky tab row. */
-  .book-wrapper .book-page { scroll-margin-top: calc(var(--navbar-h) + var(--book-pills-h)); }
-  .book-stage--no-tabs .book-wrapper .book-page { scroll-margin-top: var(--navbar-h); }
+  /* A scrolled-to page is not hidden under the sticky navbar. */
+  .book-wrapper .book-page { scroll-margin-top: var(--navbar-h); }
 
-  /* Step 16 — the bookmarks as one sticky row of pills under the navbar, scrolling sideways; the home tab ends it. */
-  .book-wrapper .book-bookmarks-row {
-    position: sticky;
-    top: var(--navbar-h);
-    z-index: 30;
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 6px;
-    height: var(--book-pills-h);
-    margin: 0 0 8px;
-    padding: 0 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    background: rgba(26, 10, 2, 0.95);
-    border-bottom: 1px solid var(--color-gold-dark);
-    border-radius: 8px 8px 0 0;
-  }
-  .book-wrapper .book-bookmarks-row::-webkit-scrollbar { display: none; }
-  .book-wrapper .book-bookmarks {
-    position: static;
-    flex-shrink: 0;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 6px;
-    transform: none;
-    pointer-events: auto;
-  }
-  /* Pinned: the other pills scroll under it (the row padding compensated), so it stays on narrow phones. */
-  .book-wrapper .book-bookmarks--right {
-    position: sticky;
-    right: -8px;
-    z-index: 1;
-    align-self: stretch;
-    margin-left: auto;
-    padding: 0 8px 0 6px;
-    background: rgba(26, 10, 2, 0.95);
-  }
+  /* Step 15 — no tab bar: icon tabs stand on the book's top edge (they scroll with it), the home tab hangs under it. */
+  .book-stage--game-tabs .book-wrapper.book-wrapper { margin-top: calc(8px + var(--book-tabs-h)); }
+  .book-stage--home-tab .book-wrapper.book-wrapper { margin-bottom: 46px; }
+  .book-wrapper .book-bookmarks--left { left: 42px; right: 16px; gap: 6px; flex-wrap: nowrap; }
   .book-wrapper .book-bookmark {
     flex-shrink: 0;
-    margin: 0;
-    padding: 4px 10px;
-    border: 2px solid var(--color-brown-warm);
-    border-radius: 999px;
+    padding: 6px 10px 12px;
     font-size: 1rem;
-    line-height: 1.2;
-    box-shadow: none;
-    white-space: nowrap;
   }
-  .book-wrapper .book-bookmark .stat-badge { padding: 1px 5px; font-size: 0.68rem; }
-  .book-wrapper .book-bookmark.is-active .book-bookmark__label {
-    display: inline;
-    font-family: var(--font-heading);
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
+  .book-wrapper .book-bookmark .stat-badge,
+  .book-wrapper .book-bookmark__badges { display: none; }
+  /* The home tab: the top tab upside down (band on the sides and bottom, open under the cover's bottom edge). */
+  .book-wrapper .book-bookmarks--right {
+    top: auto;
+    bottom: 0;
+    left: auto;
+    right: 72px;
+    transform: translateY(100%);
   }
+  .book-wrapper .book-bookmarks--right .book-bookmark {
+    margin: 0;
+    padding: 12px 10px 6px;
+    border-width: 0 6px 6px;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
+  }
+  .book-wrapper .book-bookmarks--right .book-bookmark::before {
+    inset: 0 -4px -4px;
+    border: 1px solid rgba(200, 150, 10, 0.6);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+  }
+  .book-wrapper .book-bookmarks--right .book-bookmark::after {
+    inset: 0 -2px -2px;
+    border: 1px dashed rgba(232, 184, 48, 0.3);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+  }
+  .book-wrapper .book-bookmarks--right .book-bookmark.is-active::before { border-color: rgba(232, 184, 48, 0.95); }
 
   /* Step 16 — the page deck rides the bottom of the screen while the right page holds a dealt grid. */
   .book-page-right:has(.book-content:not(.book-content--covered) .pg-dealt) > .deck {
@@ -334,7 +313,8 @@
   .navbar-medieval .env-badge {display:none !important;}
 }
 
-/* Step 16 — a phone turned sideways: the pills show icons only (and their badges). */
-@media (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  .book-wrapper .book-bookmark.is-active .book-bookmark__label { display: none; }
+/* Step 15 — narrow phones (doubt 3): less side padding, so the five tabs stay on the book. */
+@media (max-width: 359px) {
+  .book-wrapper .book-bookmark { padding: 6px 3px 12px; }
+  .book-wrapper .book-bookmarks--right .book-bookmark { padding: 12px 3px 6px; }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, renderHook, act } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({ useTranslation: () => ({ t: (k) => k }) }))
 vi.mock('@/i18n/context', () => ({ useTranslation: () => ({ t: (k) => k }) }))
@@ -88,14 +88,27 @@ describe('EndGameBook — missions first (v0.37.4)', () => {
     expect(screen.getAllByTestId('card')).toHaveLength(2)
   })
 
-  it('leaves for the home page through the end-game card action', () => {
-    const original = window.location
-    delete window.location
-    window.location = { href: '/play' }
-    wrap({ missions: [] })
+  it('leaves for the home page through the end-game card action (step 15: in the app, no reload)', () => {
+    render(
+      <MemoryRouter initialEntries={['/play/s1']}>
+        <Routes>
+          <Route path="/play/:storyId" element={<EndGameBook story={STORY} endGameCard={END_CARD} missions={[]} />} />
+          <Route path="/" element={<div data-testid="home-page" />} />
+        </Routes>
+      </MemoryRouter>,
+    )
     fireEvent.click(screen.getByText('action:Victory!'))
-    expect(window.location.href).toBe('/')
-    window.location = original
+    expect(screen.getByTestId('home-page')).toBeInTheDocument()
+  })
+
+  it('step 15 — the hook goes home through `onHome` (GameBook passes its close), nothing without it', () => {
+    const onHome = vi.fn()
+    const { result, rerender } = renderHook(props => useEndGamePages({ story: STORY, endGameCard: END_CARD, missions: [],
+      ...props }), { initialProps: { onHome } })
+    act(() => { result.current.right.props.onAction() })
+    expect(onHome).toHaveBeenCalledOnce()
+    rerender({ onHome: null })
+    expect(() => act(() => { result.current.right.props.onAction() })).not.toThrow()
   })
 
   it('skips straight to the ending when the match has no missions', () => {

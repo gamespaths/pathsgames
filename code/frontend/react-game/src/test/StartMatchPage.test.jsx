@@ -107,10 +107,10 @@ describe('StartMatchPage', () => {
     vi.unstubAllEnvs()
   })
 
-  it('v1.13.0 — a direct load (no router state) redirects to the story page', () => {
+  it('v1.13.0 — a direct load (no router state) redirects to the story page (step 15: a silent redirect)', () => {
     renderPage(undefined)
     expect(screen.getByText('story-page')).toBeInTheDocument()
-    expect(storyState.current).toBeNull()
+    expect(storyState.current).toEqual({ redirected: true })
   })
 
   it('passes the antibot check then offers Start on the last bonuses card', () => {

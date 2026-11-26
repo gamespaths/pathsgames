@@ -9,7 +9,7 @@ import ConfigView from './ConfigView'
 import OptionPicker from './OptionPicker'
 import FadeIn, { previewKey } from '../../components/layout/FadeIn'
 import useBookTurn from '../../hooks/useBookTurn'
-import { scrollMobileIntoView } from '../gameplay/js/mobileView'
+import { scrollBookToTop } from '../gameplay/js/mobileView'
 import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, fitTraitsToBudget, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait, traitCostItems } from '../../utils/traitBudget'
@@ -88,7 +88,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
     const right = failed
       ? <ErrorCard message={t('errors.storyNotFound')} onClose={() => navigate('/')} />
       : <LoadingCard story={story} />
-    return <Book left={left} right={right} pageKey={pageKey} direction={direction} />
+    return <Book left={left} right={right} pageKey={pageKey} direction={direction} coverTitle={story?.title} />
   }
 
   const activeStory = detail ?? story
@@ -169,8 +169,8 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
     //console.log("entity", entity, "type", type, "lockedReason", lockedReason, "statItemsToPageContent", statItemsToPageContent);
     setPreview(entity ? { entity, type, lockedReason, statItemsToPageContent } : null)
     turnTo('fade')
-    // Phones: the preview takes the top card's place; the page scrolls to it.
-    if (entity) scrollMobileIntoView('.book-page-left')
+    // Phones: the preview takes the top card's place; the screen goes back to the very top.
+    if (entity) scrollBookToTop()
   }
 
   // Any "back" / "close" action — on either the preview or the selection list —
@@ -250,6 +250,7 @@ export default function StartBook({ story = null, storyId = null, initialConfig 
       right={rightContent}
       pageKey={pageKey}
       direction={direction}
+      coverTitle={activeStory?.title}
     />
   )
 }

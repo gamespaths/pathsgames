@@ -18,7 +18,8 @@ vi.mock('@/context/PolicyBookContext', () => ({
   usePolicyBook: () => ({ policyBook: null, openPolicyBook, closePolicyBook: vi.fn() }),
 }))
 // The antibot gate is already verified: the flow starts in its 'confirm' phase.
-vi.mock('@/hooks/useAntibot', () => ({
+vi.mock('@/hooks/useAntibot', async (orig) => ({
+  ...(await orig()),
   default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }),
 }))
 vi.mock('@/components/book/Book', () => ({
@@ -186,12 +187,13 @@ describe('StartMatchFlow — the fixed cards block', () => {
     expect(book().dataset.key).toBe('2')
   })
 
-  // v1.14.0 — on mobile the lens opens the card in the top card (the left page) and scrolls to it.
-  it('opens the lens in the top card on mobile, scrolled into view, with no modal', () => {
+  // v1.14.0 — on mobile the lens opens the card in the top card (the left page); step 15: the very top of the screen.
+  it('opens the lens in the top card on mobile, the screen back at the top, with no modal', () => {
     const getOrCreateInstance = vi.fn()
     window.matchMedia = vi.fn(() => ({ matches: true }))
     window.bootstrap = { Modal: { getOrCreateInstance } }
     const scrollIntoView = vi.fn()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { cb(); return 0 })
     const realQS = document.querySelector.bind(document)
     const qs = vi.spyOn(document, 'querySelector').mockImplementation(sel =>
@@ -200,11 +202,12 @@ describe('StartMatchFlow — the fixed cards block', () => {
       renderFlow()
       fireEvent.click(screen.getAllByTestId('preview-gameType')[0])
       expect(screen.getByTestId('page-card')).toHaveTextContent('book.single')
-      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+      expect(scrollIntoView).not.toHaveBeenCalled()
       expect(getOrCreateInstance).not.toHaveBeenCalled()
       expect(document.getElementById('cardPreviewModal')).toBeNull()
     } finally {
-      raf.mockRestore(); qs.mockRestore()
+      scrollTo.mockRestore(); raf.mockRestore(); qs.mockRestore()
     }
   })
 })

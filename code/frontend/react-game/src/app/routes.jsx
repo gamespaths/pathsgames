@@ -5,10 +5,13 @@ import PlayerPage from '@/pages/PlayerPage'
 import StoryPage from '@/pages/StoryPage'
 import StartMatchPage from '@/pages/StartMatchPage'
 import GamePage from '@/pages/GamePage'
+import RouteBook from '@/components/book/RouteBook'
+import { REDIRECT_STATE, bookOf } from '@/components/book/bookSwap'
 import { usePolicyBook } from '@/context/PolicyBookContext'
+import { useAnimationSettings } from '@/context/AnimationContext'
+import { useTranslation } from '@/i18n/context'
 
-/** Router state of the `*` redirect: the deep-link chapter it carries stays open. */
-export const REDIRECT_STATE = { redirected: true }
+export { REDIRECT_STATE }
 
 /** A mistyped URL: back to the Home, the query string (e.g. `?policy=`) kept. */
 function RedirectHome() {
@@ -16,29 +19,29 @@ function RedirectHome() {
   return <Navigate to={{ pathname: '/', search }} replace state={REDIRECT_STATE} />
 }
 
-/**
- * AppRoutes — the application route table. v1.13.0 — a route change (not the first render, so the
- * `?policy=` deep link survives the load) closes an open policy chapter and starts the new page at the top.
- */
-export default function AppRoutes() {
-  const location = useLocation()
-  const { closePolicyBook } = usePolicyBook()
-  const lastPath = useRef(location.pathname)
+/** The routes on the shown location (step 15); its change, not the first nor a redirect, closes a chapter and goes up. */
+function RouteTable({ location }) {
+  const { closePolicyBook, notePath } = usePolicyBook()
+  const lastPath = useRef(null)
 
   useEffect(() => {
     if (lastPath.current === location.pathname) return
+    const first = lastPath.current === null
     lastPath.current = location.pathname
-    if (location.state?.redirected) return
+    const redirected = Boolean(location.state?.redirected)
+    // An open chapter belongs to the page it opened on; the deep link's and a redirect's to the page they land on.
+    notePath(location.pathname, (first || redirected) && !!bookOf(location.pathname))
+    if (first || redirected) return
     closePolicyBook({ restoreScroll: false })
     try {
       if (typeof window.scrollTo === 'function') window.scrollTo(0, 0)
     } catch {
       // no scrolling available (jsdom)
     }
-  }, [location.pathname, location.state, closePolicyBook])
+  }, [location.pathname, location.state, closePolicyBook, notePath])
 
   return (
-    <Routes>
+    <Routes location={location}>
       <Route path="/" element={<HomePage />} />
       <Route path="/player" element={<PlayerPage />} />
       <Route path="/story/:storyId" element={<StoryPage />} />
@@ -46,5 +49,17 @@ export default function AppRoutes() {
       <Route path="/play/:storyId" element={<GamePage />} />
       <Route path="*" element={<RedirectHome />} />
     </Routes>
+  )
+}
+
+/** AppRoutes — the application route table, inside the routes' book (step 15: book change, route turns, waiting). */
+export default function AppRoutes() {
+  const location = useLocation()
+  const anim = useAnimationSettings()
+  const i18n = useTranslation()
+  return (
+    <RouteBook location={location} anim={anim} t={i18n?.t}>
+      {shown => <RouteTable location={shown} />}
+    </RouteBook>
   )
 }

@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CF_KEY, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turnstile'
+
+// How long "Success! You are human." stays after a check passed on this visit (Home and start match).
+export const ANTIBOT_SUCCESS_MS = 4000
 
 /**
  * useAntibot — shared Cloudflare Turnstile gate state machine.
@@ -49,4 +52,23 @@ export default function useAntibot({ cookie = false } = {}) {
   }
 
   return { phase, token, attempt, retry, onSuccess, onError, onExpire: retry }
+}
+
+/** Step 15 — true for ANTIBOT_SUCCESS_MS after a check passed on this visit (`checking` → `ready`), then false. */
+export function useAntibotSuccess(phase) {
+  const [shown, setShown] = useState(false)
+  const lastPhase = useRef(phase)
+  useEffect(() => {
+    const was = lastPhase.current
+    lastPhase.current = phase
+    if (phase !== 'ready') {
+      setShown(false)
+      return undefined
+    }
+    if (was !== 'checking') return undefined
+    setShown(true)
+    const timer = setTimeout(() => setShown(false), ANTIBOT_SUCCESS_MS)
+    return () => clearTimeout(timer)
+  }, [phase])
+  return shown
 }

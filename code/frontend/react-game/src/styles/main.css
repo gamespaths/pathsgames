@@ -2095,15 +2095,6 @@ html[data-pg-reduced] .home-antibot-success { animation: none; }
   line-height: 1;
 }
 
-.game-book-wrapper {
-  position: relative;
-  display: flex;
-  width: min(98vw, 1100px);
-  height: min(82vh, 660px);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
-  animation: bookOpen 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 .game-page-title {
   font-family: var(--font-heading);
   font-size: 1rem;
@@ -2408,11 +2399,6 @@ html[data-pg-reduced] .home-antibot-success { animation: none; }
 @keyframes toastFadeOut {
   from { opacity: 1; transform: translateX(-50%) translateY(0); }
   to   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-}
-
-@keyframes bookOpen {
-  from { opacity: 0; transform: perspective(1200px) rotateX(20deg) scale(0.85); }
-  to   { opacity: 1; transform: perspective(1200px) rotateX(0deg) scale(1); }
 }
 
 @keyframes slideInRight {
@@ -3209,6 +3195,15 @@ html[data-pg-reduced] .home-antibot-success { animation: none; }
 }
 .pg-tooltip[data-placement="above"] .pg-tooltip__arrow { bottom: -6px; border-top: none; border-left: none; }
 .pg-tooltip[data-placement="below"] .pg-tooltip__arrow { top: -6px; border-bottom: none; border-right: none; }
+/* Step 15 — left of a desktop side tab: the arrow on the tip's right edge, at the tab's centre, pointing at it. */
+.pg-tooltip[data-placement="left"] .pg-tooltip__arrow {
+  left: auto;
+  right: -6px;
+  top: var(--pg-tip-arrow, 50%);
+  transform: translateY(-50%) rotate(45deg);
+  border-bottom: none;
+  border-left: none;
+}
 /* Touch: a long press shows the tip, so no system menu nor text selection on its targets. */
 @media (hover: none) {
   [data-tip] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

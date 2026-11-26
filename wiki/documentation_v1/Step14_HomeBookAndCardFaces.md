@@ -355,15 +355,18 @@ No open doubts. Owner's fixes after the first test (November 25, 2026): dealt li
 scroller reaching 10 px into the page margin, grid padding 8px 4px 12px, tighter dark hover shadow plus gold glow,
 dark-gold scroll bars inside the book; details in [test/Step14_HomeBookAndCardFaces.md](./test/Step14_HomeBookAndCardFaces.md) §3.
 
+> Owner's decision, November 26, 2026 (1.15.0): on desktop the deck pile now follows the home tab in the right bookmark column ([Step 15](./Step15_PlayAndPageTurn.md) section 9 point 3), and the CSS `bookOpen` is replaced by the first-load opening in code (`RouteBook`, `bookSwap.js`).
+
 # Version Control
-- **Document Version**: 1.14.0
+- **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.13.0 | Home book, card backs and deck on the table agreed | November 24, 2026 |
   | 1.14.0 | Developed; waiting for owner's test | November 25, 2026 |
+  | 1.15.0 | Deck pile placement and book opening changed | November 26, 2026 |
 
-- **Last Updated**: November 25, 2026 (v1.14.0)
+- **Last Updated**: November 26, 2026 (v1.15.0)
 
 
 # &lt; Paths Games /&gt;

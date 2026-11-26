@@ -17,14 +17,13 @@
 /* No tab sticks out (the Home, also with a chapter open): the book rises to the navbar. */
 .book-stage--no-tabs { --book-stage-top: 16px; }
 
-/* Carries the desktop size and the opening animation; step 14's deck pile hangs beside it. */
+/* Carries the desktop size; step 14's deck pile hangs beside it. Step 15: the opening is RouteBook's (WAAPI). */
 .book-shell {
   position: relative;
   flex: 0 0 auto;
   width: min(94vw, 1080px);
   height: max(520px, calc(100vh - var(--navbar-h) - var(--book-stage-top) - var(--book-stage-bottom)));
   height: max(520px, calc(100dvh - var(--navbar-h) - var(--book-stage-top) - var(--book-stage-bottom)));
-  animation: bookOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* A chapter covers the page's own content: still mounted and rendered, never display:none. */
@@ -49,8 +48,8 @@
   border-radius: 14px;
   background:
     radial-gradient(ellipse at 25% 15%, rgba(232, 184, 48, 0.08) 0%, transparent 55%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23l)' opacity='0.18'/%3E%3C/svg%3E"),
-    linear-gradient(135deg, var(--color-brown-warm) 0%, var(--color-brown-mid) 45%, var(--color-brown-dark) 100%);
+    var(--leather-noise),
+    var(--leather);
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.8),
     inset 0 0 0 1px var(--color-brown-deep),
@@ -83,9 +82,10 @@
 }
 @media not all and (max-width: 767px) {
   @media not all and (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-    .book-wrapper .hide-in-book { display: none !important; }
+    /* Step 15: also the page copies of a route turn, on RouteBook's fixed layer outside the cover. */
+    .book-wrapper .hide-in-book, .book-swap .hide-in-book { display: none !important; }
     /* The status card names its shortcuts on phones only: in the open book the bookmarks carry them. */
-    .book-wrapper .card-status .gc-footer__btn-label { display: none; }
+    .book-wrapper .card-status .gc-footer__btn-label, .book-swap .card-status .gc-footer__btn-label { display: none; }
   }
 }
 
@@ -154,7 +154,7 @@
 
 /* ═══════════════════════════════════════════
    BOOK BOOKMARKS (v0.35.5)
-   Tabs slotted into the book's top edge, inside .book-wrapper (phones: mobile.css).
+   Step 15: base = tablet top row, desktop side column below, phone edges in mobile.css; inside .book-wrapper.
    ═══════════════════════════════════════════ */
 .book-bookmarks {
   position: absolute;
@@ -171,19 +171,27 @@
 /* v1.13.0 — the home tab ends this row (no fixed close bar any more). */
 .book-bookmarks--right { right: 24px; justify-content: flex-end; }
 
+/* Step 15 — owner's tab look: light inside, 6px band of the cover's leather (open under the cover), same outer size. */
 .book-bookmark {
+  position: relative;
   pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  /* the extra bottom padding is what slides under the page edge */
-  padding: 6px 12px 10px;
+  /* tablet top tab, open at the bottom; the extra bottom padding is what slides under the page edge */
+  padding: 3px 9px 10px;
   margin-bottom: -4px;
-  border: 3px solid var(--color-brown-warm);
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  background: var(--book-bookmark-background);
-  color: var(--color-brown-light);
+  border: 6px solid transparent;
+  border-bottom-width: 0;
+  border-radius: 10px 10px 0 0;
+  background-image: var(--book-bookmark-background), var(--leather-noise), var(--leather);
+  background-origin: padding-box, border-box, border-box;
+  background-clip: padding-box, border-box, border-box;
+  background-size: auto, 160px 160px, auto;
+  /* only the noise softens the leather band, never the light inside (every state) */
+  background-blend-mode: normal, soft-light, normal;
+  color: #4a2410;
+  text-shadow: none;
   font-family: var(--font-display);
   font-size: 1.5rem;
   letter-spacing: 1px;
@@ -192,30 +200,51 @@
   box-shadow: 0 -3px 8px rgba(0,0,0,0.5);
   transition: transform 0.15s ease, background 0.15s ease;
 }
+/* The band's gold tooled line (2px in) and stitching (4px in), as on the cover; none on the open side. */
+.book-bookmark::before,
+.book-bookmark::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+.book-bookmark::before {
+  inset: -4px -4px 0;
+  border: 1px solid rgba(200, 150, 10, 0.6);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  box-shadow: inset 0 0 0 1px rgba(26, 10, 2, 0.5);
+}
+.book-bookmark::after {
+  inset: -2px -2px 0;
+  border: 1px dashed rgba(232, 184, 48, 0.3);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
 
-/* Step 16 — only where a pointer hovers: a tapped pill keeps its colours. */
+/* Step 16 — only where a pointer hovers: a tapped tab keeps its colours. */
 @media (hover: hover) {
   .book-bookmark:hover {
-    background: var(--book-bookmark-background-hover);
-    color: var(--color-gold-dark);
+    background-image: var(--book-bookmark-background-hover), var(--leather-noise), var(--leather);
+    color: #2e1406;
   }
 }
 .book-bookmark.is-active {
-  background: var(--book-bookmark-background-hover);
+  background-image: linear-gradient(0deg, var(--color-parchment-light) 0%, var(--color-parchment) 55%, var(--color-brown-super-tan) 100%),
+    var(--leather-noise), var(--leather);
   color: var(--color-gold-super-deep);
   cursor: default;
 }
+.book-bookmark.is-active::before { border-color: rgba(232, 184, 48, 0.95); }
 .book-bookmark.is-active:hover { transform: none; }
 /* The tab shouts: the page behind it holds something the player must act on (a life or an
    energy about to run out, a sadness at its ceiling, a bag that cannot take another thing). */
 .book-bookmark.is-danger {
-  border-color: #c0392b;
-  background: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%);
+  background-image: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%), var(--leather-noise), var(--leather);
   color: #ffe9e4;
   box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.65);
 }
 .book-bookmark.is-danger.is-active {
-  background: linear-gradient(180deg, #e74c3c 0%, #a12b1d 100%);
+  background-image: linear-gradient(180deg, #e74c3c 0%, #a12b1d 100%), var(--leather-noise), var(--leather);
   color: #fff;
 }
 .book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
@@ -223,26 +252,81 @@
 /* v0.37.1 — light gold: the page behind this tab has moved since the player last opened it.
    Quieter than is-danger on purpose — news to read, not something to act on. */
 .book-bookmark.is-alert {
-  border-color: var(--color-gold-light);
-  background: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%);
+  background-image: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%), var(--leather-noise), var(--leather);
   color: #fff6d5;
   box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.6);
 }
 .book-bookmark.is-alert.is-active {
-  background: linear-gradient(180deg, #f0d27a 0%, #a8830f 100%);
+  background-image: linear-gradient(180deg, #f0d27a 0%, #a8830f 100%), var(--leather-noise), var(--leather);
   color: #fffdf5;
 }
 
 .book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
 .book-bookmark.is-disabled:hover { transform: none; }
 .book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
-/* Step 16 — the active tab's name: shown only by the phone pills (mobile.css). */
-.book-bookmark__label { display: none; }
-/* Step 16 — the two rows of tabs as one: no box on desktop, each row keeps its place on the cover. */
+/* Step 16 — the two groups of tabs as one row: no box on tablets, each group keeps its place on the cover. */
 .book-bookmarks-row { display: contents; }
 
 .book-bookmark .player-stats-bar{
   margin-bottom: 0px;
+}
+
+/* ═══ Step 15 — desktop (> 1120px): tabs down the right side, home tab at the foot; right column on every page ═══ */
+@media (min-width: 1121px) {
+  .book-stage {
+    --book-stage-top: 16px;
+    padding-right: calc(16px + var(--side-tab-w));
+  }
+  .book-shell {
+    --home-bottom: 42px;
+    width: min(1080px, 100%);
+  }
+  .book-bookmarks-row {
+    position: absolute;
+    left: 100%;
+    top: 42px;
+    bottom: var(--home-bottom);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .book-bookmarks {
+    position: static;
+    flex-direction: column;
+    align-items: flex-start;
+    transform: none;
+  }
+  .book-bookmarks--right { margin-top: auto; }
+  /* side tab, open on the left against the cover's right edge (the outer size of a 3px border and 12px 10px 12px 12px) */
+  .book-bookmark {
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 74px;
+    padding: 9px 7px 9px 12px;
+    margin: 0;
+    border-width: 6px 6px 6px 0;
+    border-radius: 0 10px 10px 0;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.55);
+  }
+  .book-bookmark::before {
+    inset: -4px -4px -4px 0;
+    border: 1px solid rgba(200, 150, 10, 0.6);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+  }
+  .book-bookmark::after {
+    inset: -2px -2px -2px 0;
+    border: 1px dashed rgba(232, 184, 48, 0.3);
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+  }
+  .book-bookmark.is-danger { box-shadow: 3px 0 10px rgba(192, 57, 43, 0.55); }
+  .book-bookmark.is-alert { box-shadow: 3px 0 10px rgba(212, 175, 55, 0.5); }
+  .book-bookmark__badges { flex-direction: column; align-items: center; }
+  .book-bookmark .stat-badge { min-width: 44px; justify-content: center; }
 }
 
 /* ═══════════════════════════════════════════

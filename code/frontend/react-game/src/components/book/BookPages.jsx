@@ -2,7 +2,8 @@ import { Component, createContext, useContext } from 'react'
 import BookPageLeft from './BookPageLeft'
 import BookPageRight from './BookPageRight'
 import { canAnimate, holdPages, pickStrategy } from './pageTurn'
-import { isMobileViewport } from '@/features/gameplay/js/mobileView'
+import { isMobileViewport, scrollBookToTop } from '@/features/gameplay/js/mobileView'
+import { useRouteBook } from './RouteBook'
 
 /* BookPages — step 15: spine, the two pages and the turn layer React never fills. The old pages are cloned
    before the commit (getSnapshotBeforeUpdate) and turned over the new ones after it (componentDidUpdate).
@@ -12,9 +13,10 @@ export const HOLD_SAFETY_MS = 10000
 
 const BookTurningContext = createContext(false)
 
-/** True while a turn or a hold covers the pages: the dealt lists wait (DealtList `hold`). */
+/** True while a turn or a hold covers the pages, or the routes' book changes or turns: the dealt lists wait. */
 export function useBookTurning() {
-  return useContext(BookTurningContext)
+  const turning = useContext(BookTurningContext)
+  return turning || Boolean(useRouteBook()?.busy)
 }
 
 /** What a prop change asks for: 'hold', 'release', a direction, or null (the page's own key wins over the chapter). */
@@ -35,6 +37,12 @@ function strategyFor(props, direction) {
 function wants(props, request) {
   const strategy = strategyFor(props, request === 'hold' ? 'fade' : request)
   return strategy?.wants ? strategy.wants(request) : true
+}
+
+/** Step 15 — a page (not a chapter) turned forward or back with no strategy running: phones still land at the top. */
+function jumpsToTop(prev, next) {
+  const request = turnRequest(prev, next)
+  return (request === 'forward' || request === 'back') && prev.chapterKind === next.chapterKind
 }
 
 /** The engine runs only with the turn flag on, no reduced motion, WAAPI and a strategy for the layout. */
@@ -93,6 +101,7 @@ export default class BookPages extends Component {
     // Book makes the whole book busy (inert) while the pages turn or hold, its tabs included.
     if (prevState.turning !== this.state.turning) this.props.onTurningChange?.(this.state.turning)
     if (!shot) {
+      if (jumpsToTop(prevProps, this.props)) scrollBookToTop()
       this.settle()
       return
     }

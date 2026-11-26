@@ -34,6 +34,9 @@ describe('AnimationProvider', () => {
     expect(screen.getByTestId('reduced')).toHaveTextContent('false')
     expect(screen.getByTestId('speed')).toHaveTextContent('0.25')
     expect(html.style.getPropertyValue('--t-deal')).toBe('2480ms')
+    // step 15 — the book change phases
+    expect(html.style.getPropertyValue('--t-slide')).toBe('2400ms')
+    expect(html.style.getPropertyValue('--t-close')).toBe('1040ms')
     expect(html).not.toHaveAttribute('data-pg-reduced')
   })
 

@@ -41,9 +41,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
 | 11 | [Admin tool — user management pages](./Step11_AdminUserManagementPages.md) | ✅ | react-admin Users list and User detail with reason dialogs. |
 | 12 | [Pagination residuals and multi-device continuity](./Step12_PaginationAndMultiDeviceContinuity.md) | ✅ | Session cap 12, 250-day refresh, `SameSite`, stories and matches paging. |
 | 13 | [Book layout without modals](./Step13_BookLayoutWithoutModals.md) | ✅ | In-flow books, `/player` and `/story` routes, policy chapter, navbar close button. |
-| 14 | [Home book and card faces](./Step14_HomeBookAndCardFaces.md) | 🔧 | Developed 1.14.0, waiting for owner's test: Home as a book, card back, deal animation settings. |
-| 15 | [Play and page turn](./Step15_PlayAndPageTurn.md) | 🔧 | Developed 1.14.0, waiting for owner's test: card play, page turns, (i) fade; owner's to do open (fade when no location change). |
-| 16 | [Mobile book and preferences](./Step16_MobileBookAndPreferences.md) | 🔧 | Developed 1.14.0, waiting for owner's test: one book tree, vertical phone book, player preferences. |
+| 14 | [Home book and card faces](./Step14_HomeBookAndCardFaces.md) | 🔧 | Developed 1.15.0, waiting for owner's test: Home as a book, card back, deal animation settings. |
+| 15 | [Play and page turn](./Step15_PlayAndPageTurn.md) | 🔧 | Developed 1.15.0, waiting for owner's test: card play, page turns, (i) fade; four to-dos developed (fade on no move; book change with 10 s cap; bookmarks per screen; start match success line). |
+| 16 | [Mobile book and preferences](./Step16_MobileBookAndPreferences.md) | 🔧 | Developed 1.15.0, waiting for owner's test: one book tree, vertical phone book, player preferences. |
 
 
 
@@ -62,7 +62,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Full page turn on the spine for every change inside a page: location, information, backpack, map, missions (frontend)
     - The (i) preview on desktop: the card on the left page fades in when opened and fades out when closed (frontend)
     - The (i) preview on mobile: no more modal; the top card is replaced with a fade, the page scrolls to it, a back icon closes it (frontend)
-    - Open to do (owner): no page turn when a play does not change location (fade instead); see the step file, section 9
+    - Open to dos (owner): fade instead of page turn when a play keeps the location; book change between routes (5 owner doubts); see the step file, section 9
     - Unit tests (tests)
 16. **Mobile book and preferences** — the same book on phones, and the player's own settings.
     - Analysis of a vertical book on mobile (today mobile shows the cards without the book), then its layout (docs, frontend)
@@ -264,7 +264,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 1.14.0
+- **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -279,8 +279,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 1.11.0 | Automatic tests run and green on three backends | October 29, 2026 |
   | 1.13.0 | Book and animation steps added; step 13 closed | November 24, 2026 |
   | 1.14.0 | Steps 14 to 16 developed, waiting for test | November 25, 2026 |
+  | 1.15.0 | Step 15 to-dos developed: bookmarks, book change | November 26, 2026 |
 
-- **Last Updated**: November 25, 2026 (v1.14.0)
+- **Last Updated**: November 26, 2026 (v1.15.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

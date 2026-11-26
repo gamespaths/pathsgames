@@ -55,7 +55,8 @@ For each point: **Done** = what changed, **Test** = what to try, **Expected** = 
     3 skipped (before: 174 files, 1872 passed). Coverage overall: statements 98.82%, branches 94.95%, lines 99.48%.
     The six new modules: 145/145 lines, 122/122 branches, 53/53 functions (100%); with the rewritten files
     (dev report) 183/183 lines, 208/208 branches, 68/68 functions. After the owner's fixes (item 38, Home antibot):
-    179 files, 1961 passed, 0 failed, 3 skipped; branches 94.99%; `npx vite build` OK.
+    179 files, 1961 passed, 0 failed, 3 skipped; branches 94.99%; `npx vite build` OK. Run again on November 26
+    (1.15.0, steps 15–16 and the step 15 to-dos in the tree, `npx vitest run`): 191 files, 2255 passed, 0 failed, 3 skipped.
   - The dev report says the suites are also green with non-default values (deal off, deck over, speed 1, flat deal).
 - [ UNIT ] **2. Build:** `npx vite build` passes (only the "chunks larger than 500 kB" warning, as before).
 - [ ] **3. Environment:** add the seven keys of section 0 to `.env`, `.env.test`, `.env.alpha` and to the GitHub `alpha`
@@ -85,9 +86,10 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
   - Test: open the Home; in DevTools inspect the intro title.
   - Expected: left page = intro card with the pathway photo, title "Epic Adventures Await" (an `h1.book-page-title`),
     text "Branching narratives. Infinite choices. Every decision opens a new path: explore living worlds, face their
-    dangers and write a story that is yours alone." (about three lines). Right page = the story cards. No house tab at the top right
-    (on `/story/<id>` the tab is there) and the book sits 16px under the navbar. No "Stories" heading is visible
-    (it is in the markup, hidden).
+    dangers and write a story that is yours alone." (about three lines). Right page = the story cards. No home tab (on
+    `/story/<id>` it sits at the foot of the tab column right of the cover). The book sits 16px under the navbar, as on
+    every page above 1120px, and keeps an empty column on its right (about 94px, the tab column's room), so it does not
+    shift sideways between the Home and `/player`. No "Stories" heading is visible (it is in the markup, hidden).
 - [ ] **2. Photo credit bar**
   - Test: under the intro card press "image credit".
   - Expected: the note "Image by Lili Popper with Unsplash license" opens in the card's tip area, as on the other book
@@ -132,18 +134,24 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
 
 - [ ] **11. The deck pile**
   - Done: a pile of ten card backs on the table, right of the right page, partly under the cover.
-  - Test: open the Home and look right of the book; hover and click the pile.
+  - Test: open the Home and look right of the book; then `/story/<id>`; hover and click the pile.
   - Expected: ten backs (gold 45° stripes on brown, double gold frame, a d20 in the middle) gathered with small tilts,
-    in the lower half of the right page (bottom about 70px above the book's bottom edge), a strip of about 30px under
-    the cover. Only the top card's d20 is light gold and pulses (grows and glows, about 1.6 s per beat); the nine below
-    are still and dimmer. Hover and click do nothing (clicks reach what is under).
+    right of the cover at the foot of the tab column: its bottom about 66px above the book's bottom edge (24px above the
+    home tab's foot), a strip of about 30px under the cover. On `/story/<id>` the home tab covers its lowest card a
+    little and every side tab lies over the pile. Only the top card's d20 is light gold and pulses (grows and glows,
+    about 1.6 s per beat); the nine below are still and dimmer. Hover and click on the pile do nothing (clicks reach
+    what is under; the tabs over it still work).
 - [ ] **12. Deal on the Home**
   - Done: each card flies face-down from the pile's top card and flips face-up on landing.
   - Test: reload the Home and watch the right page.
-  - Expected: cards appear one after the other, entering the right page from its right edge, back side up, and flip to
-    the front as they land. One card flies about 2.5 s; the eighth leaves about 3.1 s after the first; a full hand lands
-    in about 5.6 s. The list does not slide in from the right. While a card waits or flies it cannot be hovered or clicked.
-    No empty room for a deck at the bottom of the right page: the cards use the whole page height.
+  - Expected: first the cover opens (first load only: it fades in from a backward tilt at 85% size, about 2.6 s; the
+    pile lies still on the table, it is outside the cover); the cards wait, invisible, until it ends. Then they appear
+    one after the other, entering the right page from its right edge, back side up, and flip to the front as they land.
+    One card flies about 2.5 s; the eighth leaves about 3.1 s after the first; a full hand lands in about 5.6 s. The list
+    does not slide in from the right. While a card waits or flies it cannot be hovered or clicked. No empty room for a
+    deck at the bottom of the right page: the cards use the whole page height. The same wait follows every book change
+    between routes and every page turn (step 15). With `VITE_ANIM_COVER=false` (restart) there is no opening and the
+    deal starts at once.
 - [ ] **13. Dealt once**
   - Test: after the deal, hover cards; scroll the stories list down and back up; wait for the footers to turn to "Play".
   - Expected: hover lifts the card and turns its border gold, no flip, no back. Cards that enter the view when
@@ -205,16 +213,19 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
 
 ### Desktop widths
 
-- [ ] **26. About 1440px**
-  - Expected: pile fully visible beside the right page, lower half, strip under the cover; 3 columns; no horizontal
-    scroll bar on the page.
-- [ ] **27. About 1280px**
-  - Expected: pile smaller (about 80%) and closer to the book, still beside the right page in its lower half; 3 columns;
-    no horizontal scroll bar.
+- [ ] **26. About 1440px** (1440×900, then 1440×800)
+  - Expected: at 1440×900 the pile is at full size, fully visible right of the cover at the tab column's foot (bottom
+    about 66px above the book's bottom), strip under the cover; 3 columns; no horizontal scroll bar on the page. At
+    1440×800 (a short screen, at most 820px high) the pile is smaller (70%), same place; on `/play/<id>` the lowest game
+    tabs may lie over its top.
+- [ ] **27. About 1280px** (1280×900, then 1280×800)
+  - Expected: pile closer to the book and smaller: about 82% at 1280×900, 70% at 1280×800 (the short-screen rule wins);
+    its bottom still about 66px above the book's bottom, just above the home tab; 3 columns; no horizontal scroll bar.
 - [ ] **28. About 1024px**
-  - Expected: the book takes 94% of the width; only the pile's left edge shows right of the book (with `over` also the part
-    on the cover), the rest is cut; never a horizontal scroll bar; 2 columns. Cards still enter the right page from its
-    right edge.
+  - Expected: tablet layout (768–1120px): tabs on the cover's top edge, no side column (the Home book 16px under the
+    navbar, `/story/<id>` 46px). The book takes 94% of the width; the pile (about 82%, bottom about 70px above the book's
+    bottom) shows only its left edge right of the book (with `over` also the part on the cover), the rest is cut; never
+    a horizontal scroll bar; 2 columns. Cards still enter the right page from its right edge.
 - [ ] **29. Picture and text sizes** (all three widths)
   - Test: the Home intro with the Turnstile strip and the tutorial button; a story page; a match.
   - Expected: page pictures at most 45% of the page height and never shrunk to make room for the strip, the button or
@@ -229,9 +240,11 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
   - Done: the Home is rendered once; CSS stacks the intro page above the stories page.
   - Test: (Turnstile key set, cookie deleted) open the Home and scroll the whole page.
   - Expected: one column of book: intro (picture about a third of the screen high, title, text, the anti-bot strip
-    under the text, then "Success! You are human." for about 4 s, the tutorial button), then the stories in 2 columns. No house tab, no deck pile,
-    one widget only, no horizontal scroll. Cards are dealt as they scroll into view, flying in from the lower right
-    corner of the screen and clipped by the page.
+    under the text, then "Success! You are human." for about 4 s, the tutorial button), then the stories in 2 columns. No
+    home tab, no ten-card table pile, one widget only, no horizontal scroll. While the stories grid is on screen the page
+    deck (three backs, about 54px wide, the top one with the pulsing d20) rides the bottom right of the screen, about
+    12px above its edge. After the first-load opening, cards are dealt as they scroll into view, flying in face down
+    from that deck and clipped by the page.
 - [ ] **32. Columns on phones**
   - Test: Home and a story page at 600×900, 320×640 and sideways 844×390.
   - Expected: 600 wide → 2 columns (was 3 in 1.13.0); 320 → 1 column; sideways → 3 columns.
@@ -240,11 +253,13 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
   - Expected: the chapter's two pages are stacked inside the Home book, shown once (no second copy below it); closing
     brings back the intro and the stories.
 - [ ] **34. Other books on a phone**
-  - Done: deviation, only the Home is rendered once; the other books keep a hidden desktop copy (its cards stay waiting).
+  - Done: at first a deviation (a hidden desktop copy); since step 16 part A every book is rendered once, and step 16
+    part B deals from a page deck on phones.
   - Test: `/story/<id>`, `/start-match/<id>`, `/play/<id>`, `/player` at 390 wide; then open a story at 1440 and narrow the
     window under 767px.
-  - Expected: no pile; cards are dealt from the lower right corner of the screen; nothing stays invisible. At the
-    switch to the phone layout the phone copy's cards are dealt then.
+  - Expected: no table pile; while a dealt grid is on screen the page deck rides the bottom right of the screen and the
+    cards fly from it; nothing stays invisible. At the switch to the phone layout the same cards stay (one tree, no
+    copy): the landed ones are not dealt again, the table pile goes and the page deck shows.
 
 ### Languages
 
@@ -263,9 +278,12 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
   - Expected: no CSP "Refused to apply" error; `<html>` carries `--t-deal: 2480ms`; the deal and the pile work as on local.
 - [ ] **37. Things that must not change**
   - Test: one full tour of the game.
-  - Expected: a story click opens `/story/<id>`; hidden stories stay hidden (`VITE_HIDE_STORIES=true`); navbar, footer,
-    drawn tooltips and the cookie banner as in 1.13.0; mobile (i) modals still open; the end-game Close goes to the Home;
-    the navbar dice and the book opening animate as before (reduced motion for them comes in step 17).
+  - Expected: a story click opens `/story/<id>` (with step 15's book change); hidden stories stay hidden
+    (`VITE_HIDE_STORIES=true`); navbar, footer, drawn tooltips and the cookie banner as in 1.13.0, except the desktop side
+    tabs' tips opening on their left (step 15) and the banner's new row (step 16); on phones an (i) shows its card in the
+    book with a fade, no modal (step 16); the end-game "Close" / "Chiudi" goes to the Home in the app with a book change,
+    no reload; the navbar dice bounces and the book opens on the first load only; with reduced motion both stop (step 16's
+    `preferences.css`, step 15's `cover` gate).
 - [ ] **38. Short lists: no scroll bar, nothing cut** (owner's fix)
   - Done: a dealt list no longer scrolls or clips by itself; its parent (the page area) scrolls and clips.
   - Test: open lists with one row of cards (the Home with `VITE_HIDE_STORIES` leaving 1-3 stories, a match's "Missions"
@@ -307,14 +325,18 @@ Desktop items run at 1440×900 unless a width is given. Default values everywher
 - Removed: the hero (`HERO_IMG`, `.hero-*`), `.pg-card--home`, `.stories-grid`, `.stories-section`, `.section-label`, the
   `maxWidth` prop of `LoadingCard`, the four `!important` column rules of `mobile.css`.
 - Not seen in a browser by the developer: all geometry (pile place at 1440 / 1280 / 1024, entry edge, picture and text sizes).
+- Later work (November 26, 2026, 1.15.0) changed items: step 16 parts A and B (one tree, page deck, phone fades) → 31, 34, 37;
+  step 15 book change and first-load opening (`RouteBook`, `useDeal.openingOf` gone) → 12, 37; bookmarks per screen size
+  (pile via `--home-bottom` / `--pile-scale`) → 1, 11, 26, 27, 28; shared `AntibotSuccess` → no change (same line and 4 s).
 
 ---
 
 # Version Control
-- **Document Version**: 1.14.0
+- **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.14.0 | Test list for the Home book and dealt cards | November 25, 2026 |
+  | 1.15.0 | Items updated after book changes, tabs and phone deck | November 26, 2026 |
 
-- **Last Updated**: November 25, 2026 (v1.14.0)
+- **Last Updated**: November 26, 2026 (v1.15.0)

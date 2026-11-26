@@ -17,7 +17,8 @@ vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn(), star
 vi.mock('@/context/PolicyBookContext', () => ({
   usePolicyBook: () => ({ policyBook: null, openPolicyBook: vi.fn(), closePolicyBook: vi.fn() }),
 }))
-vi.mock('@/hooks/useAntibot', () => ({
+vi.mock('@/hooks/useAntibot', async (orig) => ({
+  ...(await orig()),
   default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }),
 }))
 

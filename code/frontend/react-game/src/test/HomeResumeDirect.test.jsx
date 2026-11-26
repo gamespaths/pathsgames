@@ -63,7 +63,7 @@ describe('HomePage — Resume without the player modal (VITE_RESUME_WITHOUT_MODA
     listMatches.mockResolvedValue([{ uuid: 'm1', storyUuid: 's1', status: 'RUNNING' }])
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/play/s1', { state: { matchUuid: 'm1' } }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/play/s1', { state: { matchUuid: 'm1', story: expect.objectContaining({ uuid: 's1' }) } }))
     expect(mockOpenPlayerPage).not.toHaveBeenCalled()
   })
 
@@ -71,7 +71,7 @@ describe('HomePage — Resume without the player modal (VITE_RESUME_WITHOUT_MODA
     listMatches.mockResolvedValue([{ uuid: 'm2', storyUuid: 's1', status: 'CREATED' }])
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/play/s1', { state: { matchUuid: 'm2' } }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/play/s1', { state: { matchUuid: 'm2', story: expect.objectContaining({ uuid: 's1' }) } }))
   })
 
   it('still opens the player page for a PAUSED match — it blocks a new run but cannot be resumed', async () => {

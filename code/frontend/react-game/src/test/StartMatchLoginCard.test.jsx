@@ -16,7 +16,7 @@ const player = vi.hoisted(() => ({ open: vi.fn() }))
 vi.mock('@/features/guest-user/usePlayerPage', () => ({
   default: () => ({ openPlayerPage: player.open, closePlayerPage: vi.fn() }),
 }))
-vi.mock('@/hooks/useAntibot', () => ({ default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }) }))
+vi.mock('@/hooks/useAntibot', async (orig) => ({ ...(await orig()), default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }) }))
 vi.mock('@/components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
 vi.mock('@/features/guest-user/GoogleSignInButton', () => ({
   default: ({ autoStart, compact }) => <div data-testid="google-signin" data-auto={String(!!autoStart)} data-compact={String(!!compact)} />,

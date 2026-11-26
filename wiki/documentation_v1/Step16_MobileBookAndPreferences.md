@@ -214,15 +214,18 @@ No change: the suites are API-only (RequestsLibrary, no browser library in `code
 
 No open doubts. The owner accepted all seven recommendations (development order, status card, landing, theme and size, animation rows, columns, language buttons); they are recorded in sections 1, 3 and 6. Built in 1.14.0, waiting for owner's test: part A with step 15, part B after it; phone scroll jumps use `behavior: 'instant'` (the page-wide smooth scroll made the turn land wrongly); the language buttons are only in the Preferences editor, and `SHOW_MOBILE_CARD_CHARACTERISTICS` defaults to false. Later decisions (home tab pinned at the end of the row, long-press tooltip on the pills, vertical book graphics, card components and sizes kept, no table pile on phones, Deck row) are in 3, 6.3, 6.4 and 6.9.
 
+> Owner's decision, November 26, 2026 (1.15.0): the phone sticky pills row (6.4) became icon-only tabs on the book's top edge, with the home tab under its bottom-right corner and `--book-pills-h` removed ([Step 15](./Step15_PlayAndPageTurn.md) section 9 point 3); the preferences editor has a new "Book cover" row (`anim.cover`, env `VITE_ANIM_COVER`).
+
 # Version Control
-- **Document Version**: 1.14.0
+- **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.13.0 | Phone book, preferences, deck setting and bookmark note | November 24, 2026 |
   | 1.14.0 | Developed; waiting for owner's test | November 25, 2026 |
+  | 1.15.0 | Phone tabs on book edges; book cover preference | November 26, 2026 |
 
-- **Last Updated**: November 25, 2026 (v1.14.0)
+- **Last Updated**: November 26, 2026 (v1.15.0)
 
 
 # &lt; Paths Games /&gt;
