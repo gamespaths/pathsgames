@@ -1,6 +1,6 @@
 # Step 14 — Home book and card faces
 
-**Status: developed (November 25, 2026, version 1.14.0, react-game only, unit tests green), waiting for owner's test; owner test list: [test/Step14_HomeBookAndCardFaces.md](./test/Step14_HomeBookAndCardFaces.md); analysed (1.13.0), owner's decisions recorded (Home left page, no heading over the cards, card components, page picture and text sizes kept, deck on the table beside the book, deck under or over the book), no open doubts.**
+**Status: developed and tested (November 25, 2026, version 1.14.0, react-game only, unit tests green), closed by the owner (November 27, 2026, version 1.15.0); owner test list: [test/Step14_HomeBookAndCardFaces.md](./test/Step14_HomeBookAndCardFaces.md); analysed (1.13.0), owner's decisions recorded (Home left page, no heading over the cards, card components, page picture and text sizes kept, deck on the table beside the book, deck under or over the book), no open doubts.**
 Roadmap line: *the Home becomes a book and every card gets a back* ([Roadmap](./Roadmap.md) step 14).
 Concept: [`website_concepts_v0/v1.13.0/`](./website_concepts_v0/v1.13.0/README.md) (effect 1, deal; "Book position and deck": `demo.css` `.deck-pile`, `demo.js` `dealBatch`).
 Sibling steps: `Step13_BookLayoutWithoutModals.md` (in-page books, routes, footer),
@@ -40,8 +40,7 @@ In:
 - i18n EN/IT, unit tests.
 
 Out: modal removal, routes, footer, policy chapter, ErrorCard page, home tab, drawn tooltip,
-book graphics (step 13); play (from a
-reading page only the picture flies, no fall; the fall is for choice "Do" and training lists),
+book graphics (step 13); play (the whole card flies since step 15, see its sections 1 and 8),
 page turn, (i) fade (step 15); vertical book styling, mobile page turn, sticky tabs replacing the
 mobile status card, sticky mobile deck, preferences UI, columns chosen by the player (step 16);
 reduced motion for older animations such as the navbar dice and the book opening (step 17).
@@ -364,9 +363,9 @@ dark-gold scroll bars inside the book; details in [test/Step14_HomeBookAndCardFa
   |---------|-------------|------|
   | 1.13.0 | Home book, card backs and deck on the table agreed | November 24, 2026 |
   | 1.14.0 | Developed; waiting for owner's test | November 25, 2026 |
-  | 1.15.0 | Deck pile placement and book opening changed | November 26, 2026 |
+  | 1.15.0 | Deck pile placement and book opening changed; closed | November 27, 2026 |
 
-- **Last Updated**: November 26, 2026 (v1.15.0)
+- **Last Updated**: November 27, 2026 (v1.15.0)
 
 
 # &lt; Paths Games /&gt;

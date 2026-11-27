@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   REDIRECT_STATE, bookOf, routeTransition, coverText, coverFace, setCoverText, swapTotal, swapTimings, SWAP_PHASES,
   swapSlice, scrollTop, bookCopy, swapSnapshot, phaseRun, runSwap, turnSnapshot, runRouteTurn, openBook,
-  OPEN_FRAMES, CLOSE_FRAMES,
+  OPEN_FRAMES, CLOSE_FRAMES, TABLESS, runOpening,
 } from '../components/book/bookSwap'
 import { BASE_TIMINGS, scaledTimings } from '../constants/animations'
 import { mobileTurnBusy } from '../features/gameplay/js/mobileView'
@@ -10,20 +10,22 @@ import { installWaapi } from './fixtures/waapi'
 
 // Step 15 (to-do 2) — the book change between routes: route table, cover, capped timings and the runs (WAAPI stubbed).
 
-const T = (({ open, close, fade, flip, slide, sheet }) => ({ open, close, fade, flip, slide, sheet }))(BASE_TIMINGS)
+const T = (({ open, close, fade, flip, slide, sheet, zoom }) => ({ open, close, fade, flip, slide, sheet, zoom }))(BASE_TIMINGS)
 const loc = (pathname, state = null) => ({ pathname, search: '', state, key: pathname })
 const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top })
 const t = key => `t:${key}`
 
 /** A book as Book renders it: a stage, a shell (with its pile), the cover with tabs, pages and a turn layer. */
-function makeBook({ title = null, tabs = true, text = 'old', box = rect(100, 80, 1000, 600), scrolled = false } = {}) {
+function makeBook({ title = null, tabs = true, text = 'old', box = rect(100, 80, 1000, 600), scrolled = false,
+  right = false } = {}) {
   const stage = document.createElement('div')
   stage.className = 'book-stage'
   stage.innerHTML = `
     <div class="book-shell">
       <div class="book-wrapper" ${title ? `data-cover-title="${title}"` : ''}>
         ${tabs ? `<div class="book-bookmarks-row"><div class="book-bookmarks book-bookmarks--left">
-          <button id="tab" data-testid="tab" data-tip="Tab">T</button></div></div>` : ''}
+          <button id="tab" data-testid="tab" data-tip="Tab">T</button></div>${right
+  ? '<div class="book-bookmarks book-bookmarks--right"><button>H</button></div>' : ''}</div>` : ''}
         <div class="book-page book-page-left"><div class="page-inner"><p data-testid="left">${text} left</p>
           <iframe title="x"></iframe></div></div>
         <div class="book-page book-page-right"><div class="page-inner"><p>${text} right</p></div></div>
@@ -40,9 +42,11 @@ function makeBook({ title = null, tabs = true, text = 'old', box = rect(100, 80,
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 0))
 let waapi
-async function step() {
-  waapi.finishAll()
-  await settle()
+async function step(times = 1) {
+  for (let i = 0; i < times; i += 1) {
+    waapi.finishAll()
+    await settle()
+  }
 }
 const last = () => waapi.animations.at(-1)
 
@@ -123,34 +127,40 @@ describe('coverText / coverFace', () => {
 })
 
 describe('swapTimings — at most VITE_ANIM_COVER_MAX_S', () => {
-  it('1×: desktop full 3.4 s, phone 2.4 s, simple 0.9 s, unchanged under the 10 s cap', () => {
-    expect(swapTotal(T)).toBe(3400)
-    expect(swapTotal(T, { layout: 'phone' })).toBe(2440)
-    expect(swapTotal(T, { layout: 'phone', mode: 'simple' })).toBe(910)
+  // v1.15.0 — `zoom` (320 ms at 1×) twice in every full change; every mode fades the tabs out and in (`fade`, 200 ms).
+  it('1×: desktop full 4.04 s, phone 3.48 s, simple 1.31 s (no zoom), unchanged under the 10 s cap', () => {
+    expect(T.zoom).toBe(320)
+    expect(swapTotal(T)).toBe(4040)
+    expect(swapTotal(T, { layout: 'phone' })).toBe(3480)
+    expect(swapTotal(T, { layout: 'phone', mode: 'simple' })).toBe(1310)
     expect(swapTimings(T, { maxMs: 10000 })).toEqual(T)
-    expect(SWAP_PHASES).toEqual(['open', 'close', 'fade', 'flip', 'slide', 'sheet'])
+    expect(SWAP_PHASES).toEqual(['open', 'close', 'fade', 'flip', 'slide', 'sheet', 'zoom'])
   })
 
-  it('¼×: desktop full 13.6 s capped to 10 s, every phase by the same factor (0.735)', () => {
+  it('¼×: desktop full 16.16 s capped to 10 s, every phase (zoom too) by the same factor (0.62)', () => {
     const quarter = scaledTimings(0.25)
-    expect(swapTotal(quarter)).toBe(13600)
+    expect(swapTotal(quarter)).toBe(16160)
     const capped = swapTimings(quarter, { layout: 'desktop', mode: 'full', maxMs: 10000 })
-    const k = 10000 / 13600
+    const k = 10000 / 16160
+    expect(k).toBeCloseTo(0.62, 2)
     for (const key of SWAP_PHASES) expect(capped[key]).toBe(Math.round(quarter[key] * k))
-    expect(capped).toMatchObject({ fade: 588, flip: 2647, slide: 1765 })
-    expect(2 * (capped.fade + capped.flip + capped.slide)).toBeLessThanOrEqual(10000)
+    expect(capped).toMatchObject({ fade: 495, flip: 2228, zoom: 792, slide: 1485 })
+    expect(2 * (capped.fade + capped.flip + capped.zoom + capped.slide)).toBeLessThanOrEqual(10000)
   })
 
-  it('¼×: phone (9.8 s) and simple (3.6 s) stay under the cap; 0 = no limit', () => {
+  it('¼×: phone 13.92 s capped to 10 s; simple (5.24 s) stays under the cap; 0 = no limit', () => {
     const quarter = scaledTimings(0.25)
     const pick = o => Object.fromEntries(SWAP_PHASES.map(key => [key, o[key]]))
-    expect(swapTimings(quarter, { layout: 'phone', maxMs: 10000 })).toEqual(pick(quarter))
-    expect(swapTotal(quarter, { layout: 'phone' })).toBe(9760)
+    expect(swapTotal(quarter, { layout: 'phone' })).toBe(13920)
+    const phone = swapTimings(quarter, { layout: 'phone', maxMs: 10000 })
+    for (const key of SWAP_PHASES) expect(phone[key]).toBe(Math.round(quarter[key] * 10000 / 13920))
+    // each phase rounded to the ms: at most 4 ms over the cap
+    expect(2 * (phone.fade + phone.sheet + phone.zoom + phone.slide)).toBeLessThanOrEqual(10004)
     expect(swapTimings(quarter, { mode: 'simple', maxMs: 10000 })).toEqual(pick(quarter))
-    expect(swapTotal(quarter, { mode: 'simple' })).toBe(3640)
+    expect(swapTotal(quarter, { mode: 'simple' })).toBe(5240)
     expect(swapTimings(quarter, { maxMs: 0 })).toEqual(pick(quarter))
     expect(swapTimings(quarter)).toEqual(pick(quarter))
-    expect(swapTimings(quarter, { maxMs: 4000 }).flip).toBe(Math.round(3600 * 4000 / 13600))
+    expect(swapTimings(quarter, { maxMs: 4000 }).flip).toBe(Math.round(3600 * 4000 / 16160))
   })
 })
 
@@ -218,17 +228,21 @@ describe('phaseRun', () => {
 })
 
 describe('runSwap — desktop full (concept swapBook)', () => {
-  it('tabs out, the right half folds with the old title, out left; in from the right closed with the new title, opens, tabs in', async () => {
-    const old = makeBook({ title: 'Old', box: rect(100, 80, 1000, 600), scrolled: true })
+  it('tabs out, the right half folds with the old title, shrinks, out left; in small with the new title, grows, opens, tabs in', async () => {
+    const old = makeBook({ title: 'Old', box: rect(100, 80, 1000, 600), scrolled: true, right: true })
     const shot = swapSnapshot(old.wrapper, { phone: false, text: { title: 'Old', sub: 'Paths Games' } })
     expect(shot.copy.scrolls).toHaveLength(1)
     old.stage.remove()
-    const next = makeBook({ title: 'New', text: 'new', box: rect(120, 16, 960, 700) })
+    const next = makeBook({ title: 'New', text: 'new', box: rect(120, 16, 960, 700), right: true })
     const hide = vi.fn()
     const reveal = vi.fn()
+    const hideTabs = vi.fn()
+    const showTabs = vi.fn()
     const nextText = vi.fn(live => ({ title: live.getAttribute('data-cover-title'), sub: 'Paths Games' }))
     const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
-    const handle = runSwap(shot, { timings: T, mode: 'full', liveBook: () => next.wrapper, nextText, hide, reveal })
+    const handle = runSwap(shot, { timings: T, mode: 'full', liveBook: () => next.wrapper, nextText, hide, reveal,
+      hideTabs, showTabs })
+    expect(hideTabs).toHaveBeenCalledOnce()
 
     const layer = document.querySelector('body > .book-swap')
     expect(layer).toHaveAttribute('aria-hidden', 'true')
@@ -236,10 +250,15 @@ describe('runSwap — desktop full (concept swapBook)', () => {
     expect(scroll).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'instant' })
     const oldCopy = layer.querySelector('.book-swap__book')
     expect(oldCopy.querySelector('[data-testid]')).toBeNull()
-    // 1. tabs out
-    expect(last().target).toBe(oldCopy.querySelector('.book-bookmarks-row'))
-    expect(last()).toMatchObject({ keyframes: [{ opacity: 1 }, { opacity: 0 }], options: { duration: T.fade } })
+    // 1. tabs out: v1.15.0 every group, never the row (display: contents on tablets); then the layer hides later copies' tabs
+    const out = waapi.running()
+    expect(out.map(a => a.target)).toEqual([...oldCopy.querySelectorAll('.book-bookmarks-row > .book-bookmarks')])
+    expect(out).toHaveLength(2)
+    out.forEach(a => expect(a).toMatchObject({ keyframes: [{ opacity: 1 }, { opacity: 0 }],
+      options: { duration: T.fade, fill: 'forwards' } }))
+    expect(layer).not.toHaveClass(TABLESS)
     await step()
+    expect(layer).toHaveClass(TABLESS)
     // 2. the right half folds over the spine, the cover with the old title on its back
     const flap = oldCopy.querySelector(':scope > .book-flap')
     expect(oldCopy.querySelector(':scope > .book-wrapper').style.clipPath).toBe('inset(-60px 50% -80px -60px)')
@@ -250,33 +269,47 @@ describe('runSwap — desktop full (concept swapBook)', () => {
     expect(folding[0].keyframes).toEqual([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-180deg)' }])
     expect(folding).toHaveLength(3)
     await step()
-    // 3. the closed book slides out left
+    // 3. v1.15.0: the closed book shrinks where it is (around the spine: the shell's centre), then slides out left small
+    expect(last()).toMatchObject({ target: oldCopy, options: { duration: T.zoom, easing: 'ease-in-out', fill: 'forwards' } })
+    expect(last().keyframes).toEqual([{ transform: 'translateX(0px) scale(1)' }, { transform: 'translateX(0px) scale(0.62)' }])
+    await step()
     expect(last()).toMatchObject({ target: oldCopy, options: { duration: T.slide } })
-    expect(last().keyframes).toEqual([{ transform: 'translateX(0px)' }, { transform: 'translateX(-680px)' }])
+    expect(last().keyframes).toEqual([{ transform: 'translateX(0px) scale(0.62)' }, { transform: 'translateX(-680px) scale(0.62)' }])
     await step()
     // 4. the new one, closed with its title, slides in to its place
     expect(oldCopy.isConnected).toBe(false)
     const newCopy = layer.querySelector('.book-swap__book')
     expect(newCopy.style).toMatchObject({ left: '120px', top: '16px', width: '960px' })
-    expect(newCopy.querySelector('.book-bookmarks-row').style.opacity).toBe('0')
+    expect(newCopy.closest(`.${TABLESS}`)).toBe(layer)
     const newFlap = newCopy.querySelector('.book-flap')
     expect(newFlap.style.transform).toBe('rotateY(-180deg)')
     expect(newFlap.querySelector('.cover-title')).toHaveTextContent('New')
     expect(nextText).toHaveBeenCalledWith(next.wrapper)
-    expect(last().keyframes).toEqual([{ transform: `translateX(${window.innerWidth - 120 + 80}px)` }, { transform: 'translateX(0px)' }])
+    expect(last()).toMatchObject({ target: newCopy, options: { duration: T.slide } })
+    expect(last().keyframes).toEqual([{ transform: `translateX(${window.innerWidth - 120 + 80}px) scale(0.62)` },
+      { transform: 'translateX(0px) scale(0.62)' }])
     await step()
-    // 5. the cover opens
+    // 5. it grows back to its size with a light overshoot
+    expect(last()).toMatchObject({ target: newCopy, options: { duration: T.zoom, easing: 'cubic-bezier(.3,1.35,.6,1)' } })
+    expect(last().keyframes).toEqual([{ transform: 'translateX(0px) scale(0.62)' }, { transform: 'translateX(0px) scale(1)' }])
+    await step()
+    // 6. the cover opens
     expect(waapi.running()[0].keyframes).toEqual([{ transform: 'rotateY(-180deg)' }, { transform: 'rotateY(0deg)' }])
-    await step()
-    // 6. tabs in, over the whole cover again
-    expect(newFlap.isConnected).toBe(false)
-    expect(newCopy.querySelector('.book-wrapper').style.clipPath).toBe('')
-    expect(last()).toMatchObject({ keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: T.fade } })
     expect(reveal).not.toHaveBeenCalled()
+    await step()
+    // 7. opened: the copy goes, the live book shows, its tab groups fade in; then the hiding class goes
+    expect(newCopy.isConnected).toBe(false)
+    expect(reveal).toHaveBeenCalledOnce()
+    const fades = waapi.running()
+    expect(fades.map(a => a.target)).toEqual([...next.wrapper.querySelectorAll('.book-bookmarks')])
+    fades.forEach(a => expect(a).toMatchObject({ keyframes: [{ opacity: 0 }, { opacity: 1 }],
+      options: { duration: T.fade, fill: 'forwards' } }))
+    expect(showTabs).not.toHaveBeenCalled()
     await step()
     await handle.finished
     expect(document.querySelector('.book-swap')).toBeNull()
-    expect(reveal).toHaveBeenCalledOnce()
+    expect(showTabs).toHaveBeenCalled()
+    fades.forEach(a => expect(a.cancel).toHaveBeenCalled())
   })
 
   it('a book with no tabs skips the tab fades; with no live book after the slide out it just ends', async () => {
@@ -284,6 +317,7 @@ describe('runSwap — desktop full (concept swapBook)', () => {
     const shot = swapSnapshot(old.wrapper)
     expect(shot.text).toEqual({})
     const handle = runSwap(shot, { timings: T, liveBook: () => null, nextText: () => ({}) })
+    await step()
     await step()
     await step()
     await step()
@@ -308,6 +342,7 @@ describe('runSwap — desktop full (concept swapBook)', () => {
     await step()
     await step()
     await step()
+    await step()
     await handle.finished
     expect(reveal).toHaveBeenCalledOnce()
     expect(document.querySelector('.book-swap')).toBeNull()
@@ -321,8 +356,14 @@ describe('runSwap — simple (both layouts)', () => {
     old.stage.remove()
     const next = makeBook({ text: 'new' })
     const reveal = vi.fn()
-    const handle = runSwap(shot, { timings: T, mode: 'simple', liveBook: () => next.wrapper, nextText: () => ({}), reveal })
+    const showTabs = vi.fn()
+    const handle = runSwap(shot, { timings: T, mode: 'simple', liveBook: () => next.wrapper, nextText: () => ({}), reveal,
+      showTabs })
     const copy = document.querySelector('.book-swap .book-swap__book')
+    // v1.15.0 — tabs out before the close
+    expect(last()).toMatchObject({ target: copy.querySelector('.book-bookmarks'), keyframes: [{ opacity: 1 }, { opacity: 0 }] })
+    await step()
+    expect(document.querySelector('.book-swap')).toHaveClass(TABLESS)
     expect(last()).toMatchObject({ target: copy, keyframes: CLOSE_FRAMES, options: { duration: T.close, fill: 'forwards' } })
     expect(CLOSE_FRAMES[1]).toEqual({ opacity: 0, transform: 'perspective(1200px) rotateX(-8deg) scale(0.92)' })
     await step()
@@ -330,7 +371,12 @@ describe('runSwap — simple (both layouts)', () => {
     expect(reveal).toHaveBeenCalled()
     expect(last()).toMatchObject({ target: next.wrapper, keyframes: OPEN_FRAMES, options: { duration: T.open } })
     await step()
+    expect(last()).toMatchObject({ target: next.wrapper.querySelector('.book-bookmarks'),
+      keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: T.fade } })
+    expect(showTabs).not.toHaveBeenCalled()
+    await step()
     await handle.finished
+    expect(showTabs).toHaveBeenCalled()
     expect(document.querySelector('.book-swap')).toBeNull()
   })
 
@@ -346,9 +392,15 @@ describe('runSwap — simple (both layouts)', () => {
     const next = makeBook({ text: 'new' })
     const handle = runSwap(shot, { timings: T, mode: 'simple', liveBook: () => next.wrapper, nextText: () => ({}) })
     expect(document.querySelector('.book-swap')).toBeNull()
+    expect(last()).toMatchObject({ target: sheet.querySelector('.m-sheet__book > .book-bookmarks-row > .book-bookmarks'),
+      keyframes: [{ opacity: 1 }, { opacity: 0 }], options: { duration: T.fade } })
+    await step()
+    expect(sheet).toHaveClass(TABLESS)
     expect(last()).toMatchObject({ target: sheet, keyframes: CLOSE_FRAMES })
     await step()
     expect(last()).toMatchObject({ target: next.wrapper, keyframes: OPEN_FRAMES })
+    await step()
+    expect(last()).toMatchObject({ target: next.wrapper.querySelector('.book-bookmarks'), keyframes: [{ opacity: 0 }, { opacity: 1 }] })
     await step()
     await handle.finished
     expect(document.querySelector('.m-sheet, .m-blocker')).toBeNull()
@@ -368,16 +420,21 @@ describe('runSwap — simple (both layouts)', () => {
 })
 
 describe('runSwap — phones (concept mobileSwap)', () => {
-  it('a cover closes over the slice (tabs included), slides out, the title changes, slides in and opens', async () => {
+  it('a cover closes over the slice (tabs included), shrinks, slides out, the title changes, slides in, grows and opens', async () => {
     const old = makeBook({ box: rect(0, 100, 360, 1500) })
     old.wrapper.querySelector('.book-bookmarks--left').getBoundingClientRect = () => rect(42, 56, 300, 44)
     const shot = swapSnapshot(old.wrapper, { phone: true, text: { title: 'Old', sub: 'Paths Games' } })
     expect(shot.slice).toMatchObject({ top: 56 })
     old.stage.remove()
-    const next = makeBook({ text: 'new', box: rect(0, 46, 360, 900) })
+    const next = makeBook({ text: 'new', box: rect(0, 46, 300, 900) })
     const reveal = vi.fn()
     const handle = runSwap(shot, { timings: T, liveBook: () => next.wrapper, reveal,
       nextText: () => ({ title: 'New', sub: 'Paths Games' }) })
+    // v1.15.0 — the slice's tabs fade out before the cover closes over it
+    expect(document.querySelector('body > .m-cover')).toBeNull()
+    expect(last()).toMatchObject({ target: shot.sheet.querySelector('.book-bookmarks'), keyframes: [{ opacity: 1 }, { opacity: 0 }] })
+    await step()
+    expect(shot.sheet).toHaveClass(TABLESS)
     const cover = document.querySelector('body > .m-sheet.m-cover.cover-face')
     expect(cover.style.top).toBe('56px')
     expect(cover.querySelector('.cover-title')).toHaveTextContent('Old')
@@ -387,16 +444,29 @@ describe('runSwap — phones (concept mobileSwap)', () => {
       { transform: 'perspective(1400px) rotateY(0deg)' }])
     await step()
     expect(document.querySelector('.m-sheet--tabs')).toBeNull()
+    // v1.15.0: the hinge is the left edge, so the scale is re-centred by (1 − 0.62) × 360 / 2 = 68.4px
+    expect(last()).toMatchObject({ target: cover, options: { duration: T.zoom, easing: 'ease-in-out' } })
+    expect(last().keyframes.map(k => k.transform)).toEqual([
+      'perspective(1400px) translateX(calc(0px + 0px)) scale(1) rotateY(0deg)',
+      'perspective(1400px) translateX(calc(0px + 68.4px)) scale(0.62) rotateY(0deg)'])
+    await step()
     expect(last()).toMatchObject({ target: cover, options: { duration: T.slide } })
-    expect(last().keyframes[1].transform).toContain('translateX(-110vw)')
+    expect(last().keyframes[1].transform).toBe('perspective(1400px) translateX(calc(-110vw + 68.4px)) scale(0.62) rotateY(0deg)')
     await step()
     expect(cover.querySelector('.cover-title')).toHaveTextContent('New')
     expect(cover.style.top).toBe('46px')
-    expect(last().keyframes[0].transform).toContain('translateX(110vw)')
+    // the next slice is 300px wide: (1 − 0.62) × 300 / 2 = 57px
+    expect(last().keyframes[0].transform).toBe('perspective(1400px) translateX(calc(110vw + 57px)) scale(0.62) rotateY(0deg)')
+    await step()
+    expect(last()).toMatchObject({ target: cover, options: { duration: T.zoom, easing: 'cubic-bezier(.3,1.35,.6,1)' } })
+    expect(last().keyframes[1].transform).toBe('perspective(1400px) translateX(calc(0px + 0px)) scale(1) rotateY(0deg)')
     expect(reveal).not.toHaveBeenCalled()
     await step()
     expect(reveal).toHaveBeenCalledOnce()
     expect(waapi.running()[0].keyframes[1].transform).toContain('rotateY(-90deg)')
+    await step()
+    expect(last()).toMatchObject({ target: next.wrapper.querySelector('.book-bookmarks'), keyframes: [{ opacity: 0 }, { opacity: 1 }] })
+    expect(document.querySelector('.m-cover')).not.toBeNull()
     await step()
     await handle.finished
     expect(document.querySelector('.m-cover, .m-blocker')).toBeNull()
@@ -413,11 +483,9 @@ describe('runSwap — phones (concept mobileSwap)', () => {
     const old = makeBook({ box: rect(0, 100, 360, 900) })
     const run = runSwap(swapSnapshot(old.wrapper, { phone: true }), { timings: T, liveBook: () => null,
       nextText: () => ({}) })
-    await step()
-    await step()
+    await step(4)
     expect(document.querySelector('.m-cover').style.top).toBe('100px')
-    await step()
-    await step()
+    await step(4)
     await run.finished
   })
 })
@@ -487,10 +555,10 @@ describe('turnSnapshot / runRouteTurn — a page of the same book', () => {
 
 describe('runSwap — finish() during any phase stops the run there', () => {
   const cases = [
-    ['desktop full', false, 'full', 6],
-    ['desktop simple', false, 'simple', 2],
-    ['phone cover', true, 'full', 4],
-    ['phone simple', true, 'simple', 2],
+    ['desktop full', false, 'full', 8],
+    ['desktop simple', false, 'simple', 4],
+    ['phone cover', true, 'full', 8],
+    ['phone simple', true, 'simple', 4],
   ]
   it.each(cases)('%s: each phase', async (name, phone, mode, phases) => {
     for (let at = 0; at < phases; at += 1) {
@@ -499,15 +567,68 @@ describe('runSwap — finish() during any phase stops the run there', () => {
       const shot = swapSnapshot(old.wrapper, { phone, text: { title: 'Old' } })
       const next = makeBook({ text: 'new', box: rect(0, 100, 360, 900) })
       const reveal = vi.fn()
-      const handle = runSwap(shot, { timings: T, mode, liveBook: () => next.wrapper, nextText: () => ({ title: 'New' }), reveal })
+      const showTabs = vi.fn()
+      const handle = runSwap(shot, { timings: T, mode, liveBook: () => next.wrapper, nextText: () => ({ title: 'New' }), reveal,
+        showTabs })
       for (let i = 0; i < at; i += 1) await step()
       handle.finish()
       await settle()
       await handle.finished
-      // shown at the end in any case (the simple and phone runs show it once more before the opening)
+      // shown at the end in any case (the simple and phone runs show it once more before the opening), tabs too
       expect(reveal).toHaveBeenCalled()
+      expect(showTabs).toHaveBeenCalled()
       expect(document.querySelector('.book-swap, .m-sheet, .m-blocker')).toBeNull()
       expect(document.documentElement).not.toHaveClass('is-turning')
     }
+  })
+})
+
+describe('runOpening — the first-load opening (v1.15.0: tabs after it)', () => {
+  it('tabs hidden, the book opens (timings.open), then its groups fade in (timings.fade); the class goes, fades dropped', async () => {
+    const { wrapper } = makeBook({ right: true })
+    const hideTabs = vi.fn()
+    const showTabs = vi.fn()
+    const handle = runOpening({ timings: T, liveBook: () => wrapper, hideTabs, showTabs })
+    expect(hideTabs).toHaveBeenCalledOnce()
+    expect(last()).toMatchObject({ target: wrapper, keyframes: OPEN_FRAMES, options: { duration: T.open } })
+    await step()
+    const fades = waapi.running()
+    expect(fades.map(a => a.target)).toEqual([...wrapper.querySelectorAll('.book-bookmarks')])
+    fades.forEach(a => expect(a).toMatchObject({ keyframes: [{ opacity: 0 }, { opacity: 1 }],
+      options: { duration: T.fade, fill: 'forwards' } }))
+    expect(showTabs).not.toHaveBeenCalled()
+    await step()
+    await handle.finished
+    expect(showTabs).toHaveBeenCalled()
+    fades.forEach(a => expect(a.cancel).toHaveBeenCalled())
+  })
+
+  it('finish() while it opens or while the tabs fade in: tabs shown at once; a missing book just ends', async () => {
+    const { wrapper } = makeBook({ tabs: false })
+    const showTabs = vi.fn()
+    const opening = runOpening({ timings: T, liveBook: () => wrapper, showTabs })
+    opening.finish()
+    await opening.finished
+    expect(showTabs).toHaveBeenCalledOnce()
+    const tabbed = makeBook()
+    const fading = runOpening({ timings: T, liveBook: () => tabbed.wrapper, showTabs })
+    await step()
+    const fade = last()
+    fading.finish()
+    await fading.finished
+    expect(fade.cancel).toHaveBeenCalled()
+    expect(showTabs).toHaveBeenCalledTimes(2)
+    const lost = runOpening({ timings: T, liveBook: () => null })
+    await lost.finished
+  })
+
+  it('a book with no tabs opens and ends with no fade', async () => {
+    const { wrapper } = makeBook({ tabs: false })
+    const showTabs = vi.fn()
+    const handle = runOpening({ timings: T, liveBook: () => wrapper, showTabs })
+    await step()
+    await handle.finished
+    expect(waapi.animations).toHaveLength(1)
+    expect(showTabs).toHaveBeenCalled()
   })
 })

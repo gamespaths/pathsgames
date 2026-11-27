@@ -1,14 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useAnimationSettings } from '@/context/AnimationContext'
 import { canAnimate, cleanClone } from '@/components/book/pageTurn'
-import { visibleSlice } from '@/components/book/mobileTurn'
+import { deckGoal } from '@/components/book/mobileTurn'
+import { PLAYED_SHOWN } from '@/components/book/PlayedPile'
 import { isMobileViewport } from '@/features/gameplay/js/mobileView'
 
 /* PlayContext — step 15: the played card lifts and glows during the API call, then the other small cards fall
-   and a fixed clone flies into the story. React owns the classes (Card reads the state); WAAPI only moves. */
+   and a fixed clone flies onto the face-up pile (v1.15.0; phones: the page deck). WAAPI only moves. */
 
 export const FALL_MAX_STAGGER = 8
-const FLIGHT_DROP = 60
+// v1.15.0 — a pile card is 84px wide (as a deck card) times the pile's scale; it lands on the pile tilted.
+export const PILE_CARD_W = 84
+const PILE_W = 160
 
 const PlayStateContext = createContext(null)
 const PlayApiContext = createContext(null)
@@ -24,23 +28,24 @@ export function usePlay() {
   return useContext(PlayApiContext)
 }
 
-/** Where the card flies: the left page picture, else the left page centre; phones: the top of the visible slice (step 16). */
+/** `{ x, y, width, rotate, stays }`: v1.15.0 the face-up pile (stays), phones the page deck, else the left page picture. */
 export function flightTarget(bookEl) {
-  if (isMobileViewport()) {
-    const slice = visibleSlice(bookEl)
-    if (slice) return { x: slice.left + slice.width / 2, y: slice.top + FLIGHT_DROP }
-    const nav = document.querySelector('.navbar-medieval')?.getBoundingClientRect()
-    return { x: window.innerWidth / 2, y: (nav?.bottom ?? 0) + FLIGHT_DROP }
+  if (isMobileViewport()) return { ...deckGoal(bookEl), rotate: -6, stays: false }
+  const pile = bookEl?.parentElement?.querySelector(':scope > .played-pile')?.getBoundingClientRect()
+  if (pile?.width) {
+    return { x: pile.left + pile.width / 2, y: pile.top + pile.height / 2, width: PILE_CARD_W * (pile.width / PILE_W),
+      rotate: -4, stays: true }
   }
   const spot = bookEl?.querySelector('.book-page-left .book-page-img') ?? bookEl?.querySelector('.book-page-left')
   const r = spot?.getBoundingClientRect()
-  if (!r) return { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-  return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  const centre = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+  return { ...centre, width: 0, rotate: -16, stays: false }
 }
 
 /** A fixed clone of `source` flying in an arc to `target` (concept flyOut); the clone stays until removed. */
 export function flyOut(source, target, timings) {
   const from = source.getBoundingClientRect()
+  const end = target.width && from.width ? target.width / from.width : 0.3
   const { node } = cleanClone(source)
   node.classList.remove('is-playing')
   node.classList.add('flying-card')
@@ -51,11 +56,15 @@ export function flyOut(source, target, timings) {
   const dy = target.y - (from.top + from.height / 2)
   const anim = node.animate([
     { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
-    { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 70}px) rotate(-10deg) scale(0.9)`, opacity: 1, offset: 0.55 },
-    { transform: `translate(${dx}px, ${dy}px) rotate(-16deg) scale(0.3)`, opacity: 0 },
+    { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 70}px) rotate(-10deg) scale(${target.width ? Math.max(end, 0.7) : 0.9})`,
+      opacity: 1, offset: 0.55 },
+    { transform: `translate(${dx}px, ${dy}px) rotate(${target.rotate}deg) scale(${end})`, opacity: target.stays ? 1 : 0 },
   ], { duration: timings.fly, easing: 'cubic-bezier(.45,.05,.55,.95)', fill: 'forwards' })
   return { node, anim }
 }
+
+/** What the pile keeps of a played card: its title and picture. */
+const cardOf = meta => ({ title: meta.title ?? null, image: meta.image ?? null })
 
 /** The other small cards fall, one after the other (stagger capped at 8), each with a random tilt. */
 export function fall(cards, timings) {
@@ -69,7 +78,7 @@ export function fall(cards, timings) {
   })
 }
 
-/** The play controller GameBook provides: `{ state, api }`. One gate: no WAAPI or `play` off, nothing runs. */
+/** GameBook's controller `{ state, api, played }` (v1.15.0: landed cards, memory only); no WAAPI or `play` off: nothing runs. */
 export function usePlayController({ onPlayStart = NOOP } = {}) {
   const settings = useAnimationSettings()
   const live = useRef(settings)
@@ -77,6 +86,7 @@ export function usePlayController({ onPlayStart = NOOP } = {}) {
   const startRef = useRef(onPlayStart)
   startRef.current = onPlayStart
   const [state, setState] = useState(null)
+  const [played, setPlayed] = useState([])
   const current = useRef(null)
   const flight = useRef(null)
 
@@ -91,12 +101,12 @@ export function usePlayController({ onPlayStart = NOOP } = {}) {
 
   const onStart = useCallback(() => startRef.current?.(), [])
 
-  // Runs inside the click (user activation, step 16's vibration), then lifts the card.
-  const begin = useCallback((playId, el) => {
+  // Runs inside the click (user activation, step 16's vibration), then lifts the card; `meta` is `{ title, image }`.
+  const begin = useCallback((playId, el, meta = null) => {
     onStart()
     const s = live.current
     if (!playId || !el || !s.play || s.reduced || !canAnimate(el)) return false
-    set({ playId, el, phase: 'lift', small: el.classList.contains('pg-card') })
+    set({ playId, el, phase: 'lift', small: el.classList.contains('pg-card'), meta })
     return true
   }, [onStart, set])
 
@@ -133,12 +143,16 @@ export function usePlayController({ onPlayStart = NOOP } = {}) {
       anims.push(flown.anim)
     }
     flight.current = { node, anims }
-    return Promise.all(anims.map(a => a.finished)).catch(() => {}).then(() => { node?.remove() })
+    return Promise.all(anims.map(a => a.finished)).catch(() => {}).then(() => {
+      // The pile shows the card before its flying copy goes: no frame without it.
+      if (play.meta) flushSync(() => setPlayed(list => [...list, cardOf(play.meta)].slice(-PLAYED_SHOWN)))
+      node?.remove()
+    })
   }, [set, stopFlight])
 
   const api = useMemo(() => ({ begin, land, cancel, end, onPlayStart: onStart }),
     [begin, land, cancel, end, onStart])
-  return { state, api }
+  return { state, api, played }
 }
 
 /** Provides a controller of usePlayController to the cards (state) and their buttons (api). */

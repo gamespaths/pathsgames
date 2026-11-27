@@ -26,26 +26,31 @@ describe('CardButtons — play', () => {
   it('the main action begins the play with the card root, then cancels a play still lifting once it settles', async () => {
     let settle
     const onAction = vi.fn(() => new Promise(res => { settle = res }))
-    render(<Card card={{ title: 'Move' }} playId="movement:l2" onAction={onAction} actionLabel="go" testId="mv" />)
+    render(<Card card={{ title: 'Move', urlImage: 'move.png' }} playId="movement:l2" onAction={onAction} actionLabel="go"
+      testId="mv" />)
     const root = screen.getByTestId('mv-action').closest('.pg-card')
     fireEvent.click(screen.getByTestId('mv-action'))
-    expect(play.api.begin).toHaveBeenCalledWith('movement:l2', root)
+    // v1.15.0 — the title and picture the card leaves on the face-up pile
+    expect(play.api.begin).toHaveBeenCalledWith('movement:l2', root, { title: 'Move', image: 'move.png' })
     expect(play.api.cancel).not.toHaveBeenCalled()
     await act(async () => { settle() })
     expect(play.api.cancel).toHaveBeenCalledTimes(1)
   })
 
-  it('a reading page plays from its own root', () => {
-    render(<Card variant="page" card={{ title: 'Move' }} playId="movement:l2" onAction={vi.fn()} actionLabel="go" testId="mv" />)
+  it('a reading page plays from its own root, with its alternative picture when it has no image', () => {
+    render(<Card variant="page" card={{ title: 'Move', alternativeImage: 'alt.png' }} playId="movement:l2" onAction={vi.fn()}
+      actionLabel="go" testId="mv" />)
     fireEvent.click(screen.getByTestId('mv-action'))
-    expect(play.api.begin).toHaveBeenCalledWith('movement:l2', document.querySelector('.book-page-content'))
+    expect(play.api.begin).toHaveBeenCalledWith('movement:l2', document.querySelector('.book-page-content'),
+      { title: 'Move', image: 'alt.png' })
   })
 
   it('"Do" (select) begins too, passes the click on, and cancels in finally (also on a refusal)', async () => {
     const onSelect = vi.fn(() => Promise.reject(new Error('refused')))
     render(<Card card={{ title: 'Option' }} playId="choice:c1" onSelect={onSelect} selectLabel="do" testId="opt" />)
     await act(async () => { fireEvent.click(screen.getByTestId('opt-select')) })
-    expect(play.api.begin).toHaveBeenCalledWith('choice:c1', screen.getByTestId('opt-select').closest('.pg-card'))
+    expect(play.api.begin).toHaveBeenCalledWith('choice:c1', screen.getByTestId('opt-select').closest('.pg-card'),
+      { title: 'Option', image: null })
     expect(onSelect.mock.calls[0][0]).toHaveProperty('type', 'click')
     expect(play.api.cancel).toHaveBeenCalled()
   })

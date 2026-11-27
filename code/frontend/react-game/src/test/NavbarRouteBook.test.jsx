@@ -18,7 +18,7 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: { username: 'guest' }, loading: false, setMatches: vi.fn() }),
 }))
 
-const TIMINGS = { open: 650, close: 260, fade: 200, flip: 900, slide: 600, sheet: 620, simple: 520 }
+const TIMINGS = { open: 650, close: 260, fade: 200, flip: 900, slide: 600, sheet: 620, simple: 520, zoom: 320 }
 const ANIM = { cover: true, turn: true, turnMode: 'full', reduced: false, coverMax: 10, timings: TIMINGS }
 const holds = {}
 let shownKey = null
@@ -88,13 +88,13 @@ describe('Navbar brand and the routes book', () => {
     const key = shownKey
     expect(await clickBrand()).toBe(true)
     expect(shownKey).toBe(key)
-    await step()
+    await step(2) // v1.15.0: the opening, then the tabs fading in
     expect(await clickBrand()).toBe(false)
   })
 
   it('a second click during the running change to the Home: no reload, no extra navigation', async () => {
     renderAt('/story/s1')
-    await step()
+    await step(2) // v1.15.0: the opening, then the tabs fading in
     expect(await clickBrand()).toBe(true)
     expect(screen.getByTestId('url')).toHaveTextContent('/')
     expect(page()).toBe('home')
@@ -104,14 +104,14 @@ describe('Navbar brand and the routes book', () => {
     expect(await clickBrand()).toBe(true)
     expect(shownKey).toBe(key)
     expect(swapLayer()).toBe(layer)
-    await step(6)
+    await step(8)
     expect(swapLayer()).toBeNull()
     expect(await clickBrand()).toBe(false)
   })
 
   it('a second click while the change to the Home waits (the story book holds): nothing, then the change runs', async () => {
     renderAt('/story/s1')
-    await step()
+    await step(2) // v1.15.0: the opening, then the tabs fading in
     act(() => { holds.story(true) })
     expect(await clickBrand()).toBe(true)
     expect(screen.getByTestId('url')).toHaveTextContent('/')
@@ -124,7 +124,7 @@ describe('Navbar brand and the routes book', () => {
     await act(async () => { await settle() })
     expect(page()).toBe('home')
     expect(swapLayer()).not.toBeNull()
-    await step(6)
+    await step(8)
     expect(await clickBrand()).toBe(false)
   })
 })

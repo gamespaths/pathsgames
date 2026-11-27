@@ -3,6 +3,7 @@ import { useInRouterContext, useNavigate } from 'react-router-dom'
 import BookPages from './BookPages'
 import BookBookmarks from './BookBookmarks'
 import Deck from './Deck'
+import PlayedPile from './PlayedPile'
 import { usePolicyChapter } from './PolicyChapter'
 import { useRouteBook } from './RouteBook'
 import { useTranslation } from '@/i18n/context'
@@ -29,6 +30,7 @@ export default function Book({
   holdTurn       = false,               // step 15: the old pages stay on screen until it goes false
   deck           = true,                // step 14: the decks the cards are dealt from (only while the deal is on)
   coverTitle     = null,                // step 15: the title on this book's cover when the book changes
+  playedPile     = null,                // v1.15.0: `{ story, played }` of a match, the face-up pile under the deck
 }) {
   const chapter = usePolicyChapter()
   const anim = useAnimationSettings()
@@ -46,7 +48,7 @@ export default function Book({
   const noTabs = !homeTabs && tabsLeft.length === 0
   const covered = chapter ? 'book-content book-content--covered' : 'book-content'
   // Step 15 — while a card is played or the pages turn, the book is inert, tabs included (the navbar stays live).
-  // Step 15 — the stage says which groups show: phones make room over the book (game tabs) or under it (home tab).
+  // Step 15 — the stage says which groups show: phones make room over the book for either (v1.15.0).
   const stage = ['book-stage', stageClass, noTabs ? 'book-stage--no-tabs' : '',
     tabsLeft.length > 0 ? 'book-stage--game-tabs' : '', homeTabs ? 'book-stage--home-tab' : '', busy ? 'is-busy' : '']
     .filter(Boolean).join(' ')
@@ -77,8 +79,9 @@ export default function Book({
               <div className={covered} aria-hidden={chapter ? 'true' : undefined}>{right}</div>
             </>} />
         </div>
-        {/* Outside the wrapper on purpose: the pile lies on the table, under (or over) the cover. */}
+        {/* Outside the wrapper on purpose: the piles lie on the table, under (or over) the cover. */}
         {withDeck && <Deck variant="table" />}
+        {withDeck && playedPile && <PlayedPile story={playedPile.story} played={playedPile.played} />}
       </div>
     </div>
   )

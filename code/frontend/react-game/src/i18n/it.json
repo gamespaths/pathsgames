@@ -609,6 +609,9 @@
         "COMPLETED": "Completata",
         "FAILED": "Fallita"
       }
+    },
+    "playedPile": {
+      "last": "Ultima giocata: {title}"
     }
   },
   "footer": {

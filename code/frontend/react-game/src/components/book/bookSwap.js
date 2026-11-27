@@ -4,7 +4,7 @@ import { DONE, cleanClone, pickStrategy, px } from './pageTurn'
 import { sheetOf, viewTop } from './mobileTurn'
 
 /* bookSwap — step 15: the book of each route, what a route change does (a book change or a page turn) and the change:
-   the open book closes, slides out left, the next one slides in closed and opens (copies only, on fixed layers). */
+   the open book closes, shrinks, slides out left small, the next one slides in, grows and opens (copies, fixed layers). */
 
 /** Router state of a redirect (`*`, the direct-load guards): no change, no turn, an open chapter kept. */
 export const REDIRECT_STATE = { redirected: true }
@@ -48,14 +48,19 @@ export function coverText({ pathname, attr = null, state = null, t = IDENTITY })
   return title ? { title, sub: t('nav.brand') } : { title: null, sub: null }
 }
 
-export const SWAP_PHASES = Object.freeze(['open', 'close', 'fade', 'flip', 'slide', 'sheet'])
+export const SWAP_PHASES = Object.freeze(['open', 'close', 'fade', 'flip', 'slide', 'sheet', 'zoom'])
+// v1.15.0 — the closed book's scale while it slides (`zoom` out after the close, back in before the open).
+export const SWAP_SMALL = 0.62
 
-/** How long a book change lasts at these timings: desktop full, phone cover, or simple (both layouts). */
+/** How long a book change lasts at these timings (tabs out and in included): desktop full, phone cover, or simple. */
 export function swapTotal(timings, { layout = 'desktop', mode = 'full' } = {}) {
-  if (mode === 'simple') return timings.close + timings.open
-  if (layout === 'phone') return 2 * (timings.sheet + timings.slide)
-  return 2 * (timings.fade + timings.flip + timings.slide)
+  if (mode === 'simple') return 2 * timings.fade + timings.close + timings.open
+  if (layout === 'phone') return 2 * (timings.fade + timings.sheet + timings.zoom + timings.slide)
+  return 2 * (timings.fade + timings.flip + timings.zoom + timings.slide)
 }
+
+// v1.15.0 — on a live route root, a swap layer or a phone sheet: its books' tab groups hidden (animations.css).
+export const TABLESS = 'is-tabless'
 
 /** The phases of a book change, all shrunk by the same factor when the total passes `maxMs` (0 = no limit). */
 export function swapTimings(timings, { layout = 'desktop', mode = 'full', maxMs = 0 } = {}) {
@@ -105,7 +110,7 @@ export function coverFace(text, className = '') {
   return face
 }
 
-/** Phones: the visible part of the book under the navbar, the tabs over and under its cover included. */
+/** Phones: the visible part of the book under the navbar, the tabs over its cover included. */
 export function swapSlice(bookEl) {
   if (!bookEl) return null
   const book = bookEl.getBoundingClientRect()
@@ -215,6 +220,9 @@ export function phaseRun(cleanup) {
 const FOLD_EASE = 'cubic-bezier(.45,.05,.3,1)'
 const OUT_EASE = 'cubic-bezier(.55,.05,.85,.45)'
 const IN_EASE = 'cubic-bezier(.15,.55,.45,.95)'
+const ZOOM_EASE = 'ease-in-out'
+// The grow back settles with a light overshoot.
+const GROW_EASE = 'cubic-bezier(.3,1.35,.6,1)'
 // Only the left half of the cover stays (the right one is the flap); the margins keep its shadow.
 const LEFT_HALF = 'inset(-60px 50% -80px -60px)'
 const PERSPECTIVE = 'perspective(1400px)'
@@ -247,13 +255,31 @@ function mount(layer, copy) {
   restore(copy.scrolls)
 }
 
-function fadeTabs(copy, from, to, duration) {
-  const row = copy.book.querySelector(':scope > .book-bookmarks-row')
-  return row ? row.animate([{ opacity: from }, { opacity: to }], { duration, fill: 'forwards' }) : null
+/** The tab groups fade, never their row: on tablets it is `display: contents` and its opacity does nothing. */
+function fadeTabs(bookEl, from, to, duration) {
+  const groups = bookEl ? [...bookEl.querySelectorAll(':scope > .book-bookmarks-row > .book-bookmarks')] : []
+  return groups.map(group => group.animate([{ opacity: from }, { opacity: to }], { duration, fill: 'forwards' }))
 }
 
-function slide(node, from, to, duration, easing) {
-  return node.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }],
+/** Before the close: the copy's tabs fade out, then `holder` hides the tabs of every later copy (flap, next book). */
+async function tabsOut(run, bookEl, holder, duration) {
+  if (!(await run.step(fadeTabs(bookEl, 1, 0, duration)))) return false
+  holder.classList.add(TABLESS)
+  return true
+}
+
+/** After the open: the live book's tabs fade in, the hiding class goes, the fades are dropped (the class rules again). */
+async function tabsIn(run, liveBook, duration, showTabs) {
+  const fades = fadeTabs(liveBook(), 0, 1, duration)
+  if (!(await run.step(fades))) return
+  showTabs()
+  fades.forEach(a => a.cancel())
+  run.end()
+}
+
+/** Desktop: the closed copy at `[x, scale]`; the shell's centre is the spine, so the flap and the left half stay together. */
+function move(node, [x0, s0], [x1, s1], duration, easing) {
+  return node.animate([{ transform: `translateX(${x0}px) scale(${s0})` }, { transform: `translateX(${x1}px) scale(${s1})` }],
     { duration, easing, fill: 'forwards' })
 }
 
@@ -290,14 +316,16 @@ function fold({ flap, frontShade, backShade }, flip, closing) {
   ]
 }
 
-/** Desktop `full` (concept swapBook): tabs out, the right half folds, out left; the next one in, it opens, tabs in. */
-async function desktopFull(run, { T, shot, layer, liveBook, nextText }) {
+/** Desktop `full` (concept swapBook): tabs out, the right half folds, it shrinks, out left; the next one in, grows, opens. */
+async function desktopFull(run, { T, shot, layer, liveBook, nextText, reveal, showTabs }) {
   scrollTop()
   const old = shot.copy
   mount(layer, old)
-  if (!(await run.step([fadeTabs(old, 1, 0, T.fade)]))) return
+  if (!(await tabsOut(run, old.book, layer, T.fade))) return
   if (!(await run.step(fold(flapOf(old, shot.text), T.flip, true)))) return
-  if (!(await run.step([slide(old.el, 0, -(old.box.left + old.box.width / 2 + 80), T.slide, OUT_EASE)]))) return
+  if (!(await run.step([move(old.el, [0, 1], [0, SWAP_SMALL], T.zoom, ZOOM_EASE)]))) return
+  const out = -(old.box.left + old.box.width / 2 + 80)
+  if (!(await run.step([move(old.el, [0, SWAP_SMALL], [out, SWAP_SMALL], T.slide, OUT_EASE)]))) return
   old.el.remove()
   const live = liveBook()
   if (!live) {
@@ -306,35 +334,41 @@ async function desktopFull(run, { T, shot, layer, liveBook, nextText }) {
   }
   const next = bookCopy(live)
   mount(layer, next)
-  next.book.querySelector(':scope > .book-bookmarks-row')?.style.setProperty('opacity', '0')
   const cover = flapOf(next, nextText(live))
   cover.flap.style.transform = 'rotateY(-180deg)'
-  if (!(await run.step([slide(next.el, window.innerWidth - next.box.left + 80, 0, T.slide, IN_EASE)]))) return
+  const into = window.innerWidth - next.box.left + 80
+  if (!(await run.step([move(next.el, [into, SWAP_SMALL], [0, SWAP_SMALL], T.slide, IN_EASE)]))) return
+  if (!(await run.step([move(next.el, [0, SWAP_SMALL], [0, 1], T.zoom, GROW_EASE)]))) return
   if (!(await run.step(fold(cover, T.flip, false)))) return
-  next.book.style.clipPath = ''
-  cover.flap.remove()
-  if (!(await run.step([fadeTabs(next, 0, 1, T.fade)]))) return
-  run.end()
+  next.el.remove()
+  reveal()
+  await tabsIn(run, liveBook, T.fade, showTabs)
 }
 
-/** `simple`, desktop: the copy closes (fade, tilt, shrink), then the live book opens (a remount just ends it). */
-async function desktopSimple(run, { T, shot, layer, liveBook, reveal }) {
+/** `simple`, desktop: tabs out, the copy closes (fade, tilt, shrink), the live book opens (a remount just ends it), tabs in. */
+async function desktopSimple(run, { T, shot, layer, liveBook, reveal, showTabs }) {
   scrollTop()
   mount(layer, shot.copy)
+  if (!(await tabsOut(run, shot.copy.book, layer, T.fade))) return
   if (!(await run.step([closeCopy(shot.copy.el, T.close)]))) return
   shot.copy.el.remove()
   reveal()
   const live = liveBook()
   if (!(await run.step([live && openBook(live, T.open)]))) return
-  run.end()
+  await tabsIn(run, liveBook, T.fade, showTabs)
 }
 
-/** Phones (concept mobileSwap): a cover closes over the slice, slides out, the title changes, slides in and opens. */
-async function phoneCover(run, { T, shot, add, liveBook, nextText, reveal }) {
+function sheetBook(sheet) {
+  return sheet.querySelector(':scope > .m-sheet__book')
+}
+
+/** Phones (concept mobileSwap): tabs out, a cover closes over the slice, shrinks, slides out and back, grows, opens, tabs in. */
+async function phoneCover(run, { T, shot, add, liveBook, nextText, reveal, showTabs }) {
   if (!shot.slice) {
     run.end()
     return
   }
+  if (!(await tabsOut(run, sheetBook(shot.sheet), shot.sheet, T.fade))) return
   const cover = add(coverFace(shot.text, 'm-sheet m-cover'))
   Object.assign(cover.style, px(shot.slice))
   const coverShade = cover.appendChild(shade())
@@ -344,33 +378,42 @@ async function phoneCover(run, { T, shot, add, liveBook, nextText, reveal }) {
     coverShade.animate(from ? [{ opacity: 0.6 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 0.6 }],
       { duration: T.sheet, fill: 'forwards' }),
   ]
-  const move = (from, to, easing) => cover.animate([
-    { transform: `${PERSPECTIVE} translateX(${from}) rotateY(0deg)` },
-    { transform: `${PERSPECTIVE} translateX(${to}) rotateY(0deg)` },
-  ], { duration: T.slide, easing, fill: 'forwards' })
+  // The cover's hinge is its left edge: a scale is re-centred by half the width it loses.
+  let width = shot.slice.width
+  const pose = (x, s) => ({ transform: `${PERSPECTIVE} translateX(calc(${x} + ${((1 - s) * width) / 2}px)) scale(${s}) rotateY(0deg)` })
+  const move = (from, to, duration, easing) => cover.animate([pose(...from), pose(...to)],
+    { duration, easing, fill: 'forwards' })
   if (!(await run.step(swing(-90, 0, IN_EASE)))) return
   shot.sheet?.remove()
-  if (!(await run.step([move('0px', '-110vw', OUT_EASE)]))) return
+  if (!(await run.step([move(['0px', 1], ['0px', SWAP_SMALL], T.zoom, ZOOM_EASE)]))) return
+  if (!(await run.step([move(['0px', SWAP_SMALL], ['-110vw', SWAP_SMALL], T.slide, OUT_EASE)]))) return
   scrollTop()
   const live = liveBook()
   setCoverText(cover, nextText(live))
   const slice = swapSlice(live)
-  if (slice) Object.assign(cover.style, px(slice))
-  if (!(await run.step([move('110vw', '0px', IN_EASE)]))) return
+  if (slice) {
+    Object.assign(cover.style, px(slice))
+    width = slice.width
+  }
+  if (!(await run.step([move(['110vw', SWAP_SMALL], ['0px', SWAP_SMALL], T.slide, IN_EASE)]))) return
+  if (!(await run.step([move(['0px', SWAP_SMALL], ['0px', 1], T.zoom, GROW_EASE)]))) return
   reveal()
   if (!(await run.step(swing(0, -90, OUT_EASE)))) return
-  run.end()
+  await tabsIn(run, liveBook, T.fade, showTabs)
 }
 
-/** `simple`, phones: the slice copy closes, the page jumps to the top, the live book opens. */
-async function phoneSimple(run, { T, shot, liveBook, reveal }) {
-  if (shot.sheet && !(await run.step([closeCopy(shot.sheet, T.close)]))) return
+/** `simple`, phones: tabs out, the slice copy closes, the page jumps to the top, the live book opens, tabs in. */
+async function phoneSimple(run, { T, shot, liveBook, reveal, showTabs }) {
+  if (shot.sheet) {
+    if (!(await tabsOut(run, sheetBook(shot.sheet), shot.sheet, T.fade))) return
+    if (!(await run.step([closeCopy(shot.sheet, T.close)]))) return
+  }
   shot.sheet?.remove()
   scrollTop()
   reveal()
   const live = liveBook()
   if (!(await run.step([live && openBook(live, T.open)]))) return
-  run.end()
+  await tabsIn(run, liveBook, T.fade, showTabs)
 }
 
 function fixedLayer() {
@@ -379,8 +422,10 @@ function fixedLayer() {
   return layer
 }
 
-/** After the commit: the change on copies over the hidden live book; a handle `{ finished, finish }` as a page turn's. */
-export function runSwap(shot, { timings, mode = 'full', liveBook, nextText, hide = () => {}, reveal = () => {} }) {
+/** After the commit: the change on copies over the hidden live book (its tabs hidden too); a handle `{ finished, finish }`. */
+export function runSwap(shot, {
+  timings, mode = 'full', liveBook, nextText, hide = () => {}, reveal = () => {}, hideTabs = () => {}, showTabs = () => {},
+}) {
   const layers = [...shot.layers]
   const add = node => {
     document.body.appendChild(node)
@@ -389,14 +434,28 @@ export function runSwap(shot, { timings, mode = 'full', liveBook, nextText, hide
   }
   const layer = shot.phone ? null : add(fixedLayer())
   hide()
+  hideTabs()
   const run = phaseRun(() => {
     layers.forEach(node => node.remove())
     if (shot.phone) unlockPhone()
     reveal()
+    showTabs()
   })
   const simple = mode === 'simple'
   const body = shot.phone ? (simple ? phoneSimple : phoneCover) : (simple ? desktopSimple : desktopFull)
-  body(run, { T: timings, shot, layer, add, liveBook, nextText, reveal }).catch(() => run.end())
+  body(run, { T: timings, shot, layer, add, liveBook, nextText, reveal, showTabs }).catch(() => run.end())
+  return run
+}
+
+/** First load: the live book opens with its tabs hidden, then they fade in; a handle `{ finished, finish }`. */
+export function runOpening({ timings, liveBook, hideTabs = () => {}, showTabs = () => {} }) {
+  hideTabs()
+  const run = phaseRun(showTabs)
+  const body = async () => {
+    if (!(await run.step([openBook(liveBook(), timings.open)]))) return
+    await tabsIn(run, liveBook, timings.fade, showTabs)
+  }
+  body().catch(() => run.end())
   return run
 }
 

@@ -6,7 +6,7 @@ import RouteBook from '../components/book/RouteBook'
 
 // Step 15 — the turn engine of the Book: snapshot before the commit, strategy after it (WAAPI stubbed).
 
-const ANIM = { turn: true, reduced: false, turnMode: 'full', timings: { flip: 900, simple: 520, fade: 200 } }
+const ANIM = { turn: true, reduced: false, turnMode: 'full', timings: { flip: 900, simple: 520, fade: 200, gather: 420, gatherStep: 60 } }
 
 function Turning() {
   return <span data-testid="turning">{String(useBookTurning())}</span>
@@ -148,7 +148,7 @@ describe('BookPages', () => {
     expect(turning()).toBe('false')
   })
 
-  it('mobile: the hold is the still sheet; the release turns it; the 10 s safety and unmount take it away', async () => {
+  it('mobile: the hold is the still sheet; the release shuffles it away; the 10 s safety and unmount take it away', async () => {
     window.matchMedia = vi.fn(() => ({ matches: true }))
     vi.useFakeTimers()
     const { rerender, unmount } = render(<Book pageKey={0} />)
@@ -158,8 +158,12 @@ describe('BookPages', () => {
     expect(layer()).toBeEmptyDOMElement()
     expect(turning()).toBe('true')
     rerender(<Book text="page 2" pageKey={2} direction="back" holdTurn={false} />)
-    expect(sheets()).toHaveLength(2)
-    expect(waapi.running()[0].keyframes[0].transform).toContain('rotateY(-90deg)')
+    // v1.15.0: no page turn on phones, the held copy's parts fade (no cards here) and the new page fades in
+    expect(sheets()).toHaveLength(1)
+    expect(waapi.running()[0].target.closest('.m-sheet')).toBe(sheets()[0])
+    expect(waapi.running()[0].keyframes).toEqual([{ opacity: 1 }, { opacity: 0 }])
+    expect(waapi.running().at(-1).target.closest('.m-sheet')).toBeNull()
+    expect(waapi.running().at(-1).keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }])
     rerender(<Book text="page 3" pageKey={3} holdTurn />)
     expect(sheets()).toHaveLength(1)
     act(() => { vi.advanceTimersByTime(HOLD_SAFETY_MS) })

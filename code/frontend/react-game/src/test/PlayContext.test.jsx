@@ -9,14 +9,14 @@ vi.mock('../context/PolicyBookContext', () => ({ usePolicyBook: () => ({ openPol
 import Card, { playClassOf } from '../components/layout/Card'
 import { AnimationProvider } from '../context/AnimationContext'
 import {
-  PlayProvider, usePlayController, usePlay, usePlayState, flightTarget, FALL_MAX_STAGGER,
+  PlayProvider, usePlayController, usePlay, usePlayState, flightTarget, FALL_MAX_STAGGER, PILE_CARD_W,
 } from '../features/gameplay/play/PlayContext'
 import { installWaapi, setBox } from './fixtures/waapi'
 
 // Step 15 — the play: lift and glow, the other small cards dim then fall, a fixed clone flies into the story.
 
 const SPEED_1 = { VITE_ANIM_SPEED: '1' } // lift 240, fly 560, discard 320, discardStep 50
-const ref = { api: null, state: null }
+const ref = { api: null, state: null, played: null }
 
 function Probe() {
   ref.api = usePlay()
@@ -24,14 +24,18 @@ function Probe() {
   return null
 }
 
-function Board({ onPlayStart, children }) {
+function Board({ onPlayStart, pile = false, children }) {
   const controller = usePlayController({ onPlayStart })
+  ref.played = controller.played
   return (
     <PlayProvider controller={controller}>
       <Probe />
-      <div className="book-wrapper">
-        <div className="book-page book-page-left"><img className="book-page-img" alt="here" /></div>
-        <div className="book-page book-page-right">{children}</div>
+      <div className="book-shell">
+        <div className="book-wrapper">
+          <div className="book-page book-page-left"><img className="book-page-img" alt="here" /></div>
+          <div className="book-page book-page-right">{children}</div>
+        </div>
+        {pile && <div className="played-pile" data-testid="pile" />}
       </div>
     </PlayProvider>
   )
@@ -45,8 +49,8 @@ function deferred() {
   return { promise, resolve, reject, fn: vi.fn(() => promise) }
 }
 
-function renderBoard(children, { env = SPEED_1, onPlayStart } = {}) {
-  return render(<AnimationProvider env={env}><Board onPlayStart={onPlayStart}>{children}</Board></AnimationProvider>)
+function renderBoard(children, { env = SPEED_1, onPlayStart, pile = false } = {}) {
+  return render(<AnimationProvider env={env}><Board onPlayStart={onPlayStart} pile={pile}>{children}</Board></AnimationProvider>)
 }
 
 const smallCards = (action, n = 3) => Array.from({ length: n }, (_, i) => (
@@ -61,6 +65,7 @@ beforeEach(() => {
   waapi = installWaapi()
   ref.api = null
   ref.state = null
+  ref.played = null
 })
 afterEach(() => {
   waapi.restore()
@@ -269,37 +274,101 @@ describe('PlayContext — land', () => {
 })
 
 describe('flightTarget', () => {
-  it('the left page picture centre, else the left page centre, else the screen centre', () => {
+  const PICTURE = { width: 0, rotate: -16, stays: false }
+  it('without a pile: the left page picture centre, else the left page centre, else the screen centre', () => {
     const book = document.createElement('div')
     book.innerHTML = '<div class="book-page-left"><img class="book-page-img"></div>'
     setBox(book.querySelector('.book-page-img'), { left: 10, top: 20, width: 100, height: 60 })
-    expect(flightTarget(book)).toEqual({ x: 60, y: 50 })
+    expect(flightTarget(book)).toEqual({ x: 60, y: 50, ...PICTURE })
     book.querySelector('.book-page-img').remove()
     setBox(book.querySelector('.book-page-left'), { left: 0, top: 0, width: 400, height: 600 })
-    expect(flightTarget(book)).toEqual({ x: 200, y: 300 })
-    expect(flightTarget(null)).toEqual({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    expect(flightTarget(book)).toEqual({ x: 200, y: 300, ...PICTURE })
+    expect(flightTarget(null)).toEqual({ x: window.innerWidth / 2, y: window.innerHeight / 2, ...PICTURE })
   })
 
-  it('on phones: the top centre, just under the navbar', () => {
-    window.matchMedia = vi.fn(() => ({ matches: true }))
-    expect(flightTarget(null)).toEqual({ x: window.innerWidth / 2, y: 60 })
-    const nav = setBox(document.createElement('nav'), { top: 0, height: 56 })
-    nav.className = 'navbar-medieval'
-    document.body.appendChild(nav)
-    expect(flightTarget(null)).toEqual({ x: window.innerWidth / 2, y: 116 })
-    nav.remove()
+  // v1.15.0 — desktop and tablet: the face-up pile beside the book, a deck card's size (84px × the pile's scale).
+  it('with the face-up pile shown: its centre, 84px × its scale wide, tilted −4°, and the card stays', () => {
+    const shell = document.createElement('div')
+    shell.innerHTML = '<div class="book-wrapper"><div class="book-page-left"></div></div><div class="played-pile"></div>'
+    const book = shell.querySelector('.book-wrapper')
+    setBox(book.querySelector('.book-page-left'), { left: 0, top: 0, width: 400, height: 600 })
+    setBox(shell.querySelector('.played-pile'), { left: 1200, top: 500, width: 131.2, height: 172.2 })
+    const target = flightTarget(book)
+    expect(target).toMatchObject({ x: 1265.6, y: 586.1, rotate: -4, stays: true })
+    expect(target.width).toBeCloseTo(84 * 0.82, 6)
+    expect(PILE_CARD_W).toBe(84)
+    // a pile not laid out (tablet hidden, deal off): the left page as before
+    setBox(shell.querySelector('.played-pile'), { width: 0, height: 0 })
+    expect(flightTarget(book)).toEqual({ x: 200, y: 300, ...PICTURE })
   })
 
-  // Step 15 — the tabs stand on the book's edge: a tab row on the screen no longer pushes the target down.
-  it('step 16 — on phones: the top of the visible slice of the book, under the navbar only', () => {
+  // v1.15.0 — phones: the sticky page deck, clamped to the bottom-right corner; the corner when it is not shown.
+  it('on phones: the sticky page deck (clamped), else the screen\'s bottom-right corner; the card fades there', () => {
     window.matchMedia = vi.fn(() => ({ matches: true }))
-    const nav = setBox(document.createElement('nav'), { top: 0, height: 56 })
-    nav.className = 'navbar-medieval'
-    document.body.appendChild(nav)
-    const book = setBox(document.createElement('div'), { left: 8, top: -300, width: 344, height: 2000 })
-    book.innerHTML = '<div class="book-bookmarks-row"></div>'
-    setBox(book.querySelector('.book-bookmarks-row'), { left: 8, top: 56, width: 344, height: 48 })
-    expect(flightTarget(book)).toEqual({ x: 180, y: 116 })
-    nav.remove()
+    const { innerWidth: w, innerHeight: h } = window
+    const corner = { x: w - 50, y: h - 60, width: 54, rotate: -6, stays: false }
+    expect(flightTarget(null)).toEqual(corner)
+    const book = document.createElement('div')
+    book.innerHTML = '<div class="book-page-right"><div class="deck"></div></div>'
+    const deck = book.querySelector('.deck')
+    setBox(deck, { left: 280, top: 400, width: 54, height: 81 })
+    expect(flightTarget(book)).toEqual({ x: 307, y: 440.5, width: 54, rotate: -6, stays: false })
+    setBox(deck, { left: w - 20, top: h - 70, width: 54, height: 81 })
+    expect(flightTarget(book)).toMatchObject({ x: w - 40, y: h - 50 })
+    setBox(deck, { left: 280, top: h + 100, width: 54, height: 81 })
+    expect(flightTarget(book)).toEqual(corner)
+    setBox(deck, { left: 280, top: -200, width: 54, height: 81 })
+    expect(flightTarget(book)).toEqual(corner)
+    setBox(deck, { width: 0, height: 0 })
+    expect(flightTarget(book)).toEqual(corner)
+  })
+})
+
+describe('PlayContext — the played cards (v1.15.0)', () => {
+  it('a landed card flies onto the pile at the pile card size, stays opaque, then joins `played` (title, picture)', async () => {
+    renderBoard(<Card card={{ title: 'Potion', urlImage: 'potion.png' }} playId="item:1" onAction={vi.fn()} testId="c" />,
+      { pile: true })
+    setBox(screen.getByTestId('pile'), { left: 1000, top: 421, width: 160, height: 210 })
+    setBox(root(0), { left: 600, top: 300, width: 168, height: 252 })
+    expect(ref.played).toEqual([])
+    act(() => { ref.api.begin('item:1', root(0), { title: 'Potion', image: 'potion.png' }) })
+    let landing
+    act(() => { landing = ref.api.land() })
+    const flight = waapi.animations.find(a => a.target.classList.contains('flying-card'))
+    // from (684, 426) to the pile centre (1080, 526), 168px → 84px
+    const [, mx, my] = flight.keyframes[1].transform.match(/translate\((.+)px, (.+)px\)/)
+    expect(Number(mx)).toBeCloseTo(217.8, 6)
+    expect(Number(my)).toBeCloseTo(-15, 6)
+    expect(flight.keyframes[1].transform).toContain('rotate(-10deg) scale(0.7)')
+    expect(flight.keyframes[2]).toEqual({ transform: 'translate(396px, 100px) rotate(-4deg) scale(0.5)', opacity: 1 })
+    expect(ref.played).toEqual([])
+    await act(async () => { waapi.finishAll(); await landing })
+    expect(ref.played).toEqual([{ title: 'Potion', image: 'potion.png' }])
+    expect(document.querySelector('.flying-card')).toBeNull()
+  })
+
+  it('a cancelled play adds nothing; a play without meta lands but is not kept; the list keeps the last five', async () => {
+    renderBoard(smallCards(vi.fn(), 2))
+    act(() => { ref.api.begin('action:0', root(0), { title: 'gone' }) })
+    act(() => { ref.api.cancel() })
+    expect(ref.played).toEqual([])
+    act(() => { ref.api.begin('action:0', root(0)) })
+    let landing
+    act(() => { landing = ref.api.land() })
+    await act(async () => { waapi.finishAll(); await landing })
+    act(() => { ref.api.end() })
+    expect(ref.played).toEqual([])
+    for (let i = 1; i <= 7; i += 1) {
+      act(() => { ref.api.begin('action:0', root(0), { title: `t${i}` }) })
+      act(() => { landing = ref.api.land() })
+      await act(async () => { waapi.finishAll(); await landing })
+      act(() => { ref.api.end() })
+    }
+    expect(ref.played.map(c => c.title)).toEqual(['t3', 't4', 't5', 't6', 't7'])
+    expect(ref.played[0]).toEqual({ title: 't3', image: null })
+    act(() => { ref.api.begin('action:0', root(0), { image: 'only.png' }) })
+    act(() => { landing = ref.api.land() })
+    await act(async () => { waapi.finishAll(); await landing })
+    expect(ref.played.at(-1)).toEqual({ title: null, image: 'only.png' })
   })
 })

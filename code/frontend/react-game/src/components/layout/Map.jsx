@@ -39,33 +39,49 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
   const dragRef = useRef(null) // { sx, sy, stx, sty, moved }
   // survives past pointerup so the click handler can tell a drag from a tap
   const movedRef = useRef(false)
-  // Start zoomed in 2× (0.8 → 1.2) so the current area fills the map on open.
-  const [view, setView] = useState({ tx: 0, ty: 0, scale: 1.2, anim: false })
+  // The world's origin sits at the canvas centre (CSS), so tx/ty are offsets from it and need no measuring.
+  const bounds = useMemo(() => nodes.length ? {
+    minX: Math.min(...nodes.map(n => n.x)), maxX: Math.max(...nodes.map(n => n.x)),
+    minY: Math.min(...nodes.map(n => n.y)), maxY: Math.max(...nodes.map(n => n.y)),
+  } : null, [nodes])
+  function centred(id, scale) {
+    const node = nodeById.get(id)
+    return node ? { tx: -node.x * scale, ty: -node.y * scale } : { tx: -width * scale / 2, ty: -height * scale / 2 }
+  }
+  // Start zoomed in 2× (0.8 → 1.2) and already centred: page turn copies taken at commit see it too (step 15).
+  const [view, setView] = useState(() => ({ ...centred(currentId, 1.2), scale: 1.2, anim: false, at: currentId }))
+  // the board reloaded on another location: recentre during render, so the committed DOM is centred
+  if (view.at !== currentId) setView(v => ({ ...v, ...centred(currentId, v.scale), anim: false, at: currentId }))
 
   function clamp(tx, ty, scale) {
     const el = canvasRef.current
     if (!el) return { tx, ty }
     const M = 90
     const [vw, vh] = [el.clientWidth, el.clientHeight]
-    const loX = Math.min(M, vw - width * scale - M), hiX = Math.max(M, vw - width * scale - M)
-    const loY = Math.min(M, vh - height * scale - M), hiY = Math.max(M, vh - height * scale - M)
+    // margins in canvas px, shifted to centre-relative offsets; widened so any location can sit at the centre
+    let loX = Math.min(M, vw - width * scale - M) - vw / 2, hiX = Math.max(M, vw - width * scale - M) - vw / 2
+    let loY = Math.min(M, vh - height * scale - M) - vh / 2, hiY = Math.max(M, vh - height * scale - M) - vh / 2
+    if (bounds) {
+      loX = Math.min(loX, -bounds.maxX * scale); hiX = Math.max(hiX, -bounds.minX * scale)
+      loY = Math.min(loY, -bounds.maxY * scale); hiY = Math.max(hiY, -bounds.minY * scale)
+    }
     return { tx: Math.max(loX, Math.min(hiX, tx)), ty: Math.max(loY, Math.min(hiY, ty)) }
   }
   function centerOn(id, animate) {
-    const el = canvasRef.current
-    const node = nodeById.get(id)
-    if (!el || !node) return
-    setView(v => ({
-      ...v,
-      ...clamp(el.clientWidth / 2 - node.x * v.scale, el.clientHeight / 2 - node.y * v.scale, v.scale),
-      anim: !!animate,
-    }))
+    if (!nodeById.get(id)) return
+    setView(v => {
+      const c = centred(id, v.scale)
+      return { ...v, ...clamp(c.tx, c.ty, v.scale), anim: !!animate }
+    })
   }
+  // cx, cy: the zoom anchor in canvas px (top-left origin)
   function zoomAt(cx, cy, factor) {
+    const el = canvasRef.current
+    const px = cx - el.clientWidth / 2, py = cy - el.clientHeight / 2
     setView(v => {
       const scale = Math.max(0.4, Math.min(2.6, v.scale * factor))
-      const tx = cx - (cx - v.tx) * (scale / v.scale)
-      const ty = cy - (cy - v.ty) * (scale / v.scale)
+      const tx = px - (px - v.tx) * (scale / v.scale)
+      const ty = py - (py - v.ty) * (scale / v.scale)
       return { ...v, scale, ...clamp(tx, ty, scale), anim: false }
     })
   }
@@ -83,6 +99,9 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
   }
   function onPointerUp() { dragRef.current = null }
 
+  // the wheel listener lives once per mount: it calls the latest zoomAt (graph size and bounds of this render)
+  const zoomRef = useRef(zoomAt)
+  zoomRef.current = zoomAt
   // wheel zoom needs a non-passive listener to preventDefault the page scroll
   useEffect(() => {
     const el = canvasRef.current
@@ -90,16 +109,11 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
     const onWheel = (e) => {
       e.preventDefault()
       const r = el.getBoundingClientRect()
-      zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.12 : 1 / 1.12)
+      zoomRef.current(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.12 : 1 / 1.12)
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // center the current location on mount / when the board reloads
-  useEffect(() => {
-    if (currentId != null) requestAnimationFrame(() => centerOn(currentId, false))
-  }, [currentId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   /* ---------- edges ---------- */
   function shorten(a, b, r) {

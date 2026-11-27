@@ -13,9 +13,11 @@ export const SPEED_MAX = 4
 export const DEFAULT_COVER_MAX = 10
 
 // Concept base values in ms at speed 1 (play, turn, the (i) fade and the book change are step 15's).
+// v1.15.0: `zoom` (the book change shrinks and grows the closed book), `gather` and `gatherStep` (the phone shuffle).
 export const BASE_TIMINGS = Object.freeze({
   open: 650, close: 260, deal: 620, dealStep: 110, lift: 240, fly: 560,
   discard: 320, discardStep: 50, flip: 900, simple: 520, sheet: 620, fade: 200, slide: 600,
+  zoom: 320, gather: 420, gatherStep: 60,
 })
 
 export const ANIMATION_FLAGS = Object.freeze(['deal', 'dealFaceDown', 'play', 'turn', 'cover'])

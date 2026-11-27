@@ -1,13 +1,16 @@
-/* Paths Games — v1.15.0 concept: the 1.13.0 concept aligned to react-game 1.14.0; bookmarks on the book's right side on
-   desktop, on top on tablets, on the book's edges on phones. Plain browser JS, no build. */
+/* Paths Games — v1.15.0 concept (second round, built on the v1.14.0 concept): played-cards pile, piles centred beside
+   the book, no home tab on desktop, phone home tab on top, phone single page and card shuffle, smaller book on a change. */
 (function () {
   'use strict';
 
-  /* Base timings in ms at speed 1; the speed control divides them (default ¼ = 4× longer, as 1.14.0). */
+  /* Base timings in ms at speed 1; the speed control divides them (default ¼ = 4× longer, as 1.14.0).
+     v1.15.0: `zoom` (book shrinks before it slides, grows before it opens), `gather` (phone: cards leave to the deck). */
   const BASE = {
     open: 650, close: 260, deal: 620, dealStep: 110, lift: 240, fly: 560,
     discard: 320, discardStep: 50, flip: 900, simple: 520, sheet: 620, fade: 220, slide: 600,
+    zoom: 320, gather: 420, gatherStep: 60,
   };
+  const BOOK_SMALL = 0.62; // v1.15.0: the book's size while it slides between two places
   const MAX_STAGGER = 8; // later cards land with the eighth: a long list never makes the player wait
   // Same query as react-game src/features/gameplay/js/mobileView.js (MOBILE_MQ).
   const MOBILE_MQ = '(max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px)';
@@ -148,7 +151,7 @@
       <h4>Pictures</h4><p>Home: Lili Popper on Unsplash. Icons: Font Awesome (CC BY 4.0).</p>
       <h4>Stories</h4><p>Written by the Paths Games team and its authors.</p>` },
     roadmap: { title: 'What is new', icon: 'fa-newspaper', text: `
-      <h4>1.15.0 — Bookmarks beside the book</h4><p>On desktop the tabs leave the top edge and hang on the book's right side, home at the bottom; the book grows taller. Tablets keep the tabs on top; on phones they become icon-only tabs of the book, home under its bottom-right corner.</p><h4>1.13.0 — Book UI and card animations</h4><p>Every page is a book under the navbar; cards are dealt from a deck,
+      <h4>1.15.0 — Played cards on the table</h4><p>In a match the cards you play land face up on a pile above the deck, the last one on top; both piles sit halfway between the book and the screen's edge. On phones the cards spin away into the deck and the new ones are dealt, instead of a page turn.</p><h4>1.15.0 — Bookmarks beside the book</h4><p>On desktop the tabs leave the top edge and hang on the book's right side, home at the bottom; the book grows taller. Tablets keep the tabs on top; on phones they become icon-only tabs of the book, home under its bottom-right corner.</p><h4>1.13.0 — Book UI and card animations</h4><p>Every page is a book under the navbar; cards are dealt from a deck,
       played with a glow, and the pages turn on the spine.</p><h4>Next</h4><p>i18n and accessibility, then audio.</p>` },
   };
 
@@ -157,7 +160,8 @@
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   const val = x => (typeof x === 'function' ? x() : x);
   const isMobile = () => window.matchMedia(MOBILE_MQ).matches;
-  const isSideTabs = () => window.matchMedia('(min-width: 1121px)').matches; // v1.15.0: the desktop side tabs (demo.css)
+  const isSideTabs = () => window.matchMedia('(min-width: 1121px)').matches; // the desktop side tabs (demo.css)
+  const isTablet = () => !isMobile() && !isSideTabs();
   const px = box => Object.fromEntries(['left', 'top', 'width', 'height'].map(k => [k, box[k] + 'px']));
 
   const els = {
@@ -169,6 +173,7 @@
   const app = {
     route: { page: 'home' }, busy: false, cards: [], spread: null, preview: null, chapter: null,
     story: null, config: {}, game: null, ps: {}, ignoreHash: false, pendingRoute: false,
+    played: [], // v1.15.0: the cards played in this match, the last one on top of the face-up pile
     pageCard: {}, pageNote: {},
   };
   const fx = {};
@@ -390,10 +395,12 @@
      page, home over the right one); phones hang the sections on the book's top edge and home under its bottom-right
      corner, icon only (CSS). The label is the drawn tooltip (beside a side tab) and the screen-reader name. */
   const HOME_TAB = { key: 'home', icon: 'fa-home', label: 'Back to the home page' };
+  /* v1.15.0 (owner): no home tab on desktop for now; its corner group stays (`bm-group--home`) for future icons.
+     Tablets keep it at the right end of the top row; phones move it back there (it hung under the book). */
   function renderBookmarks() {
     const ctrl = controller();
     const left = !app.chapter && ctrl.bookmarks ? ctrl.bookmarks() : [];
-    const right = app.route.page === 'home' ? [] : [HOME_TAB];
+    const right = app.route.page === 'home' || isSideTabs() ? [] : [HOME_TAB];
     const tab = b => {
       const cls = ['book-bookmark', b.active ? 'is-active' : '', b.danger ? 'is-danger' : '', b.alert ? 'is-alert' : '']
         .filter(Boolean).join(' ');
@@ -403,6 +410,42 @@
     els.bookmarks.innerHTML = `<div class="bm-group bm-group--tabs">${left.map(tab).join('')}</div>`
       + `<div class="bm-group bm-group--home">${right.map(tab).join('')}</div>`;
     els.bookmarks.classList.toggle('is-empty', left.length + right.length === 0);
+    els.shell.classList.toggle('has-home-tab', right.length > 0);
+    renderPlayed();
+    placeTable();
+  }
+
+  /* ═══════════════ v1.15.0 — the table: face-down pile (deal) and face-up pile (played cards) ═══════════════ */
+  /* Face-up pile: only in a match (game page), desktop and tablet, never on phones. Bottom card: the story's card, so it always shows;
+     on top the cards played, the last one face up: picture and title (owner, round 3), no text, badges or buttons. */
+  const PLAYED_SHOWN = 5;
+  function miniHTML(card, extra = '') {
+    return `<span class="played-card ${extra}" style="--c1:${card.c1};--c2:${card.c2}">`
+      + `<span class="played-card__title">${val(card.title)}</span><i class="fas ${card.icon}"></i></span>`;
+  }
+  function storyMini() {
+    const s = app.story;
+    return s ? { title: s.title, icon: s.icon, c1: s.c1, c2: s.c2 } : null;
+  }
+  function renderPlayed() {
+    const pile = $('#played-pile');
+    const on = app.route.page === 'game' && !!app.story;
+    els.shell.classList.toggle('in-match', on);
+    if (!on) { pile.innerHTML = ''; return; }
+    const shown = app.played.slice(-PLAYED_SHOWN);
+    pile.innerHTML = miniHTML(storyMini(), 'played-card--story')
+      + shown.map((c, i) => miniHTML(c, i === shown.length - 1 ? 'played-card--top' : '')).join('');
+    pile.setAttribute('data-tip', app.played.length
+      ? `Last played: ${app.played[app.played.length - 1].title} (${app.played.length} cards played)`
+      : `${app.story.title}: no card played yet`);
+  }
+  /* Both piles centred between the book's right edge and the screen's right edge (desktop and tablet, owner: also when
+     the tablet hides most of them; phones: the sticky page deck). In react-game a CSS calc on .book-shell (README). */
+  function placeTable() {
+    if (isMobile()) { els.shell.style.removeProperty('--table-mid'); return; }
+    const book = els.book.getBoundingClientRect();
+    const room = document.documentElement.clientWidth - book.right;
+    els.shell.style.setProperty('--table-mid', Math.max(0, room / 2) + 'px');
   }
 
   /* ═══════════════ shared card builders ═══════════════ */
@@ -727,7 +770,7 @@
   const GAME = {
     enter(id) {
       app.story = storyById(id);
-      if (!app.game || app.game.story !== id) app.game = newGame(id);
+      if (!app.game || app.game.story !== id) { app.game = newGame(id); app.played = []; }
       app.game.view = 'board';
     },
     spread() { return GAME_VIEWS[app.game.view](app.game); },
@@ -859,12 +902,14 @@
 
   /* v1.15.0 (owner): a book change lasts at most fx.coverMax (planned VITE_ANIM_COVER_MAX_S, default 10 s): when the
      speed would make it longer, all its phases shrink together; at 1× it stays 3.4 s (desktop), 2.4 s (phone). */
+  /* v1.15.0 (owner): two more phases, `zoom` out after the close and `zoom` in before the open, inside the same cap
+     (desktop at 1×: 4.04 s; at ¼× 16.2 s → 10 s, factor 0.62; phone 1× 3.04 s, ¼× 12.2 s → 10 s). */
   function swapTimes() {
     const total = fx.turnMode !== 'full' ? T.close + T.open
-      : isMobile() ? 2 * (T.sheet + T.slide) : 2 * (T.fade + T.flip + T.slide);
+      : isMobile() ? 2 * (T.sheet + T.zoom + T.slide) : 2 * (T.fade + T.flip + T.zoom + T.slide);
     const k = fx.coverMax > 0 ? Math.min(1, fx.coverMax / total) : 1;
     const S = {};
-    for (const key of ['open', 'close', 'fade', 'flip', 'slide', 'sheet']) S[key] = Math.round(T[key] * k);
+    for (const key of ['open', 'close', 'fade', 'flip', 'slide', 'sheet', 'zoom']) S[key] = Math.round(T[key] * k);
     return S;
   }
 
@@ -904,17 +949,19 @@
     $('.flip-shade', front).animate([{ opacity: 0 }, { opacity: 0.55 }], { duration: half, easing: 'ease-in', fill: 'forwards' });
     coverShade.animate([{ opacity: 0.55 }, { opacity: 0 }], { delay: half, duration: half, fill: 'both' });
     await closing.finished;
-    // 2. the closed book slides out to the left; the new one, already closed, comes in from the right
+    // 2. v1.15.0: the closed book shrinks where it is, slides out to the left small; the new one, closed and small,
+    //    comes in from the right, stops in its place and grows back to its size (scale around the spine: the book's
+    //    centre is the flap's hinge, so the two parts stay together)
     const r = els.book.getBoundingClientRect();
     const out = -(r.left + r.width / 2 + 80);
     const inn = window.innerWidth - r.left + 80;
-    const slide = (from, to, easing) => Promise.all([
-      els.book.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }],
-        { duration: T.slide, easing, fill: 'forwards' }).finished,
-      flap.animate([{ transform: `translateX(${from}px) rotateY(-180deg)` }, { transform: `translateX(${to}px) rotateY(-180deg)` }],
-        { duration: T.slide, easing, fill: 'forwards' }).finished,
+    const at = (x, s) => [{ transform: `translateX(${x}px) scale(${s})` }, { transform: `translateX(${x}px) scale(${s}) rotateY(-180deg)` }];
+    const move = (from, to, duration, easing) => Promise.all([
+      els.book.animate([at(...from)[0], at(...to)[0]], { duration, easing, fill: 'forwards' }).finished,
+      flap.animate([at(...from)[1], at(...to)[1]], { duration, easing, fill: 'forwards' }).finished,
     ]);
-    await slide(0, out, 'cubic-bezier(.55,.05,.85,.45)');
+    await move([0, 1], [0, BOOK_SMALL], T.zoom, 'ease-in-out');
+    await move([0, BOOK_SMALL], [out, BOOK_SMALL], T.slide, 'cubic-bezier(.55,.05,.85,.45)');
     enter();
     render(currentSpread());
     renderBookmarks();
@@ -922,7 +969,8 @@
     $('.cover-sub', cover).textContent = coverSub(coverTitle());
     const newFront = rightHalf();
     front.replaceWith(newFront);
-    await slide(inn, 0, 'cubic-bezier(.15,.55,.45,.95)');
+    await move([inn, BOOK_SMALL], [0, BOOK_SMALL], T.slide, 'cubic-bezier(.15,.55,.45,.95)');
+    await move([0, BOOK_SMALL], [0, 1], T.zoom, 'cubic-bezier(.3,1.35,.6,1)'); // a little overshoot as it settles
     els.book.getAnimations().forEach(a => a.cancel());
     // 3. the cover opens on the new book
     flap.getAnimations().forEach(a => a.cancel());
@@ -949,19 +997,22 @@
     coverShade.animate([{ opacity: 0.6 }, { opacity: 0 }], opts);
     await cover.animate([{ transform: 'perspective(1400px) rotateY(-90deg)' },
       { transform: 'perspective(1400px) rotateY(0deg)' }], { ...opts, easing: 'cubic-bezier(.15,.55,.45,.95)' }).finished;
-    // the closed book slides out to the left, the new one comes in from the right (the page waits hidden)
+    // v1.15.0: the closed book shrinks, slides out to the left small, the new one comes in small from the right and
+    // grows back in its place (the page waits hidden); the hinge stays on the left edge, so the scale is re-centred
     els.book.style.visibility = 'hidden';
-    const slide = (from, to, easing) => cover.animate([
-      { transform: `perspective(1400px) translateX(${from}) rotateY(0deg)` },
-      { transform: `perspective(1400px) translateX(${to}) rotateY(0deg)` }], { duration: T.slide, easing, fill: 'forwards' }).finished;
-    await slide('0px', '-110vw', 'cubic-bezier(.55,.05,.85,.45)');
+    const w = cover.offsetWidth;
+    const pose = (x, s) => ({ transform: `perspective(1400px) translateX(calc(${x} + ${((1 - s) * w) / 2}px)) scale(${s}) rotateY(0deg)` });
+    const move = (from, to, duration, easing) => cover.animate([pose(...from), pose(...to)], { duration, easing, fill: 'forwards' }).finished;
+    await move(['0px', 1], ['0px', BOOK_SMALL], T.zoom, 'ease-in-out');
+    await move(['0px', BOOK_SMALL], ['-110vw', BOOK_SMALL], T.slide, 'cubic-bezier(.55,.05,.85,.45)');
     enter();
     render(currentSpread());
     renderBookmarks();
     window.scrollTo(0, 0);
     $('.cover-title', cover).textContent = coverTitle();
     $('.cover-sub', cover).textContent = coverSub(coverTitle());
-    await slide('110vw', '0px', 'cubic-bezier(.15,.55,.45,.95)');
+    await move(['110vw', BOOK_SMALL], ['0px', BOOK_SMALL], T.slide, 'cubic-bezier(.15,.55,.45,.95)');
+    await move(['0px', BOOK_SMALL], ['0px', 1], T.zoom, 'cubic-bezier(.3,1.35,.6,1)');
     els.book.style.visibility = '';
     cover.getAnimations().forEach(a => a.cancel());
     coverShade.animate([{ opacity: 0 }, { opacity: 0.6 }], opts);
@@ -1007,22 +1058,34 @@
     const deck = from.getBoundingClientRect();
     const deckX = deck.left + deck.width / 2;
     const deckY = deck.top + deck.height / 2;
+    // v1.15.0 (owner): desktop and tablet deal from the table pile on a fixed copy over everything, so the flight
+    // shows from the pile (inside the page it was clipped by the page's edge); the card waits hidden in its slot
+    const free = !isMobile();
     batch.forEach((card, n) => {
       const i = Math.min(n, MAX_STAGGER - 1);
       const r = card.getBoundingClientRect(); // the slot: pre-deal only hides it
-      card.style.setProperty('--i', i);
-      card.style.setProperty('--from-x', (deckX - (r.left + r.width / 2)) + 'px');
-      card.style.setProperty('--from-y', (deckY - (r.top + r.height / 2)) + 'px');
-      card.style.setProperty('--from-rot', (Math.random() * 30 - 15).toFixed(1) + 'deg');
-      card.classList.remove('pre-deal');
-      card.classList.add('is-dealing', fx.faceDown ? 'deal-facedown' : 'deal-flat');
+      const mover = free ? card.cloneNode(true) : card;
+      mover.style.setProperty('--i', i);
+      mover.style.setProperty('--from-x', (deckX - (r.left + r.width / 2)) + 'px');
+      mover.style.setProperty('--from-y', (deckY - (r.top + r.height / 2)) + 'px');
+      mover.style.setProperty('--from-rot', (Math.random() * 30 - 15).toFixed(1) + 'deg');
+      mover.classList.remove('pre-deal');
+      mover.classList.add('is-dealing', fx.faceDown ? 'deal-facedown' : 'deal-flat');
+      if (free) {
+        mover.classList.add('deal-copy');
+        mover.setAttribute('aria-hidden', 'true');
+        Object.assign(mover.style, px(r));
+        mover.style.setProperty('--card-w', r.width + 'px');
+        document.body.appendChild(mover);
+      }
       let landed = false;
       const land = () => {
         if (landed) return;
         landed = true;
-        card.classList.remove('is-dealing', 'deal-facedown', 'deal-flat');
+        if (free) { mover.remove(); card.classList.remove('pre-deal'); }
+        else card.classList.remove('is-dealing', 'deal-facedown', 'deal-flat');
       };
-      card.addEventListener('animationend', e => { if (e.target === card) land(); });
+      mover.addEventListener('animationend', e => { if (e.target === mover) land(); });
       setTimeout(land, T.deal + T.dealStep * i + 200); // a safety net if animationend never comes
     });
   }
@@ -1041,13 +1104,29 @@
     }
     return top;
   }
+  /* v1.15.0 (owner): a played card flies to the deck. Desktop and tablet in a match: onto the face-up pile (it stays
+     there, tiny, as the last played card); phones: into the sticky page deck (no second pile); outside a match: as
+     1.14.0, into the left page picture. Returns the landing box (centre, width, final tilt, whether it stays visible). */
   function flightTarget() {
-    if (!isMobile()) {
-      const pic = $('.loc-img', els.left).getBoundingClientRect();
-      return { x: pic.left + pic.width / 2, y: pic.top + pic.height / 2 };
+    const pile = $('#played-pile');
+    if (!isMobile() && els.shell.classList.contains('in-match') && pile.offsetParent) {
+      const r = pile.getBoundingClientRect();
+      const slot = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      return { ...slot, width: parseFloat(getComputedStyle(pile).getPropertyValue('--mini-w')) * pileScale(), rot: -4, stays: true };
     }
-    return { x: window.innerWidth / 2, y: viewTop() + 60 };
+    if (isMobile()) {
+      const deck = $('.deck', els.right);
+      const r = deck && deck.offsetParent ? deck.getBoundingClientRect() : null;
+      if (r && r.width) { // sticky: on screen while the cards are; else the screen's bottom-right corner
+        const y = Math.min(r.top + r.height / 2, window.innerHeight - 50);
+        return { x: Math.min(r.left + r.width / 2, window.innerWidth - 40), y, width: r.width, rot: -6, stays: false };
+      }
+      return { x: window.innerWidth - 50, y: window.innerHeight - 60, width: 54, rot: -6, stays: false };
+    }
+    const pic = $('.loc-img', els.left).getBoundingClientRect();
+    return { x: pic.left + pic.width / 2, y: pic.top + pic.height / 2, width: null, rot: -16, stays: false };
   }
+  const pileScale = () => Number(getComputedStyle(els.shell).getPropertyValue('--pile-scale')) || 1;
 
   function flyOut(cardEl) {
     const from = cardEl.getBoundingClientRect();
@@ -1061,12 +1140,23 @@
     cardEl.style.visibility = 'hidden';
     const dx = to.x - (from.left + from.width / 2);
     const dy = to.y - (from.top + from.height / 2);
+    const end = to.width ? to.width / from.width : 0.3;
     const flight = clone.animate([
       { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
-      { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 70}px) rotate(-10deg) scale(0.9)`, opacity: 1, offset: 0.55 },
-      { transform: `translate(${dx}px, ${dy}px) rotate(-16deg) scale(0.3)`, opacity: 0 },
+      { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 70}px) rotate(-10deg) scale(${Math.max(end, 0.7)})`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(${to.rot}deg) scale(${end})`, opacity: to.stays ? 1 : 0 },
     ], { duration: T.fly, easing: 'cubic-bezier(.45,.05,.55,.95)', fill: 'forwards' });
     return flight.finished.then(() => clone.remove());
+  }
+
+  /* the card joins the face-up pile once it has landed (it is drawn there by renderPlayed, tiny) */
+  function addPlayed(card) {
+    if (app.route.page !== 'game' || !card) return;
+    app.played.push({ title: val(card.title), icon: card.icon, c1: card.c1, c2: card.c2 });
+    renderPlayed();
+    const top = $('#played-pile .played-card--top');
+    if (top && animated(fx.play)) top.animate([{ transform: 'rotate(-4deg) scale(1.12)' }, { transform: 'rotate(-4deg) scale(1)' }],
+      { duration: Math.round(T.lift), easing: 'ease-out' });
   }
 
   function discard(others) {
@@ -1102,6 +1192,7 @@
         await wait(fx.latency);
         result = card.act();
       }
+      addPlayed({ ...look(card), title: card.title });
     } else {
       result = card.act();
     }
@@ -1219,6 +1310,7 @@
     result = b.act();
     // 1.14.0: the whole reading card flies to the story, as a small card does
     if (b.play && animated(fx.play) && pageEl?.isConnected) await flyOut(pageEl);
+    if (b.play) { const L = app.pageCard[side] || {}; addPlayed({ title: L.title, icon: L.icon, c1: L.c1, c2: L.c2 }); }
     if (app.preview && !(result && (result.turn || result.nav || result.run))) {
       app.preview = null; // nothing turns: the reading page simply fades back to the list
       await closePreviewAfter(side);
@@ -1272,8 +1364,48 @@
       if (isMobile()) scrollToSide('left');
       return Promise.resolve();
     }
+    if (isMobile()) return mobileShuffle(spread, dir); // v1.15.0: phones never turn a page, in both turn modes
     if (fx.turnMode !== 'full') return simpleTurn(spread, dir);
-    return isMobile() ? mobileTurn(spread, dir) : fullTurn(spread, dir);
+    return fullTurn(spread, dir);
+  }
+
+  /* v1.15.0 (owner) — phones: no page turn. The cards on screen spin and leave into the sticky deck one after the
+     other while the page card fades; the screen goes back to the top; the new page card fades in and the new cards
+     are dealt from the deck (deal on; deal off: they fade in). Back and forward differ only in the spin's side. */
+  async function mobileShuffle(spread, dir) {
+    document.documentElement.classList.add('is-turning');
+    const sign = dir === 'back' ? -1 : 1;
+    const top = viewTop();
+    const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > top && r.top < window.innerHeight; };
+    const cards = cardEls().filter(c => !c.classList.contains('pre-deal') && onScreen(c));
+    // what is not a small card (page card, list heading) fades: the small cards have their own way out
+    const pageParts = () => [...els.pages.querySelectorAll('.page-inner')]
+      .flatMap(p => [...p.children]).filter(el => !el.classList.contains('selection-list'));
+    const page = pageParts().filter(onScreen);
+    const deck = $('.deck', els.right);
+    const dr = deck && deck.offsetParent ? deck.getBoundingClientRect() : null;
+    const goal = { x: dr && dr.width ? dr.left + dr.width / 2 : window.innerWidth - 50,
+      y: dr && dr.width ? Math.min(dr.top + dr.height / 2, window.innerHeight - 50) : window.innerHeight - 60 };
+    const leaving = cards.map((c, n) => {
+      const r = c.getBoundingClientRect();
+      const dx = goal.x - (r.left + r.width / 2);
+      const dy = goal.y - (r.top + r.height / 2);
+      return c.animate([
+        { transform: 'none', opacity: 1 },
+        { transform: `translate(${dx * 0.15}px, ${dy * 0.15 - 24}px) rotate(${sign * 70}deg) scale(0.85)`, opacity: 1, offset: 0.35 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(${sign * 240}deg) scale(0.3)`, opacity: 1, offset: 0.9 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(${sign * 260}deg) scale(0.25)`, opacity: 0 },
+      ], { duration: T.gather, delay: Math.min(n, MAX_STAGGER) * T.gatherStep, easing: 'cubic-bezier(.5,.05,.6,1)', fill: 'forwards' }).finished;
+    });
+    const fading = page.map(p => p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T.fade, fill: 'forwards' }).finished);
+    await Promise.all([...leaving, ...fading]);
+    render(spread);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    const fresh = pageParts();
+    // deal on: the new cards wait as pre-deal and are dealt by deal() after the turn; deal off: they fade in with the page
+    const shown = animated(fx.deal) ? fresh : [...fresh, ...cardEls()];
+    await Promise.all(shown.map(el => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: T.fade, easing: 'ease-out' }).finished));
+    document.documentElement.classList.remove('is-turning');
   }
 
   async function simpleTurn(spread, dir) {
@@ -1331,69 +1463,14 @@
     cast.remove();
   }
 
-  /* Mobile: one page bound on its left edge. Only the part on screen is copied on a fixed sheet
-     (a whole tall page would turn badly); the jump back to the top happens under it, unseen. */
+  /* Phones: the part of the book on screen (the book change's cover is drawn over it). */
   function visibleSlice() {
     const book = els.book.getBoundingClientRect();
     const top = Math.max(viewTop(), book.top);
     const bottom = Math.min(window.innerHeight, book.bottom);
     return { left: book.left, top, width: book.width, height: Math.max(0, bottom - top), book };
   }
-  function snapshot(slice) {
-    const layer = document.createElement('div');
-    layer.className = 'm-sheet';
-    Object.assign(layer.style, px(slice));
-    const copy = els.book.cloneNode(true);
-    copy.removeAttribute('id');
-    copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
-    copy.classList.add('m-sheet__book');
-    Object.assign(copy.style, { left: '0px', top: (slice.book.top - slice.top) + 'px', width: slice.book.width + 'px' });
-    layer.appendChild(copy);
-    return layer;
-  }
-
-  async function mobileTurn(spread, dir) {
-    const fwd = dir !== 'back';
-    const layers = [];
-    const add = el => { document.body.appendChild(el); layers.push(el); return el; };
-    const castOver = slice => {
-      const c = document.createElement('div');
-      c.className = 'm-cast';
-      Object.assign(c.style, px(slice));
-      return add(c);
-    };
-    const opts = { duration: T.sheet, fill: 'forwards' };
-    document.documentElement.classList.add('is-turning');
-    let turning;
-    if (fwd) {
-      const slice = visibleSlice();
-      const sheet = snapshot(slice);
-      const sheetShade = sheet.appendChild(shade());
-      render(spread);
-      scrollToSide('left');
-      const cast = castOver(slice);
-      add(sheet);
-      turning = sheet.animate([{ transform: 'perspective(1400px) rotateY(0deg)' },
-        { transform: 'perspective(1400px) rotateY(-90deg)' }], { ...opts, easing: 'cubic-bezier(.55,.05,.85,.45)' });
-      sheetShade.animate([{ opacity: 0 }, { opacity: 0.6 }], { ...opts, easing: 'ease-in' });
-      cast.animate([{ opacity: 0.55 }, { opacity: 0 }], { ...opts, easing: 'ease-out' });
-    } else {
-      add(snapshot(visibleSlice())); // the old page stays still underneath
-      render(spread);
-      scrollToSide('left');
-      const slice = visibleSlice();
-      const cast = castOver(slice);
-      const sheet = add(snapshot(slice));
-      const sheetShade = sheet.appendChild(shade());
-      turning = sheet.animate([{ transform: 'perspective(1400px) rotateY(-90deg)' },
-        { transform: 'perspective(1400px) rotateY(0deg)' }], { ...opts, easing: 'cubic-bezier(.15,.55,.45,.95)' });
-      sheetShade.animate([{ opacity: 0.6 }, { opacity: 0 }], { ...opts, easing: 'ease-out' });
-      cast.animate([{ opacity: 0 }, { opacity: 0.55 }], { ...opts, easing: 'ease-in' });
-    }
-    await turning.finished;
-    layers.forEach(l => l.remove());
-    document.documentElement.classList.remove('is-turning');
-  }
+  /* v1.15.0 — the phone sheet turn (1.14.0 `snapshot`, `mobileTurn`) is gone: phones shuffle the cards (mobileShuffle). */
 
   /* ═══════════════ events ═══════════════ */
   /* Tooltip of every [data-tip]: one fixed element over everything (navbar and cover included),
@@ -1492,6 +1569,8 @@
     readControls();
     setNavHeight();
     window.addEventListener('resize', setNavHeight);
+    // v1.15.0: the piles stay centred beside the book; crossing 1120px adds or removes the home tab
+    window.addEventListener('resize', () => { placeTable(); if (!app.busy) renderBookmarks(); });
     ['fx-deal', 'fx-facedown', 'fx-play', 'fx-turn', 'fx-turn-mode', 'fx-speed', 'fx-latency', 'fx-deck', 'fx-vibrate', 'fx-reduced']
       .forEach(id => $('#' + id).addEventListener('input', () => {
         readControls();

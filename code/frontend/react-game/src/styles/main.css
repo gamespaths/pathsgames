@@ -2631,7 +2631,8 @@ html[data-pg-reduced] .home-antibot-success { animation: none; }
    of nodes + one SVG) and the lines stay crisp at every zoom level. */
 .game-map-world {
   position: absolute;
-  top: 0; left: 0;
+  /* origin at the canvas centre: Map.jsx's first render is centred without measuring (step 15) */
+  top: 50%; left: 50%;
   transform-origin: 0 0;
 }
 .game-map-world--anim { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }

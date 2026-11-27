@@ -14,6 +14,9 @@
   --t-fade: 200ms;
   --t-close: 260ms;
   --t-slide: 600ms;
+  --t-zoom: 320ms;
+  --t-gather: 420ms;
+  --t-gatherStep: 60ms;
   --card-back-dice: var(--color-gold-light);
   --card-back-dice-dim: rgba(232, 184, 48, 0.45);
 }
@@ -89,6 +92,9 @@
   80%  { opacity: 1; transform: translate(0, -6px) rotate(0deg) scale(1.03); }
   100% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
 }
+/* v1.15.0 — from the table deck the flight runs on a fixed copy on <body> (the page clipped it): the card waits hidden. */
+.pg-card[data-deal="flying"][data-deal-copy] { opacity: 0; animation: none; }
+body > .pg-card.deal-copy { position: fixed; z-index: 1600; margin: 0; max-width: none; pointer-events: none; transition: none; }
 /* The list's own slide-in would fight the deal. */
 .pg-dealt[data-deal-list="on"] { animation: none; }
 /* A dealt list never clips (a short one cut the flight and the hover shadow): its scrolling parent does. */
@@ -103,22 +109,36 @@
 .matches-list-wrap:has(> .pg-dealt) { margin-inline: -10px; padding-inline: 0; }
 
 /* ═══ DECK (Deck.jsx) — table pile beside the right page (desktop); the page deck is step 16's ═══ */
-/* Always on the table on desktop while the deal is on (owner's choice, v1.14.0): hidden only on phones. */
-.deck-pile {
+/* v1.15.0 — both table piles share one centre, half the room right of the book (--table-mid; 100% = the shell's width). */
+.book-shell {
+  --pile-scale: 1;
+  --pile-w: 160px;
+  --pile-h: 210px;
+  --pile-gap: -44px; /* v1.15.0 owner: the played pile overlaps the deck's box, their cards just touch */
+  --pile-foot: 70px;
+  --table-mid: calc((100vw - 100%) / 4);
+  isolation: isolate; /* the piles' z-index -1 stays inside the shell */
+}
+/* Always on the table on desktop and tablets while the deal is on (owner's choice, v1.14.0): hidden only on phones. */
+.deck-pile,
+.played-pile {
   display: block;
   position: absolute;
-  z-index: 0;
-  right: -122px;
-  bottom: 70px;
-  width: 160px;
-  height: 210px;
+  z-index: -1;
+  left: calc(100% + var(--table-mid) - var(--pile-w) * var(--pile-scale) / 2);
+  width: var(--pile-w);
+  height: var(--pile-h);
+  transform: scale(var(--pile-scale));
+  transform-origin: left bottom;
+}
+/* The deck at the foot on every page (the Home too), never moving; in a match the face-up pile lies right above it. */
+.deck-pile {
+  bottom: var(--pile-foot);
   pointer-events: none;
 }
-/* Under the book's edge by default (.book-wrapper is z-index 1); VITE_ANIM_DECK=over lies on the cover. */
+.played-pile { bottom: calc(var(--pile-foot) + (var(--pile-h) + var(--pile-gap)) * var(--pile-scale)); }
+/* Under the book's edge and every tab by default; VITE_ANIM_DECK=over lies on the cover. */
 .deck-pile[data-place="over"] { z-index: 2; }
-/* Step 15 — the pile's size comes from --pile-scale on .book-shell (1; 0.82 up to 1360px; 0.7 on short desktops). */
-.book-shell { --pile-scale: 1; }
-.deck-pile { transform: scale(var(--pile-scale)); transform-origin: left bottom; }
 .deck-pile__card {
   position: absolute;
   width: 84px;
@@ -137,14 +157,54 @@
 .deck-pile__card:nth-child(9)  { left: 24px; top: 52px; transform: rotate(-12deg); }
 .deck-pile__card:nth-child(10) { left: 44px; top: 44px; transform: rotate(3deg); }
 
-/* Little room beside the book: the pile comes closer and smaller; under ~1100px only its edge shows. */
+/* v1.15.0 — the face-up pile (PlayedPile.jsx): the story's card at the bottom, the last five played cards on it. */
+.played-card {
+  position: absolute;
+  left: calc(50% - 42px);
+  top: calc(50% - 63px);
+  width: 84px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 7px; /* as a deck card */
+  border: 2px solid var(--color-gold-dark);
+  background: radial-gradient(circle, var(--color-brown-warm), var(--color-brown-deep));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+}
+.played-card__img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* The title readable in a small bar at the top, the picture under it; no text, badges or buttons. */
+.played-card__title {
+  position: absolute;
+  inset: 0 0 auto;
+  padding: 2px 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 700 0.56rem/1.25 var(--font-heading);
+  color: var(--color-gold-light);
+  background: linear-gradient(180deg, rgba(26, 10, 2, 0.92), rgba(26, 10, 2, 0.7));
+  border-bottom: 1px solid var(--color-gold-dark);
+}
+.played-card:nth-child(2) { transform: translate(-6px, 3px) rotate(-11deg); }
+.played-card:nth-child(3) { transform: translate(5px, -2px) rotate(8deg); }
+.played-card:nth-child(4) { transform: translate(-3px, -4px) rotate(-6deg); }
+.played-card:nth-child(5) { transform: translate(6px, 4px) rotate(12deg); }
+.played-card:nth-child(6) { transform: translate(-5px, 1px) rotate(5deg); }
+/* The story's card: a gold frame, the book's own card. */
+.played-card.played-card--story { transform: rotate(9deg); border-color: var(--color-gold); }
+/* The last played card: straight on top (where the flight leaves it), lit. */
+.played-card.played-card--top {
+  transform: rotate(-4deg);
+  border-color: var(--color-gold-light);
+  box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
+/* Little room beside the book: smaller piles; on tablets they are mostly under the cover (owner). */
 @media (max-width: 1360px) {
   .book-shell { --pile-scale: 0.82; }
-  .deck-pile { right: -100px; }
 }
-/* Step 15 — owner's rule: the home tab at the column foot, the pile just above it (its lowest card behind the tab). */
+/* Desktop: the room right of the book holds the stage's 16px and the side tabs (16px + --side-tab-w), so +19.5px. */
 @media (min-width: 1121px) {
-  .deck-pile { bottom: calc(var(--home-bottom) + 24px); }
+  .book-shell { --pile-foot: var(--home-bottom); --table-mid: calc((100vw - 100%) / 4 + 19.5px); }
 }
 /* Short desktop screens: a smaller pile, less of it under the game tabs. */
 @media (min-width: 1121px) and (max-height: 820px) {
@@ -167,9 +227,10 @@
 .deck__card:nth-child(2) { transform: rotate(4deg) translate(2px, -1px); }
 .deck__card:nth-child(3) { transform: rotate(-1deg); }
 
-/* No room beside the book on a phone. */
+/* No room beside the book on a phone: the played card flies into the page deck instead. */
 @media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-  .book-shell > .deck-pile { display: none !important; }
+  .book-shell > .deck-pile,
+  .book-shell > .played-pile { display: none !important; }
   /* The stacked layout scrolls the whole screen: no page margin to reach into, mobile.css spaces the grids. */
   .selection-list.pg-dealt { padding: 0; }
   .config-view-wrap:has(> .pg-dealt) { margin-inline: 0; padding-inline: 0; }
@@ -286,7 +347,7 @@ body > .flying-card.book-page-content {
 .turn-shadow.from-right { background: linear-gradient(to left, rgba(0, 0, 0, 0.6), transparent 70%); }
 .turn-iframe-box { display: block; }
 
-/* ═══ MOBILE TURN (mobileTurn.js) — step 16: the visible slice copied on a fixed sheet hinged on its left edge ═══ */
+/* ═══ MOBILE TURN (mobileTurn.js) — step 16: the visible slice copied on a fixed sheet (v1.15.0: its cards shuffle) ═══ */
 /* No scrolling under a turning sheet; the blocker stops the iOS touch scroll (the navbar stays live). */
 html.is-turning { overflow: hidden; }
 .m-blocker { position: fixed; inset: var(--navbar-h) 0 0 0; z-index: 989; touch-action: none; background: transparent; }
@@ -304,17 +365,12 @@ html.is-turning { overflow: hidden; }
 .m-sheet__book { position: absolute; animation: none !important; }
 /* A sheet never shows the copy's tabs (they stand on the live book's edges, outside the slice). */
 .m-sheet .book-bookmarks-row { visibility: hidden; }
-.m-cast {
-  position: fixed;
-  z-index: 990;
-  opacity: 0;
-  pointer-events: none;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent 75%);
-}
 
 /* ═══ BOOK CHANGE (RouteBook.jsx, bookSwap.js) — step 15: copies on fixed layers over the hidden live book ═══ */
 .route-book { display: contents; }
 .route-book.is-swapping { visibility: hidden; }
+/* v1.15.0 — the table deck stays still in its place under the change; the face-up pile leaves with the game book. */
+.route-book.is-swapping .book-shell > .deck-pile { visibility: visible; }
 /* The whole screen under the navbar (as .m-sheet): the desktop side column is never clipped, only what leaves it. */
 .book-swap {
   position: fixed;
@@ -348,6 +404,8 @@ html.is-turning { overflow: hidden; }
 .flap-back { transform: rotateY(180deg); border-radius: 14px 0 0 14px; }
 .flap-copy { position: absolute; top: 0; margin: 0; animation: none !important; }
 .flap-copy .book-bookmarks-row { visibility: hidden; }
+/* v1.15.0 — tabs only on an open, still book: the groups (never the row, `display: contents` on tablets) while it changes. */
+.is-tabless .book-bookmarks { opacity: 0; }
 /* Phones: the slice of a book change starts at the tabs over the cover, so its copy shows them. */
 .m-sheet.m-sheet--tabs .book-bookmarks-row { visibility: visible; }
 /* The front cover (concept .cover-face): the .book-wrapper leather and gold frame, the card back's d20, the title. */

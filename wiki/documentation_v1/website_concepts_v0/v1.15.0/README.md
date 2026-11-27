@@ -1,124 +1,103 @@
-# v1.15.0 — Bookmarks on the book's side and edges (concept)
+# v1.15.0 — Played cards on the table, phone single page (concept, second round)
 
-Standalone prototype for `code/frontend/react-game`, built from the
-[v1.13.0 concept](../v1.13.0/README.md) and aligned to the react-game as it is in 1.14.0 (steps 14–16
-developed). No build and no library: open `index.html` in a browser (Font Awesome, Google Fonts and the
-Home photo load from their CDNs). Everything the v1.13.0 README describes (pages, book graphics, card
-components, deck, effects, policy chapters, mobile vertical book, demo controls) still holds, except
-for the points below.
+Standalone prototype for `code/frontend/react-game`, built from the [v1.14.0 concept](../v1.14.0/README.md)
+(bookmarks on the book's side and edges, book change between routes; that folder was named `v1.15.0` until
+November 27, 2026). No build and no library: open `index.html` in a browser (Font Awesome, Google Fonts and the
+Home photo load from their CDNs). Everything the v1.13.0 and v1.14.0 READMEs describe still holds, except for the
+points below. Owner's requests of November 27, 2026; the work to do in react-game is in
+[Step 15 §9](../../Step15_PlayAndPageTurn.md) ("Second round").
 
 | File | Content |
 |---|---|
-| `index.html` | Navbar, the book (cover, bookmarks, two pages, deck), footer, demo controls |
-| `demo.css` | v1.13.0 styles + the bookmarks per screen and the 1.14.0 alignments |
-| `demo.js` | v1.13.0 router and effects + bookmark groups and side tooltips, the 1.14.0 Home, the reading-card flight |
-| `Screenshot From 2026-11-26 09-48-26.png` | The react-game 1.14.0 game page today: tabs on the book's top edge |
+| `index.html` | v1.14.0 page + the face-up pile `#played-pile` beside the deck |
+| `demo.css` | v1.14.0 styles + the block "v1.15.0 — second round" at the end of the file |
+| `demo.js` | v1.14.0 router and effects + `renderPlayed`, `placeTable`, `addPlayed`, `flightTarget`, `mobileShuffle`, zoom in `swapBook` / `mobileSwap` |
 
-## New in this concept: where the bookmarks sit
+Try it: Home → a story → Start → play cards (desktop: watch the pile above the deck); open the tabs on a phone-sized
+window (DevTools device mode); go back to the Home from a story page (book change). Demo speed ¼× by default.
 
-Today (screenshot) the tabs sit on the book's top edge on desktop and tablet (the game's tabs over the
-left page, the home tab over the right one) and in a separate sticky pill bar on phones.
+## 1. Played-cards pile (desktop and tablet)
 
-| Screen | Game tabs (position, information, backpack, map, missions) | Home tab |
+- **In a match only** (game page, end pages included): a second pile lies on the table **under** the face-down deck,
+  **the same size** (box 160 × 210px, cards 84px wide as the deck's, same scale), **horizontally aligned** (same centre)
+  and **10% of a pile's height** (21px × the scale) below it (owner, November 27); **under every tab** (z-index −1
+  like the deck). Outside a match it is not there and the deck keeps its place (no jump when a match starts).
+- **Bottom card: the story's card** (its picture and colours, gold frame, tilted 9°), so the pile always shows
+  something, also before the first play.
+- **Every play lands on it**: the played card (small card or whole reading card) flies in an arc onto the pile and
+  shrinks to the pile's card size (`--mini-w: 84px`, a deck card, × the pile scale), it does not fade. Then it stays there as the
+  **last played card**, on top, straight (−4°), lit with a thin gold glow; up to five played cards show under it,
+  each with a small tilt.
+- **Small card**: only the picture (colours and icon in the concept; the card's `urlImage` in the app), no text, no
+  badges, no buttons; the title only as a hint, 0.6rem and blurred (`filter: blur(1.4px)`).
+- Hover: a tooltip "Last played: <title> (N cards played)".
+- **Phones**: no second pile; the played card flies into the sticky page deck at the bottom of the screen (or the
+  screen's bottom-right corner when the deck is not on screen) and vanishes there.
+- **Tablets**: as the desktop (owner), even if the cover hides most of the two piles there (little room beside the book).
+- **After a reload**: only the story card (owner: the simplest; the played cards are kept in memory only).
+
+## 2. Piles centred beside the book (desktop and tablet)
+
+- Both piles are centred horizontally **halfway between the book's right edge and the screen's right edge**
+  (`--table-mid` = half that room; the concept measures it in `placeTable`, the app can use a CSS `calc`).
+- The face-up pile sits at the foot of the right side (`bottom: var(--home-bottom)`, 42px), since the home tab is gone;
+  the deck right above it, `(210px + 21px) × scale` higher, on every page. On narrow desktops (1121–1360px) the centre falls under the tab column: the piles
+  slide under the tabs, as the deck already did.
+- Tablets: the same rule (owner), deck 70px from the bottom, scale 0.82; the room is small, so the piles are mostly under
+  the cover. Phones: the sticky page deck.
+
+## 3. Home bookmark
+
+| Screen | 1.14.0 | v1.15.0 |
 |---|---|---|
-| **Desktop** (wider than 1120px) | Down the book's **right side**, from the top, all the same width | Book's **right side**, at the **bottom**, just **under the deck pile** and in front of it |
-| **Tablet** (768–1120px, not a sideways phone) | Book's **top edge**, over the left page (as today) | Book's top edge, over the right page (as today) |
-| **Phone** (`MOBILE_MQ`) | Leather tabs on the book's **top edge**, icon only, no separate bar | Leather tab hanging **under the book's bottom-right corner** |
+| Desktop (> 1120px) | Right side, at the bottom | **Removed** for now; its group (`bm-group--home`) stays in the markup, empty, for future icons |
+| Tablet | Top edge, right end | Unchanged |
+| Phone | Hanging under the book's bottom-right corner | **Top edge, right end** (as tablets), same tab look |
 
-The 1120px edge is the one where the cards already go from three columns to two (`--cards-cols`).
-In the markup the two groups are `.bm-group--tabs` and `.bm-group--home`.
+- Phone tabs: **bigger icons** (`1.45rem`; owner: `1.25rem` under 400px). To keep six tabs (five game tabs + home) on a
+  360px phone the leather band of the phone tabs is 6px instead of 9px and the row starts 34px from the left edge.
+- Desktop: the way home is the navbar brand (in a match it opens the close card first, as the home tab did).
 
-**Desktop — every tab on the right side**
-- **Game tabs:** they hang down the book's right edge, one under the other, starting under the cover's
-  top-right gold corner, **all the same width** (74px, the width the badges need: one even column).
-  Each tab shows its icon with its badges stacked under it (information: life, energy, sadness;
-  backpack: weight). Same leather look, tooled gold frame and stitching as today,
-  turned for a side tab; each tucks 6px under the cover's edge as the top tabs did. Active, red
-  (information: critical statistic; backpack: over the weight limit) and gold (missions changed)
-  states unchanged.
-- **Rule — home tab at the bottom, deck pile just above it and under it** (owner's decision): the home
-  tab sits on the right edge at the bottom, over the bottom-right corner (`--home-bottom: 42px`), on every
-  page but the Home; the pile lies on the table right above it (`bottom: calc(var(--home-bottom) + 24px)`),
-  so the home tab covers its lowest card a little. Vertically the pile is above the home tab; in depth the
-  pile is under every tab, home included (z-index -1 in the book's stacking context: on the table, still
-  under the cover). The pile is `scale(0.82)` up to 1360px wide and `scale(0.7)` on screens up to 820px
-  high (less of it under the game tabs there). `VITE_ANIM_DECK=over` keeps it on top of everything.
-- **Taller book:** no tab row over the book, so it rises to 16px under the navbar on every page (as the
-  Home already does) and gains that height.
-- **The rule — the book gives up width, never the tabs:** the right side keeps a column of
-  `--side-tab-w` (78px) plus the 16px gutter on every page, the Home too (owner: the book never shifts
-  sideways between the Home and the player page); the book is `min(1080px, the room left)` and sits
-  centred in what is left. From about 1190px up the book keeps its 1080px; between 1121 and 1190px it
-  narrows.
-- **Tooltips:** a side tab's drawn tooltip opens on its left, over the cover, arrow pointing at the tab;
-  if it does not fit it falls back to above / below.
+## 4. Phones: one single page, cards shuffle instead of a page turn
 
-**Tablet** — unchanged from 1.14.0: tabs on the top edge, book 46px under the navbar.
+- **Single page**: no binding on the left edge (no spine line, no gutter shade), the same cover margin on both sides,
+  no seam or shadow between the two stacked pages: one parchment sheet in the leather cover, its four corner
+  ornaments, the cover frame and the ribbon kept (owner: the page of a book).
+- **No page turn on phones** (both turn modes): every page change (tab, play, preview list, route turn) runs
+  `mobileShuffle` (owner: approved as drawn): the small cards on screen **spin** (in-plane rotation, 240°) and shrink into the sticky deck,
+  one after the other (`gather` 420ms, `gatherStep` 60ms at 1×); the page card and the list heading fade out; the
+  screen goes back to the very top; the new page card fades in and the new cards are **dealt from the deck**
+  (step 14's deal; deal off: they fade in). Back and forward only change the spin's direction.
+- A 3D flip (back face showing) was tried and dropped: a card fading out is flattened by the browser and shows its
+  front mirrored.
+- The book change on phones (cover over the screen) stays, with the zoom of point 5.
 
-**Phone — bookmarks of the book, no separate bar**
-- **Game tabs:** leather tabs standing on the book's top edge (clear of the top-left gold corner) and
-  tucked under the cover, as the desktop top tabs; they scroll with the book (no sticky bar). Icon only:
-  no life / energy / sadness badges, no weight counter; `padding: 12px 16px`, larger to tap. The tabs
-  still turn red when it matters (critical statistic; bag over the weight limit); the values stay on the
-  information and backpack pages.
-- **Home tab:** a leather tab hanging under the book's bottom edge, at the bottom right (left of the
-  ribbon and of the bottom-right gold corner), at the end of the book.
-- **Rule — every page change goes back to the very top** (owner's decision): the tabs scroll with the
-  book, so after every page turn (a tab, a play, a route change) the screen returns to the top, tabs in
-  view; the jump happens under the turning sheet. An (i) preview on the right page still scrolls to it.
+## 5. Book change: smaller while it slides
 
-## Aligned to react-game 1.14.0 (owner decisions after the step 14–16 tests)
+- Desktop: the book closes (right half over the spine), then **shrinks** to 62% where it is (`zoom`), slides out
+  left small; the next closed book slides in small, stops in its place, **grows back** to full size with a light
+  overshoot, then opens. The scale is centred on the spine, so the flap and the left half stay together.
+- Phone: the cover closes over the screen, shrinks, slides out small, the next one slides in small, grows, opens.
+- New timing `zoom` 320ms at 1×, counted inside the 10 s cap: desktop 4.04 s at 1× (was 3.4 s), 16.2 s at ¼× capped to
+  10 s (factor 0.62); phone 3.08 s at 1×, 12.32 s at ¼× capped to 10 s.
 
-- **Home intro:** title "Epic Adventures Await" and the three-line text; the anti-bot check sits right
-  under the text; "Success! You are human." shows only after a check passed on this visit and fades
-  away after 4 s; the tutorial button alone at the card's foot. On a short screen (e.g. 1280×800) the
-  line is under the text in the scrolling text box, as in the app.
-- **Hover:** tight dark drop shadow and a gold glow (`0 10px 14px -4px`, `0 0 9px 1px`), border light gold.
-- **Scroll bar inside the book:** dark gold, rounded, on a dark see-through track.
-- **Speed:** default ¼× (as `VITE_ANIM_SPEED=0.25`); the demo offers 1×, ½×, ¼× as the step 16 preferences.
-- **Play from a reading page:** the whole reading card flies to the story (v1.13.0 only lifted it), as a small card does.
-- **Backpack tab:** red when the bag is over its weight limit (1.14.0 `isBagOverloaded`).
-- Already as 1.14.0 in v1.13.0: the deck pile always on the table on desktop.
+## 6. Rounds three and four: piles, titles, deal flight
 
-## Book change between routes (step 15 §9, second to-do)
+- **Deck during a book change**: the face-down deck stays on the table while the book closes, slides and opens; the played pile stays hidden.
+- **Piles inverted**: the deck at the foot of the right side on every page (Home too), the played pile right above it, cards just touching (`--pile-gap: -44px`).
+- **Readable title** on each played card: a small dark bar at the top, gold text, one line.
+- **Deal flight**: the dealt card flies on a fixed copy from the table deck's top card to its slot, never clipped by the page.
+- App only (not drawn): tabs shown only on an open book, and the copy following its slot while the page scrolls.
 
-- **When:** whenever the book changes (owner): the Home book (Home, player page) ↔ the story's book (set-up,
-  start match, game). The book closes (desktop: its right half folds over the spine; phone: the cover closes over
-  the page), slides out left, the next one slides in closed and opens. Every other change of page turns the page.
-- **Settings (demo controls):** "Book cover" on/off (planned `VITE_ANIM_COVER`, default on, with its own preference
-  row; off: the new book just appears); "at most" 10 s (default) / 6 s / 4 s / no limit (planned
-  `VITE_ANIM_COVER_MAX_S`, default 10): when the speed would make the change longer, all its phases shrink together
-  (desktop at ¼×: ~10 s instead of 13.8 s; at 1× it stays 3.4 s, phone 2.4 s).
-- **Navigation during an animation** waits until the book is free (`pendingRoute`), as v1.13.0 did.
-- **First load:** the opening zoom stays, gated by the cover setting and scaled by the speed.
-- Not drawn: the fade instead of a turn when a play does not change the location (step 15 §9, first to-do).
+## Not drawn
 
-## Owner decisions (November 26, 2026)
-
-- Tab look, every screen: the light (tan) inside of today's tabs, framed by a band of the cover's dark tooled leather
-  at half the cover's thickness (9px of 18px) with its gold tooled line (3px in) and stitching (5px in); the side
-  that tucks under the cover stays open; active tab parchment-light; red and gold states unchanged. Paddings shrink
-  by the band, so the tabs keep their outer size (block "owner's tab look" at the end of `demo.css`).
-- Book change: whenever the book changes; its own "Book cover" setting; at most 10 s by default, a parameter;
-  in-app navigation to the Home (Leave, Back to home, fatal error, brand) instead of a reload; the first-load
-  opening kept; navigation during an animation waits.
-- Start match: "Success! You are human." shows only after the check passed on this visit and leaves after 4 s, as
-  on the Home.
-
-- Desktop: every tab on the right side, all the same width; the home tab at the bottom, the deck pile just above it
-  and under every tab (the home tab in front of its lowest card).
-- Tablet: tabs on top, as today.
-- Desktop: the right column kept on the Home too.
-- Phone: icon-only tabs on the book's top edge (outer size of `padding: 12px 16px`; less side padding under 360px
-  wide, so the five tabs stay on the book), the home tab hanging under its bottom-right corner (kept there, now light
-  and clearly visible); every page change goes back to the very top.
-
+- **Map centring** (desktop page turn to the map): the concept has no map; the cause and the fix are in step 15 §9.
 
 # Version Control
 - **Document Version**: 1.15.0
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.15.0 | Bookmarks moved to the book's side and edges | November 26, 2026 |
+  | 1.15.0 | Played cards pile and single phone page | November 27, 2026 |
 
-- **Last Updated**: November 26, 2026 (v1.15.0)
+- **Last Updated**: November 27, 2026 (v1.15.0)

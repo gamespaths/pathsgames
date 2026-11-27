@@ -1,7 +1,7 @@
 import { Component, createContext, useContext } from 'react'
-import { canAnimate, handleOf } from './pageTurn'
+import { canAnimate } from './pageTurn'
 import {
-  coverText, openBook, routeTransition, runRouteTurn, runSwap, swapSnapshot, swapTimings, turnSnapshot,
+  TABLESS, coverText, routeTransition, runOpening, runRouteTurn, runSwap, swapSnapshot, swapTimings, turnSnapshot,
 } from './bookSwap'
 import { isMobileViewport } from '@/features/gameplay/js/mobileView'
 
@@ -167,7 +167,16 @@ export default class RouteBook extends Component {
         state: shown.state, t: this.t() }),
       hide: () => this.root?.classList.add('is-swapping'),
       reveal: () => this.root?.classList.remove('is-swapping'),
+      ...this.tabs(),
     })
+  }
+
+  /** v1.15.0 — the live book's tabs hidden while it closes or opens, shown again when it is open and still. */
+  tabs() {
+    return {
+      hideTabs: () => this.root?.classList.add(TABLESS),
+      showTabs: () => this.root?.classList.remove(TABLESS),
+    }
   }
 
   turn({ shot }) {
@@ -175,12 +184,13 @@ export default class RouteBook extends Component {
     return runRouteTurn(shot, { liveBook: () => this.liveBook(), timings: anim.timings, turnMode: anim.turnMode })
   }
 
-  /** The first book shown (first load, or after a redirect): it opens when `cover` is on, scaled by the speed. */
+  /** The first book shown (first load, or after a redirect): it opens when `cover` is on, scaled by the speed; tabs after. */
   firstBook() {
     const book = this.liveBook()
     if (book) this.setState({ opening: false })
-    if (book && opens(this.props.anim)) this.track(handleOf([openBook(book, this.props.anim.timings.open)], () => {}))
-    else if (this.state.busy) this.setState({ busy: false })
+    if (book && opens(this.props.anim)) {
+      this.track(runOpening({ timings: this.props.anim.timings, liveBook: () => this.liveBook(), ...this.tabs() }))
+    } else if (this.state.busy) this.setState({ busy: false })
   }
 
   /** The book is busy until the handle ends; a pending route is applied on the next tick. */

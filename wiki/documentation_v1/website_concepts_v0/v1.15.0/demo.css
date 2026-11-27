@@ -1,5 +1,5 @@
-/* Paths Games — v1.15.0 concept: the 1.13.0 concept aligned to react-game 1.14.0; bookmarks on the book's right side on
-   desktop (game tabs at the top, home at the bottom), on top on tablets, on the book's edges on phones. */
+/* Paths Games — v1.15.0 concept (second round): the v1.14.0 concept (bookmarks on the book's side and edges) plus the
+   played-cards pile, piles centred beside the book, no desktop home tab, phone single page; block at the end of the file. */
 :root {
   --color-parchment:        #e8d5b0;
   --color-parchment-light:  #f2e6c8;
@@ -1678,3 +1678,162 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   .book-bookmark { padding: 3px 1px 12px; } /* narrow phones: the five tabs stay on the book */
   .bm-group--home .book-bookmark { padding: 12px 1px 3px; }
 }
+
+/* ═══════════════════════════ v1.15.0 — second round (owner's requests, November 27, 2026) ═══════════════════════════
+   1. Desktop: both piles centred between the book's right edge and the screen's edge (demo.js placeTable sets
+      --table-mid); the face-up pile of the played cards, same size, under the deck (gap 10%), only in a match.
+   2. Desktop: no home tab (its corner group stays, empty). Tablets unchanged. Phones: the home tab back on the top edge,
+      at the right end, and bigger icons in every phone tab.
+   3. Phones: one single page (no binding on the left, no seam between the two pages); cards shuffle instead of a turn. */
+
+/* the face-up pile: hidden outside a match, on tablets and on phones */
+.played-pile { display: none; }
+.played-card {
+  position: absolute;
+  left: calc(50% - var(--mini-w) / 2);
+  top: calc(50% - var(--mini-w) * 0.75);
+  width: var(--mini-w);
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px; /* as a deck card */
+  border: 2px solid var(--color-gold-dark);
+  background: radial-gradient(circle at 50% 40%, var(--c1) 0%, var(--c2) 85%);
+  color: var(--color-gold-light);
+  font-size: calc(var(--mini-w) * 0.34);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+}
+.played-card i { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); }
+/* owner, round 3: the title readable, in a small bar as a card's title (no text, badges or buttons) */
+.played-card__title {
+  position: absolute;
+  inset: 0 0 auto;
+  padding: 2px 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 700 0.56rem/1.25 'Cinzel', serif;
+  color: var(--color-gold-light);
+  background: linear-gradient(180deg, rgba(26, 10, 2, 0.92), rgba(26, 10, 2, 0.7));
+  border-bottom: 1px solid var(--color-gold-dark);
+}
+.played-card:nth-child(2) { transform: translate(-6px, 3px) rotate(-11deg); }
+.played-card:nth-child(3) { transform: translate(5px, -2px) rotate(8deg); }
+.played-card:nth-child(4) { transform: translate(-3px, -4px) rotate(-6deg); }
+.played-card:nth-child(5) { transform: translate(6px, 4px) rotate(12deg); }
+.played-card:nth-child(6) { transform: translate(-5px, 1px) rotate(5deg); }
+/* the story's card at the bottom: a gold frame, so it reads as the book's own card */
+.played-card--story.played-card--story { transform: rotate(9deg); border-color: var(--color-gold); }
+/* the last played card: straight on top, lit */
+.played-card--top.played-card--top {
+  transform: rotate(-4deg);
+  border-color: var(--color-gold-light);
+  box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
+@media (min-width: 1121px) {
+  /* owner (Nov 27): both piles the same size (deck cards 84px), same centre; round 4: the deck at the foot on every page
+     (the Home too), the played pile on top of it in a match; the deck never moves (no jump when a match starts) */
+  .book-shell { --pile-w: 160px; --pile-h: 210px; --mini-w: 84px; --table-mid: 130px;
+    --pile-gap: -44px; } /* owner, round 4: the deck at the foot, the played pile on it, their cards touching */
+  /* 1. the deck: centred in the room right of the book, at the foot of the side */
+  .book-shell > .deck-pile {
+    right: auto;
+    left: calc(100% + var(--table-mid) - var(--pile-w) * var(--pile-scale) / 2);
+    bottom: var(--home-bottom);
+  }
+  /* the face-up pile right above the deck, cards touching: same size, same centre, same scale, under every tab */
+  .book-shell.in-match > .played-pile {
+    display: block;
+    position: absolute;
+    z-index: -1;
+    left: calc(100% + var(--table-mid) - var(--pile-w) * var(--pile-scale) / 2);
+    bottom: calc(var(--home-bottom) + (var(--pile-h) + var(--pile-gap)) * var(--pile-scale));
+    width: var(--pile-w);
+    height: var(--pile-h);
+    transform: scale(var(--pile-scale));
+    transform-origin: left bottom;
+  }
+  /* 2. no home tab: the corner group stays in the markup, empty, ready for other icons */
+  .bm-group--home:empty { display: none; }
+}
+
+/* ═══ phones ═══ */
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+  /* 2. the home tab back on the top edge, at the right end of the row (as on tablets): nothing hangs under the book */
+  .book-bookmarks { padding: 0 10px 0 34px; }
+  .bm-group--home {
+    position: static;
+    transform: none;
+    margin: 0 0 0 auto;
+  }
+  .book-shell:has(.bm-group--home > .book-bookmark) { margin-bottom: 0; }
+  .bm-group--home .book-bookmark {
+    margin: 0 0 -6px;
+    border: 6px solid transparent;
+    border-bottom-width: 0;
+    border-radius: 10px 10px 0 0;
+    padding: 3px 5px 12px;
+    box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.45);
+  }
+  .bm-group--home .book-bookmark::before { inset: -4px -4px 0; border: 1px solid rgba(200, 150, 10, 0.6); border-bottom: none; border-radius: 7px 7px 0 0; }
+  .bm-group--home .book-bookmark::after { inset: -2px -2px 0; border: 1px dashed rgba(232, 184, 48, 0.3); border-bottom: none; border-radius: 5px 5px 0 0; }
+  /* bigger icons; a 6px leather band (not 9px) so six tabs (five game tabs + home) still fit from 360px up */
+  .book-bookmark { border-width: 6px 6px 0; padding: 3px 5px 12px; }
+  .book-bookmark::before { inset: -4px -4px 0; }
+  .book-bookmark::after { inset: -2px -2px 0; }
+  .book-bookmark i { font-size: 1.45rem; width: 1.3em; text-align: center; }
+  .bm-group { gap: 4px; }
+
+  /* 3. one single page: no binding on the left edge, the same margin on both sides, no seam between the two pages */
+  .book { padding: 10px 10px 14px; }
+  .book::after { display: none; }
+  .book-pages {
+    border-radius: 6px;
+    box-shadow: 1px 1px 0 #c79a62, 2px 2px 0 #ecca9c, 3px 3px 0 #b8874e, 4px 4px 0 #e2bd8a, 5px 6px 10px rgba(0, 0, 0, 0.4);
+  }
+  .book-page-left { border-radius: 6px 6px 0 0; box-shadow: none; }
+  .book-page-right { border-radius: 0 0 6px 6px; }
+  .book-page-left::after,
+  .book-page-right::after { display: none; }
+
+}
+/* owner: under 400px smaller tab icons; under 360px less padding too */
+@media (max-width: 399px) {
+  .book-bookmark i { font-size: 1.25rem; }
+}
+@media (max-width: 359px) {
+  .book-bookmarks { padding: 0 6px 0 28px; }
+  .book-bookmark,
+  .bm-group--home .book-bookmark { padding: 3px 2px 12px; }
+}
+
+/* ═══ tablets (768–1120px, not a sideways phone): as the desktop, owner — the deck and, in a match, the face-up pile
+   centred in the room right of the book, even if that room is small and the book's cover hides most of them ═══ */
+@media (min-width: 768px) and (max-width: 1120px) and (min-height: 501px), (min-width: 992px) and (max-width: 1120px) {
+  .book-shell { --pile-w: 160px; --pile-h: 210px; --mini-w: 84px; --table-mid: 20px; --pile-scale: 0.82; --deck-bottom: 70px;
+    --pile-gap: -44px; }
+  .book-shell > .deck-pile {
+    right: auto;
+    left: calc(100% + var(--table-mid) - var(--pile-w) * var(--pile-scale) / 2);
+    bottom: var(--deck-bottom);
+    z-index: -1;
+    transform: scale(var(--pile-scale));
+    transform-origin: left bottom;
+  }
+  .book-shell.in-match > .played-pile {
+    display: block;
+    position: absolute;
+    z-index: -1;
+    left: calc(100% + var(--table-mid) - var(--pile-w) * var(--pile-scale) / 2);
+    bottom: calc(var(--deck-bottom) + (var(--pile-h) + var(--pile-gap)) * var(--pile-scale));
+    width: var(--pile-w);
+    height: var(--pile-h);
+    transform: scale(var(--pile-scale));
+    transform-origin: left bottom;
+  }
+}
+
+/* owner, round 3: the dealt card flies on a fixed copy over the book (desktop, tablet), from the pile into its slot */
+.pg-card.deal-copy { position: fixed; z-index: 1600; margin: 0; pointer-events: none; }

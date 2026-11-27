@@ -1,5 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { Component } from 'react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { buildMapGraph } from '@/utils/mapGraph'
 
 vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k }),
@@ -287,5 +289,135 @@ describe('MapPage', () => {
     // each tip overshoots its own end, so the pair is farther apart than the line
     const span = Math.hypot(tips[0][0] - tips[1][0], tips[0][1] - tips[1][1])
     expect(span).toBeCloseTo(Math.hypot(x2 - x1, y2 - y1) + 6, 5)
+  })
+})
+
+/* Step 15 second round, to-do 9: the map is centred in the very first committed DOM (no frame, no measuring),
+   so the copies a page turn takes in its parent's commit phase show it centred too. */
+describe('MapPage — centred without a frame', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  const AT_3 = { info: { ...GAME_DATA.info, players: [{ idLocation: 3 }] } }
+  const worldOf = (c) => c.querySelector('.game-map-world')
+  function offsets(world) {
+    const [, tx, ty, scale] = world.style.transform.match(/translate\((.+)px, (.+)px\) scale\((.+)\)/)
+    return { tx: Number(tx), ty: Number(ty), scale: Number(scale) }
+  }
+  function expectCentredOn(world, node, scale = 1.2) {
+    const v = offsets(world)
+    expect(v.scale).toBeCloseTo(scale, 6)
+    expect(v.tx).toBeCloseTo(-node.x * scale, 6)
+    expect(v.ty).toBeCloseTo(-node.y * scale, 6)
+  }
+  const nodeOf = (data, id) => buildMapGraph(data.info).nodes.find(n => n.id === id)
+  function sizeCanvas(w = 600, h = 400) {
+    const canvas = screen.getByTestId('game-map-canvas')
+    Object.defineProperty(canvas, 'clientWidth', { configurable: true, value: w })
+    Object.defineProperty(canvas, 'clientHeight', { configurable: true, value: h })
+    return canvas
+  }
+
+  // Mirrors BookPages: it reads the pages in componentDidMount / componentDidUpdate of the same commit.
+  class Probe extends Component {
+    componentDidMount() { this.props.seen.push(this.el.querySelector('.game-map-world').style.transform) }
+    componentDidUpdate() { this.props.seen.push(this.el.querySelector('.game-map-world').style.transform) }
+    render() { return <div ref={el => { this.el = el }}><MapPage gameData={this.props.data} onClose={() => {}} /></div> }
+  }
+
+  it('the first render is centred on the current location, before any animation frame', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame')
+    const { container } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    expectCentredOn(worldOf(container), nodeOf(GAME_DATA, 1))
+    expect(raf).not.toHaveBeenCalled()
+    expect(worldOf(container)).not.toHaveClass('game-map-world--anim')
+  })
+
+  it('a parent reading the DOM in its commit phase sees the centred map, on mount and on reload', () => {
+    const seen = []
+    const { container, rerender } = render(<Probe data={GAME_DATA} seen={seen} />)
+    expect(seen[0]).toBe(worldOf(container).style.transform)
+    expectCentredOn(worldOf(container), nodeOf(GAME_DATA, 1))
+    rerender(<Probe data={AT_3} seen={seen} />)
+    expect(seen.at(-1)).toBe(worldOf(container).style.transform)
+    expectCentredOn(worldOf(container), nodeOf(AT_3, 3))
+  })
+
+  it('the reload keeps the zoom the player chose and recentres only when the location changes', () => {
+    const { container, rerender } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    sizeCanvas()
+    fireEvent.click(screen.getByLabelText('game.map.zoomIn'))
+    const zoomed = offsets(worldOf(container))
+    expect(zoomed.scale).toBeCloseTo(1.5, 6)
+    rerender(<MapPage gameData={{ info: { ...GAME_DATA.info } }} onClose={vi.fn()} />)
+    expect(offsets(worldOf(container))).toEqual(zoomed)
+    rerender(<MapPage gameData={AT_3} onClose={vi.fn()} />)
+    expectCentredOn(worldOf(container), nodeOf(AT_3, 3), 1.5)
+  })
+
+  it('a drag pans by the pointer delta, the clamp still stops it, ◎ comes back to the exact centre', () => {
+    const { container } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    const canvas = sizeCanvas()
+    const start = offsets(worldOf(container))
+    fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(canvas, { clientX: 140, clientY: 70 })
+    expect(offsets(worldOf(container)).tx).toBeCloseTo(start.tx + 40, 6)
+    expect(offsets(worldOf(container)).ty).toBeCloseTo(start.ty - 30, 6)
+    fireEvent.pointerMove(canvas, { clientX: 9000, clientY: 9000 })
+    fireEvent.pointerUp(canvas)
+    const { width, height, nodes } = buildMapGraph(GAME_DATA.info)
+    const minX = Math.min(...nodes.map(n => n.x)), minY = Math.min(...nodes.map(n => n.y))
+    const far = offsets(worldOf(container))
+    expect(far.tx).toBeCloseTo(Math.max(90, 600 - width * 1.2 - 90, 300 - minX * 1.2) - 300, 6)
+    expect(far.ty).toBeCloseTo(Math.max(90, 400 - height * 1.2 - 90, 200 - minY * 1.2) - 200, 6)
+    fireEvent.click(screen.getByLabelText('game.map.center'))
+    expectCentredOn(worldOf(container), nodeOf(GAME_DATA, 1))
+    expect(worldOf(container)).toHaveClass('game-map-world--anim')
+  })
+
+  it('the wheel and the +/− buttons zoom around their anchor: at the canvas centre the location stays put', () => {
+    const { container } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    const canvas = sizeCanvas()
+    const here = nodeOf(GAME_DATA, 1)
+    fireEvent.wheel(canvas, { deltaY: -100, clientX: 300, clientY: 200 })
+    expectCentredOn(worldOf(container), here, 1.2 * 1.12)
+    fireEvent.click(screen.getByLabelText('game.map.zoomOut'))
+    expectCentredOn(worldOf(container), here, 1.2 * 1.12 / 1.25)
+    // off-centre anchor: the point under the cursor keeps its place
+    const before = offsets(worldOf(container))
+    fireEvent.wheel(canvas, { deltaY: 100, clientX: 500, clientY: 300 })
+    const after = offsets(worldOf(container))
+    expect((200 - after.tx) / after.scale).toBeCloseTo((200 - before.tx) / before.scale, 6)
+    expect((100 - after.ty) / after.scale).toBeCloseTo((100 - before.ty) / before.scale, 6)
+  })
+
+  it('an empty map centres the world box and ◎ has nothing to centre', () => {
+    const { container } = render(<MapPage gameData={{}} onClose={vi.fn()} />)
+    const { width, height } = buildMapGraph(undefined)
+    const start = offsets(worldOf(container))
+    expect(start.tx).toBeCloseTo(-width * 0.6, 6)
+    expect(start.ty).toBeCloseTo(-height * 0.6, 6)
+    fireEvent.click(screen.getByLabelText('game.map.center'))
+    expect(offsets(worldOf(container))).toEqual(start)
+    const canvas = sizeCanvas()
+    fireEvent.pointerDown(canvas, { clientX: 0, clientY: 0 })
+    fireEvent.pointerMove(canvas, { clientX: -9000, clientY: -9000 })
+    expect(offsets(worldOf(container)).tx).toBeCloseTo(Math.min(90, 600 - width * 1.2 - 90) - 300, 6)
+  })
+
+  it('the wheel listener, registered once, zooms with the graph and bounds of the latest render', () => {
+    const wheelOut = (canvas) => {
+      for (let i = 0; i < 6; i += 1) fireEvent.wheel(canvas, { deltaY: 100, clientX: 590, clientY: 390 })
+    }
+    const fresh = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    wheelOut(sizeCanvas())
+    const expected = offsets(worldOf(fresh.container))
+    fresh.unmount()
+    const { container, rerender } = render(<MapPage gameData={{}} onClose={vi.fn()} />)
+    rerender(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    wheelOut(sizeCanvas())
+    const got = offsets(worldOf(container))
+    expect(got.scale).toBeCloseTo(expected.scale, 6)
+    expect(got.tx).toBeCloseTo(expected.tx, 6)
+    expect(got.ty).toBeCloseTo(expected.ty, 6)
   })
 })

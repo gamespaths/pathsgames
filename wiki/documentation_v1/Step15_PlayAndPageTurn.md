@@ -1,6 +1,6 @@
 # Step 15 — Play and page turn
 
-**Status: developed (November 25, 2026, version 1.14.0, react-game only, unit tests green), waiting for owner's test; all four section 9 to-dos developed (November 26, 2026, version 1.15.0, 191 test files, 2255 passed, 0 failed, 3 skipped, build OK): 1 (no page turn when a play does not move), 2 (book change between routes), 3 (bookmarks per screen size) and 4 (start match success line), waiting for owner's test; no owner doubt left; owner test list: [test/Step15_PlayAndPageTurn.md](./test/Step15_PlayAndPageTurn.md).**
+**Status: developed and tested, closed by the owner (November 27, 2026, version 1.15.0), react-game only; all section 9 to-dos (1–18) developed and tested (193 test files, 2303 passed, 0 failed, 3 skipped, build OK; `useDeal.js`, `bookSwap.js`, `RouteBook.jsx`, `PlayedPile.jsx`, `DealtList.jsx` at 100%); concept `website_concepts_v0/v1.15.0/`; owner test list: [test/Step15_PlayAndPageTurn.md](./test/Step15_PlayAndPageTurn.md).**
 Roadmap line: *choosing a card and changing page are animated* ([Roadmap](./Roadmap.md) step 15).
 Book UI chain: [Step 13](./Step13_BookLayoutWithoutModals.md) (layout, routes, no modals) ·
 [Step 14](./Step14_HomeBookAndCardFaces.md) (card faces, animation config, deal) · **Step 15** ·
@@ -268,7 +268,7 @@ whole card (6.1). News arriving in the same answer lands inside the one turn, an
 
 ## 9. To do
 
-Owner's requests after the first test round (November 25 and 26, 2026), developed November 26, 2026 (1.15.0), waiting for owner's test.
+Owner's requests after the first test round (November 25 and 26, 2026), developed November 26, 2026 (1.15.0), tested.
 
 **No page turn when a play does not change the location.** Developed (November 26, 2026, 1.15.0). Today every play answer lands, holds
 the old pages while the board reloads and then turns ONE page with a fixed direction
@@ -304,7 +304,7 @@ missions) still lands inside the fade.
 
 **Book change between routes** — Developed (November 26, 2026, 1.15.0) (owner request and answers, November 26, 2026; concepts
 `website_concepts_v0/v1.13.0/README.md` "Between pages", `demo.js` `openRoute`, `swapBook`, `mobileSwap`, and
-`website_concepts_v0/v1.15.0/README.md` "Book change between routes", "Owner decisions", `demo.js` `BOOK_OF`,
+`website_concepts_v0/v1.14.0/README.md` (named `v1.15.0` until November 27) "Book change between routes", "Owner decisions", `demo.js` `BOOK_OF`,
 `swapTimes`, `pendingRoute`). No V1 step took it: this step turns pages inside one route only. Today React Router
 unmounts the old Book at once and the new one mounts with step 13's CSS `bookOpen` (`book.css` `.book-shell`, 0.6 s,
 not scaled by `VITE_ANIM_SPEED`, not gated by any flag or step 16 preference); a navbar click or browser Back during
@@ -453,7 +453,7 @@ OpenAPI or Robot change (Java, Python, AWS, react-admin untouched).
      change) waits until the book is free (concept `pendingRoute`); the navbar stays clickable.
 
 **Bookmarks per screen size** — Developed (November 26, 2026, 1.15.0) (owner decisions, November 26, 2026; concept
-`website_concepts_v0/v1.15.0/README.md`, `demo.css` blocks marked `v1.15.0`, `demo.js` `renderBookmarks`,
+`website_concepts_v0/v1.14.0/README.md`, `demo.css` blocks marked `v1.15.0`, `demo.js` `renderBookmarks`,
 `isSideTabs`, `scrollToSide`, `showTip`). Today the tabs stand on the book's top edge on desktop and tablet
 (game tabs over the left page, the home tab ending the right row) and, on phones, form step 16's sticky pill
 row under the navbar (badges, active tab label, home tab pinned at the row end). Wanted: three layouts in the
@@ -594,7 +594,7 @@ Robot change (Java, Python, AWS, react-admin untouched).
      the gold line and the stitching move closer to fit it (gold line 2px in: inset −4px; stitching 4px in: inset −2px),
      and the paddings shrink by 6px instead of 9px, so the outer size stays. The concept keeps 9px (half of its 18px).
 
-**Start match success line** — Developed (November 26, 2026, 1.15.0) (owner request, November 26, 2026; concept v1.15.0 README "Owner decisions", `demo.js`
+**Start match success line** — Developed (November 26, 2026, 1.15.0) (owner request, November 26, 2026; concept v1.14.0 README "Owner decisions", `demo.js`
 `START.enter`, `successUntil`). Today `StartMatchFlow` (a fresh check on every visit, `useAntibot({ cookie: false })`)
 shows the spinner and the Turnstile widget in the right page's footer and, once passed, only hides the widget
 (`hidden`): no success line. Wanted: as on the Home (step 14), "Success! You are human." right under the left card's
@@ -619,6 +619,233 @@ gone. react-game only: no endpoint, DTO, table, OpenAPI or Robot change.
   card's `.book-page-desc` after success, gone after 4 s, again after a retry, on the guest page too, none behind a
   preview; `AntibotSuccess` rendered text and test id. Owner's test list: start match on desktop and phone.
 
+### Second round — owner's requests of November 27, 2026 (developed and tested)
+
+Concept: [`website_concepts_v0/v1.15.0/`](./website_concepts_v0/v1.15.0/README.md) (built on `v1.14.0/`, the former
+`v1.15.0/` folder). Version stays 1.15.0. react-game only: no endpoint, DTO, table, OpenAPI or Robot change (Java,
+Python, AWS, react-admin untouched). "Desktop" = wider than 1120px (side tabs), "tablet" = 768–1120px, "phone" =
+`MOBILE_MQ`. Suggested order: 9 (small, a bug), 8, 7, 6, 5, 11, 10.
+
+**5. Played cards land on a face-up pile** (concept §1, `demo.js` `renderPlayed`, `addPlayed`, `flightTarget`). — Developed (November 27, 2026, 1.15.0)
+Today `PlayContext.flightTarget` sends the clone to the left page picture (desktop) or the top of the screen (phone),
+where it fades out at 0.3 scale; the table holds only the face-down `Deck` (`variant="table"`).
+- New `components/book/PlayedPile.jsx`, a sibling of the table `Deck` in `Book.jsx` (outside the wrapper), rendered
+  only when the Book gets a new prop `playedPile` (GameBook and its end pages; no other book): bottom card the story's
+  card (picture of `story`, gold frame), on top up to five played cards, the last one straight and lit. The pile has
+  the deck's size (owner, November 27: box 160 × 210px, cards 84px wide, same `--pile-scale`). Its cards show the
+  picture only, the title in 0.6rem blurred, no text, badges or buttons (`aria-hidden`; the pile has a `data-tip`
+  "Last played: …"). Desktop and tablet (owner: tablets too, even if the cover hides most of it); hidden on phones.
+- Data: `usePlayController` keeps `played[]` (`{ title, image }`) for the match: `begin(playId, el, meta)` gets the
+  card's title and picture from `CardButtons` (small card) or the reading page card; pushed in `land` after the flight.
+  In memory only: after a reload the pile shows the story card alone (owner: the simplest).
+- Flight (`flightTarget`): desktop with the pile → the pile's centre, final scale = 84px × `--pile-scale` / card width,
+  tilt −4°, **opacity stays 1** (it becomes the pile's top card); phone → the sticky page `.deck` (clamped to the
+  screen's bottom-right corner when off screen), fades on arrival; tablet → the pile, as desktop (owner).
+  The two-step flow, the fall of the other cards, the hold and the turn are unchanged.
+- Tests: `PlayedPile` (story card alone, max five, last on top, tip text), `PlayContext` (`flightTarget` per layout,
+  `played` grows after `land`, not after `cancel`), `Book` (pile only with `playedPile` and the deal flag rules).
+
+**6. Both piles centred between the book and the screen's edge, played pile under the deck (desktop and tablet)** — Developed (November 27, 2026, 1.15.0)
+(concept §2, `placeTable`).
+Today `.deck-pile` is `right: -122px` (−100px up to 1360px) and `bottom: calc(var(--home-bottom) + 24px)`.
+- `animations.css`, desktop media, both piles: `left: calc(100% + var(--table-mid) - 160px * var(--pile-scale) / 2)`,
+  `right: auto` (horizontally aligned, same centre). Vertically (owner, November 27): the face-up pile at the foot,
+  `bottom: var(--home-bottom)`; the deck above it, `bottom: calc(var(--home-bottom) + (210px + 21px) * var(--pile-scale))`
+  (`--pile-gap` = 10% of the pile's 210px height). The deck keeps that place on every page, also outside a match where
+  the face-up pile is absent (no jump when a match starts). `--table-mid` is half the room right of the book. With today's stage paddings (16px
+  left, 16px + `--side-tab-w` right, the book centred in what is left) the room is `(100vw - 100%) / 2 + 39px`
+  (`100%` = the shell's width, resolved where `left` uses it), so `--table-mid: calc((100vw - 100%) / 4 + 19.5px)`;
+  `100vw` counts the scrollbar (about 8px off): if that shows, a `ResizeObserver` in `Deck` sets the variable instead.
+- Both piles stay `z-index: -1` (under every tab, under the cover). Tablet (owner): the same centring and order, face-up pile
+  `bottom: 70px`, deck `70px + 231px × 0.82`, `--pile-scale: 0.82`; there `--table-mid` is half of `(100vw - 100%) / 2` (no side column) and the piles are
+  mostly under the cover. Phone: the page deck.
+- Tests: CSS only; owner's checks at 900, 1024, 1180, 1366, 1440 and 1920px wide and 800px high.
+
+**7. Home bookmark per screen** (concept §3, `renderBookmarks`). — Developed (November 27, 2026, 1.15.0)
+- Desktop: no home tab. `Book`'s `HomeTabRow` still renders the right group (`book-bookmarks--right`, the corner slot
+  for future icons) but the home item is hidden by CSS on desktop (`@media (min-width: 1121px)
+  .book-bookmark--home { display: none }`); with no other item the group takes no room. The way home on desktop is
+  the navbar brand (in a match the close card first, as the tab did).
+- Tablet: unchanged (top edge, right end).
+- Phone: the home tab goes back to the top edge, right end of the tab row, with the top-tab look (`mobile.css`: drop
+  the upside-down block, `.book-stage--home-tab` `margin-bottom: 46px`, `transform: translateY(100%)`); `--book-tabs-h`
+  margin applies when either group shows.
+- Phone icons bigger: `.book-wrapper .book-bookmark i { font-size: 1.45rem }`, `1.25rem` under 400px (owner). Six
+  tabs (five game tabs + home) on a 360px phone need the band at 6px (already the app's) and less side padding under
+  360px: check at 320, 360, 390, 430px.
+- Tests: `Book` / `BookBookmarks` (home item present with its class; desktop hiding is CSS), Navbar brand unchanged.
+
+**8. Phones: one single page** (concept §4, end of `demo.css`). — Developed (November 27, 2026, 1.15.0)
+Today (`mobile.css`, step 16) the vertical book has a spine with binding thread on the left (`.book-spine` left 5px),
+two headbands, a gutter shade (`inset 4px 0 12px`, `::after` 28px gradient) on both pages, `padding-left: 20px`.
+- Phone only: hide `.book-spine` and the headbands, drop the gutter shade and the `::after` gradients, symmetric
+  cover padding (8px), no border radius or shadow between the left (top) and right (bottom) page, so they read as one
+  sheet; the stacked page edges move to the outer box. Cover frame, corners and ribbon kept (owner: the page of a book).
+- Tests: CSS only; owner's checks on the game, Home, story set-up, start match, end game, player page, policy chapter.
+
+**9. Map centred during a desktop page turn** (bug, no concept). — Developed (November 27, 2026, 1.15.0)
+Cause: `Map.jsx` starts at `{ tx: 0, ty: 0 }` and centres the current location in a `requestAnimationFrame` after
+mount; the `full` turn (`pageTurn.runFull`) clones the new left page right after the commit, before that frame, so
+the turning sheet's back shows the map off centre; when the sheet is removed the live, centred map appears: the jump.
+- Fix in `Map.jsx`: the first view is computed before paint: `useLayoutEffect` + a measured canvas (`clientWidth` /
+  `clientHeight`) setting the centred `tx`/`ty` synchronously; or, independent of timing, the world placed with CSS
+  (`left: 50%; top: 50%` and `translate(-x·scale, -y·scale)`), so the first render is already centred and the clone
+  copies it. Recommended: the CSS one (no measuring, also right for `simple` and `fade` and for the book change
+  copies); `clamp` stays for drag and zoom.
+- Tests: `Map` (first render centred on the current location, before any frame; drag, zoom and ◎ unchanged).
+
+**10. Phones: cards shuffle instead of a page turn** (concept §4, `mobileShuffle`). — Developed (November 27, 2026, 1.15.0)
+Today `mobileTurn.js` copies the visible slice on a fixed sheet and turns it on its left edge (forward 0 → −90°,
+back −90° → 0) or fades it (`runFade`).
+- New phone strategy, both turn modes (owner: as drawn in the concept): the small cards on screen spin (in-plane, 240°, no 3D: a fading 3D card
+  is flattened and shows its front mirrored) and shrink into the sticky page deck, staggered (`gather` 420ms,
+  `gatherStep` 60ms, stagger capped at 8, at speed 1); the page card and the heading fade (`fade`); jump to the very
+  top (kept); the new page card fades in; the new cards are dealt by step 14's deal from the page deck (deal off:
+  they fade in). Back and forward only change the spin's direction; the `fade` direction (a play that did not move)
+  keeps today's fade of the copy.
+- Engine: the snapshot copies the visible slice as today (`sheetOf`); the cards are animated on the copy (their boxes
+  are known), so the live new page can render under it; the copy goes when the last card has left. `is-turning`,
+  `.m-blocker`, `setMobileTurnBusy` and the hold are unchanged. New base timings `gather`, `gatherStep`
+  (`constants/animations.js`, `--t-gather`), scaled by the speed; `turn` flag and reduced motion gate it as today.
+- Tests: `mobileTurn` (cards of the copy animated with stagger to the deck box, page parts faded, top jump, copy
+  removed at the end, `fade` unchanged, reduced motion and flag off: nothing), `GameBookTurns` phone cases.
+
+**11. Book change: smaller while it slides** (concept §5, `swapBook`, `mobileSwap`, `swapTimes`). — Developed (November 27, 2026, 1.15.0)
+- `bookSwap.js`: after the close (desktop fold, phone cover) the closed copy shrinks to 0.62 (`zoom`), slides out
+  small; the incoming closed copy slides in small, stops, grows back with a light overshoot, then opens. Desktop: the
+  closed book and the flap scale around the spine (book centre = flap hinge); phone: the cover's hinge is its left
+  edge, so its scale is re-centred with a `translateX((1 − s) · w / 2)`.
+- New base timing `zoom` 320ms (`--t-zoom`), counted in `swapTimings`: desktop full 2 × (fade + flip + zoom + slide)
+  = 4.04 s at 1×, 16.2 s at ¼× → 10 s; phone 2 × (sheet + zoom + slide) = 3.08 s at 1×, 12.32 s → 10 s; `simple` mode
+  unchanged (no zoom). `VITE_ANIM_COVER_MAX_S` still caps everything.
+- Tests: `bookSwap.test.js` (`swapTimings` with `zoom`, the new totals and factors; keyframes of the zoom phases),
+  `RouteBook.test.jsx` (phase order close → zoom out → slide → slide → zoom in → open).
+
+Code vs spec (second round, as built):
+- Phone book change total is 3.08 s at 1× and 12.32 s at ¼× (→ 10 s), not 3.04 / 12.2 as written in to-do 11.
+- Pile tooltip is "Last played: {title}" (i18n `game.playedPile.last`, no count); before any play the title is the story's.
+- `PlayContext.begin(playId, el, { title, image })`; `played` capped at 5, memory only; `flightTarget` returns `{ x, y, width, rotate, stays }`; `CardButtons` prop `playImage`.
+- Played cards are recorded also when the pile is hidden (deal off, phone) and show when it appears.
+- `VITE_ANIM_DECK=over` lifts only the deck; the face-up pile stays under the cover.
+- `--table-mid` uses `100vw`: the piles may sit about 2–4px right of the exact middle (no `ResizeObserver` added).
+- Phone home tab row starts 30px from the left (26px under 360px); icons 1.45rem (1.25rem under 400px); desktop home tab hidden by CSS.
+- Phone single page also unifies the paper, removes the seam border and moves the corner flourishes to the sheet's outer corners.
+- Shuffle: `mobileTurn.js` `runShuffle` replaces the phone sheet turn; exports `deckGoal`, `leavingCards`, `fadingParts`, `pageParts`, `GATHER_MAX_STAGGER`. Timings `zoom` 320, `gather` 420, `gatherStep` 60; `bookSwap.js` `SWAP_SMALL` 0.62 and a `zoom` phase; `isolation: isolate` on `.book-shell`.
+- Map: world origin at the canvas centre, first render centred (a location near the graph's edge is now exactly centred; the old 90px margin is skipped on first render); the wheel handler uses the latest `zoomAt` through a ref.
+
+Doubts for the owner — all resolved on November 27, 2026:
+1. Resolved: tablets as the desktop (face-up pile, centring, flight to the pile), even if the piles are mostly hidden.
+2. Resolved: after a reload only the story card (the simplest, memory only).
+3. Resolved: phone single page keeps the book page graphics (cover frame, corners, ribbon).
+4. Resolved: smaller tab icons under 400px (`1.25rem`).
+5. Resolved: the phone shuffle as drawn in the concept (in-plane spin).
+
+### Third round — owner's requests of November 27, 2026 (developed November 27, 2026, 1.15.0; to-do 13 replaced by 16)
+
+Concept `website_concepts_v0/v1.15.0/` (`demo.css` `--pile-gap`, `.played-card__title`, `.pg-card.deal-copy`; `demo.js`
+`dealBatch`). react-game only, version stays 1.15.0, no doubt open.
+
+**12. The deck stays on the table during a book change** Developed (November 27, 2026, 1.15.0). (desktop and tablet). Today `RouteBook` hides the whole live
+route while a swap runs (`.route-book.is-swapping { visibility: hidden }`, `animations.css`), so the table deck vanishes
+with the book and comes back at the end. Wanted: the face-down deck stays visible and still in its place for the whole
+change, under the sliding and opening book copies (the fixed swap layer is above it). Fix: `.route-book.is-swapping
+.book-shell > .deck-pile { visibility: visible }` (the new book's deck: same place on every page, rule of to-do 6). The
+face-up pile belongs to the match: it stays hidden during the change (it appears with the game book, leaves with it).
+Phones: no table deck, nothing changes. Tests: `RouteBook` (deck visible while `is-swapping`; pile not).
+
+**13. The deck lowered until it touches the played pile** Developed (November 27, 2026, 1.15.0). (desktop and tablet). Today the deck box sits `(210px + 21px)
+× --pile-scale` above the pile's foot; the cards inside the boxes leave a visible gap of about 55px. Wanted: the deck's
+lowest cards touch the top of the played pile's cards. `animations.css`: `--pile-gap: -34px` (the deck box overlaps
+the pile box by 34px × scale; check by eye, the value is the concept's). Deck still above the pile, both z −1, same
+centre; outside a match the deck keeps the same place. Tests: CSS only; owner's check at 1440×900, 1366×768, 1024×768.
+
+**14. Title on the played cards.** Developed (November 27, 2026, 1.15.0). Today `.played-card__title` is tiny, blurred and faint (a hint only). Wanted: the title
+readable: a small bar at the top of each played card (dark brown see-through background, gold-dark bottom line,
+Cinzel 0.56rem bold, gold-light text, one line with ellipsis), no blur, picture under it; still no description,
+badges or buttons. `PlayedPile.jsx` markup unchanged. Tests: `PlayedPile` (title rendered for the story card and every
+played card).
+
+**15. The deal flies visibly from the table deck** Developed (November 27, 2026, 1.15.0). (desktop and tablet). Today `useDeal` animates the real card in its
+slot (CSS `pg-deal-facedown` / `pg-deal-flat` with `--from-x/--from-y`), so the part of the flight outside the page is
+clipped by the page and the scrolling lists (`overflow`): the card seems to appear at the page's edge. Wanted: the
+flight shows from the table deck's top card to the slot. In `useDeal.fly`, when the origin is the table pile
+(`dealOrigin` found `.deck-pile__top`): a copy of the card (`cleanClone`, ids and test ids stripped, `aria-hidden`,
+inert, `--card-w` and the slot's box) on a fixed layer on `<body>` (`.deal-copy`, z-index above the book and the tabs,
+under the navbar's drawn tooltip and `.flying-card`) runs the same keyframes and timings (stagger, face down or up);
+the real card waits hidden in its slot (`data-deal="flying"` keeps it invisible, no layout change) and shows when its
+copy lands (the copy removed in the same frame). Phones keep today's in-page deal (the page deck is inside the page).
+Card styles that depend on a parent class (e.g. `.selection-list …`) must still apply to the copy (wrap it in an element
+with the same classes, or move those rules to the card). Unmount, a page turn or a book change during the deal removes
+the copies and lands the cards (as `land` today); a scroll during the flight: the copy lands where the slot was (small
+jump accepted). Reduced motion, deal off, no IntersectionObserver: unchanged (all landed). Tests: `useDeal` / `DealtList`
+(copy on `body` for a table origin, none for the page deck; real card hidden then landed; copies removed on unmount and
+on the safety timer; face down / up attributes on the copy).
+
+### Fourth round — owner's requests of November 27, 2026 (developed November 27, 2026, 1.15.0, tested)
+
+Concept `website_concepts_v0/v1.15.0/` (`demo.css` piles block: deck `bottom: var(--home-bottom)`, played pile above,
+`--pile-gap: -44px`). react-game only, version stays 1.15.0, no doubt open.
+
+**16. Piles inverted: the deck at the foot, the played pile on top of it** Developed (November 27, 2026, 1.15.0). (desktop and tablet; replaces to-do 13's
+order). Today (to-dos 6 and 13) the played pile lies at the foot and the deck above it. Wanted: the face-down deck at
+the foot of the right side on **every page, the Home too** (`bottom: var(--pile-foot)`: `--home-bottom` on desktop,
+70px on tablets), never moving; in a match the face-up pile right above it, same size, same centre, their cards just
+touching: `bottom: calc(var(--pile-foot) + (210px + var(--pile-gap)) * var(--pile-scale))` with `--pile-gap: -44px`
+(the played cards sit in the middle of their box, so the boxes overlap more than in to-do 13; check by eye). Both
+z −1 under every tab; `VITE_ANIM_DECK=over` lifts only the deck, as today. The flight target (`flightTarget`) and the
+deal origin (`dealOrigin`, `.deck-pile__top`) follow the new places by measuring, no code change expected.
+Tests: CSS only (plus any test that asserts the old order); owner's checks at 1440×900, 1366×768, 1024×768, Home and game.
+
+**17. Bookmarks only on an open book** Developed (November 27, 2026, 1.15.0). (every layout, every turn mode; the owner saw it on tablets). Today, in a book
+change, `desktopFull` fades the tabs with `fadeTabs` on `.book-bookmarks-row`; on tablets that row is `display:
+contents`, so the opacity does nothing, and the copy's left half is clipped with `LEFT_HALF` (`inset(-60px 50% …)`),
+which leaves the top tabs above the cover visible: the tablet tabs stay on screen while the book closes, slides and
+opens. `desktopSimple`, `phoneSimple` and the first-load opening (`openBook` on the live `.book-wrapper`) never hide
+them. Wanted: the tabs show only when the book is open and still: they fade out before the book starts closing,
+no copy (old book, flap, incoming book, cover) shows any tab while it closes, moves or opens, and they fade in on the
+live book only after it has fully opened.
+- Fade the tab groups (`.book-bookmarks`), never the row (`display: contents` on tablets); after the fade-out mark the
+  swap layer/copies so every later copy has its tabs hidden (e.g. a `.book-swap--tabless .book-bookmarks { opacity: 0 }`
+  class, or strip the row from the clones), so `flapOf`'s inner clone and the incoming `bookCopy` carry none.
+- Live book: while the swap or the first-load opening runs, its tabs are hidden (a class on the route root or the
+  `.book-stage`); after the open ends they fade in (`timings.fade`) and the class goes. Applies to `desktopFull`,
+  `desktopSimple`, `phoneCover`, `phoneSimple` and the first-load opening. Route turns (same book) are not an opening:
+  unchanged.
+- Timings: the fade out / in already counted in `swapTimings` for `full` desktop stays; the other modes add a fade in
+  after the open (inside the cap when the cap applies).
+- Tests: `bookSwap` / `RouteBook` (tabs groups faded, not the row; copies made after the fade carry hidden tabs; live
+  tabs hidden during the open and faded in after, per mode and layout; first-load opening; reduced motion / cover off:
+  tabs shown at once).
+
+**18. The dealt copy follows its slot while the page scrolls** Developed (November 27, 2026, 1.15.0). (desktop and tablet; bug of to-do 15, owner, November
+27, 2026). Today `useDeal.fly` measures the slot once (`card.getBoundingClientRect()`) and places the fixed copy
+(`dealCopy(card, r)`) there; the keyframes end at `translate(0, 0)`, i.e. on that first box. When the right page (or
+any scrolling list, or the document) keeps scrolling during the flight — the usual case, since a card is dealt when it
+scrolls into view — the slot moves up while the copy lands on the old place, lower down; when the copy goes, the real
+card shows in its slot: a jump up. At ¼× a flight lasts about 2.5 s, so the gap is large.
+- Wanted: the copy always lands exactly on its slot. While at least one copy flies, one `requestAnimationFrame` loop of
+  the list (and a passive capture `scroll` listener on `window` for the same update) sets every flying copy's
+  `left`/`top` (and width/height) to its slot's current box; the keyframes stay relative, so the flight bends with the
+  scroll and ends on the slot. The loop stops when no copy flies (landing, unmount, hold), and on clean-up.
+- The deck end of the flight moves with the slot (accepted: the start point is already past when the user scrolls).
+- A slot scrolled out of its list's visible area: the copy still lands on it and goes (it is not clipped); accepted.
+- Tests: `DealtList` / `useDeal` (a slot moved mid-flight: the copy's box follows on the next frame and on a scroll
+  event; loop and listener stopped after the last landing and on unmount; phones, in-page deal: no loop).
+
+### Code vs spec (rounds three and four, as built)
+
+- Developer's deviation (to-do 17): a tab fade-out phase also runs in simple (desktop, phone) and phone cover changes, inside the cap.
+- Timings at 1x: desktop full 4.04 s unchanged; phone cover 3.08 to 3.48 s; simple 0.91 to 1.31 s; first-load opening +200 ms (book busy until the tabs are back).
+- Phone at 1/4x: 13.92 s becomes 10 s (at most 4 ms over, by rounding).
+- With `VITE_ANIM_COVER_MAX_S=5` the simple change (5.24 s at 1/4x) is capped too.
+- Changes to or from the Home (no tabs) are one fade shorter.
+- On desktop, story pages and `/player` keep an empty tab group, so an invisible fade of about 0.5 s runs.
+- Phone simple change skips the fade-out when the book is off screen.
+- Deal copies use z-index 1600: above the navbar (1000) and the stale-match banner (1010), below `.flying-card` (2000) and the tooltip (2100).
+- Copies are never clipped: a slot partly outside its list lands whole, then its outer part vanishes.
+- `VITE_ANIM_DECK=over` lifts only the deck (it lies over the pile where they meet).
+- To-do 13's order (deck above the pile, -34px) was replaced by to-do 16 (deck at the foot, `--pile-gap: -44px`).
+
 # Version Control
 - **Document Version**: 1.15.0
 
@@ -626,9 +853,9 @@ gone. react-game only: no endpoint, DTO, table, OpenAPI or Robot change.
   |---------|-------------|------|
   | 1.13.0 | Play and page turn analysed, owner choices recorded | November 24, 2026 |
   | 1.14.0 | Developed; waiting for owner's test; two to-dos analysed | November 25, 2026 |
-  | 1.15.0 | Bookmarks analysed; four to-dos developed | November 26, 2026 |
+  | 1.15.0 | Four rounds developed; tested and closed | November 27, 2026 |
 
-- **Last Updated**: November 26, 2026 (v1.15.0)
+- **Last Updated**: November 27, 2026 (v1.15.0)
 
 
 # &lt; Paths Games /&gt;

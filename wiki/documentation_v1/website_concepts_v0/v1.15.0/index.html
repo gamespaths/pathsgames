@@ -1,6 +1,7 @@
 <!doctype html>
-<!-- Paths Games — v1.15.0 concept: the 1.13.0 concept aligned to react-game 1.14.0, with the bookmarks on the book's
-     right side on desktop, on top on tablets, on the book's edges on phones. Open in a browser. -->
+<!-- Paths Games — v1.15.0 concept (second round, built on the v1.14.0 concept): the played-cards pile, both piles centred
+     beside the book, no home tab on desktop, phone home tab on top, phone single page and card shuffle, smaller book on a
+     book change. Open in a browser. -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -33,7 +34,11 @@
   <main class="stage" id="stage">
     <div class="book-shell" id="shell">
       <div class="book-bookmarks" id="bookmarks"></div>
-      <!-- Experiment: the deck lies on the table, partly under the book, right of the right page (desktop). -->
+      <!-- v1.15.0: in a match the face-up pile of the played cards lies under the deck, same size (desktop, tablet):
+           story card at the bottom, the last played card on top. -->
+      <div class="played-pile" id="played-pile" aria-label="Played cards"></div>
+      <!-- The deck lies on the table, partly under the book, right of the right page (desktop); v1.15.0: centred in the
+           room between the book and the screen's edge. -->
       <div class="deck-pile" id="deck-pile" aria-hidden="true">
         <span><i class="fas fa-dice-d20"></i></span><span><i class="fas fa-dice-d20"></i></span>
         <span><i class="fas fa-dice-d20"></i></span><span><i class="fas fa-dice-d20"></i></span>
@@ -84,7 +89,7 @@
     <i class="fas fa-sliders-h"></i>
   </button>
   <div class="demo-panel" id="demo-panel" hidden>
-    <div class="demo-panel__title"><i class="fas fa-book-open"></i> Concept v1.15.0 — demo controls</div>
+    <div class="demo-panel__title"><i class="fas fa-book-open"></i> Concept v1.15.0 (2nd round) — demo controls</div>
     <label><input type="checkbox" id="fx-deal" checked /> <b>1</b> Deal</label>
     <label class="demo-sub"><input type="checkbox" id="fx-facedown" checked /> face-down</label>
     <label><input type="checkbox" id="fx-play" checked /> <b>2</b> Play</label>

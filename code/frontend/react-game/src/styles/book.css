@@ -40,7 +40,7 @@
 /* ═══ BOOK COVER (.book-wrapper) — leather, gold tooled frame and stitching; the pages sit inside ═══ */
 .book-wrapper {
   position: relative;
-  z-index: 1; /* v1.14.0 — over the deck pile (z-index 0), under it with VITE_ANIM_DECK=over (2) */
+  z-index: 1; /* v1.14.0 — over the table piles (z-index -1), under the deck with VITE_ANIM_DECK=over (2) */
   display: flex;
   width: 100%;
   height: 100%;
@@ -82,10 +82,11 @@
 }
 @media not all and (max-width: 767px) {
   @media not all and (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
-    /* Step 15: also the page copies of a route turn, on RouteBook's fixed layer outside the cover. */
-    .book-wrapper .hide-in-book, .book-swap .hide-in-book { display: none !important; }
+    /* Step 15: also the page copies of a route turn (RouteBook's fixed layer) and v1.15.0 a dealt card's copy on <body>. */
+    .book-wrapper .hide-in-book, .book-swap .hide-in-book, .deal-copy .hide-in-book { display: none !important; }
     /* The status card names its shortcuts on phones only: in the open book the bookmarks carry them. */
-    .book-wrapper .card-status .gc-footer__btn-label, .book-swap .card-status .gc-footer__btn-label { display: none; }
+    .book-wrapper .card-status .gc-footer__btn-label, .book-swap .card-status .gc-footer__btn-label,
+    .deal-copy .card-status .gc-footer__btn-label { display: none; }
   }
 }
 
@@ -271,7 +272,7 @@
   margin-bottom: 0px;
 }
 
-/* ═══ Step 15 — desktop (> 1120px): tabs down the right side, home tab at the foot; right column on every page ═══ */
+/* ═══ Step 15 — desktop (> 1120px): tabs down the right side; right column on every page ═══ */
 @media (min-width: 1121px) {
   .book-stage {
     --book-stage-top: 16px;
@@ -299,6 +300,8 @@
     transform: none;
   }
   .book-bookmarks--right { margin-top: auto; }
+  /* v1.15.0 — no home tab (the navbar brand leads home); its group stays at the foot, empty, for future icons. */
+  .book-bookmark--home { display: none; }
   /* side tab, open on the left against the cover's right edge (the outer size of a 3px border and 12px 10px 12px 12px) */
   .book-bookmark {
     flex-direction: column;

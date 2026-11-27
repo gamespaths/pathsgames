@@ -26,6 +26,7 @@ export default function CardButtons({
   // Optional test id base: buttons get `<testId>-info`, `-select`, `-action`; secondary ones `a.testId`.
   testId,
   playId = null,
+  playImage = null, // v1.15.0: the picture the played card leaves on the face-up pile
 }) {
   const [actionStarted, setActionStarted] = useState(false)
   const { t } = useTranslation()
@@ -33,7 +34,8 @@ export default function CardButtons({
   const playing = Boolean(playId && play)
   // The clicked card's root, read inside the click: the small card or the reading page.
   const beginPlay = e => {
-    if (playing) play.begin(playId, e?.currentTarget?.closest?.('.pg-card, .book-page-content') ?? null)
+    if (playing) play.begin(playId, e?.currentTarget?.closest?.('.pg-card, .book-page-content') ?? null,
+      { title: name, image: playImage })
   }
   // A play still lifting when the call settles failed (API error, STALE_MATCH): it is put down.
   const endPlay = () => { if (playing) play.cancel() }

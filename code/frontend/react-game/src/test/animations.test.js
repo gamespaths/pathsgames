@@ -81,6 +81,16 @@ describe('readAnimationEnv — step 15 book change', () => {
     expect(scaledTimings(0.25)).toMatchObject({ slide: 2400, close: 1040 })
   })
 
+  it('v1.15.0 — zoom (book change), gather and gatherStep (phone shuffle) are scaled as the others; --t-* written', () => {
+    expect(BASE_TIMINGS).toMatchObject({ zoom: 320, gather: 420, gatherStep: 60 })
+    expect(scaledTimings(0.25)).toMatchObject({ zoom: 1280, gather: 1680, gatherStep: 240 })
+    const root = document.createElement('div')
+    applyAnimationTimings(resolveAnimations({ env: { VITE_ANIM_SPEED: '1' } }), root)
+    expect(root.style.getPropertyValue('--t-zoom')).toBe('320ms')
+    expect(root.style.getPropertyValue('--t-gather')).toBe('420ms')
+    expect(root.style.getPropertyValue('--t-gatherStep')).toBe('60ms')
+  })
+
   it('`cover` is a flag (overridable, off under reduced motion); `coverMax` is env only', () => {
     const env = { VITE_ANIM_COVER_MAX_S: '4' }
     expect(resolveAnimations({ env })).toMatchObject({ cover: true, coverMax: 4 })

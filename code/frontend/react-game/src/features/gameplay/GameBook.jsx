@@ -36,6 +36,7 @@ export { statChangeItems } from '@/utils/statBadges'
  * v1.13.0 — `error` (a transient API error) takes the right page; the home tab opens the close card first.
  * Step 15 — the played card (PlayContext), the page turns (`turn`, `hold`) and the end game in the same Book.
  * Step 16 — a played card vibrates the phone once, inside the tap (Android; the player's vibration choice).
+ * v1.15.0 — desktop and tablet: the played cards land on a face-up pile beside the book (`playedPile`).
  */
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError, reloadKey = 0,
   openLogKey = 0, staleKey = 0, error = null, onErrorClose }) {
@@ -213,12 +214,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     ? <ErrorCard status={error.status} message={error.message} onClose={onErrorClose} />
     : results.loading ? <LoadingCard story={story} /> : rightContent
 
+  // v1.15.0 — the face-up pile of this match: the story's card, then the cards landed on it.
+  const playedPile = { story: { title: story?.title ?? null, image: storyCard?.urlImage ?? storyCard?.alternativeImage ?? null },
+    played: play.played }
+
   // Step 15 — ONE Book for the whole match: the end game is a page turn of it, not a second book.
   if (gameEnded) {
     return (
       <PlayProvider controller={play}>
         <Book left={endPages.left} right={endPages.right} wrapperClass={endPages.wrapperClass}
-          pageKey={`end:${endPages.pageKey}`} direction={endPages.direction} coverTitle={story?.title} />
+          pageKey={`end:${endPages.pageKey}`} direction={endPages.direction} coverTitle={story?.title}
+          playedPile={playedPile} />
       </PlayProvider>
     )
   }
@@ -237,6 +243,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         pageKey={`${view.turn.key}:${errorOn ? 'error' : 'board'}`}
         direction={errorFlip ? 'fade' : view.turn.direction}
         holdTurn={view.hold}
+        playedPile={playedPile}
       />
     </PlayProvider>
   )

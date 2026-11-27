@@ -41,7 +41,7 @@ vi.mock('../features/gameplay/PageRight', async () => {
     return (
       <div className="pg-card" data-testid="end-card">
         <button data-testid="end-played" onClick={e => {
-          play.begin('end:e1', e.currentTarget.closest('.pg-card'))
+          play.begin('end:e1', e.currentTarget.closest('.pg-card'), { title: 'The End', image: 'end.png' })
           onEndGame({ uuid: 'e1' })
         }}>end</button>
       </div>
@@ -78,7 +78,7 @@ import { PreferencesProvider } from '../preferences/PreferencesContext'
 
 const GAME_DATA = { actualLocationCard: { title: 'Here' }, playerStats: { life: 5 }, locations: [], actions: [],
   endGameCard: { title: 'The End' }, info: { missions: [] } }
-const STORY = { uuid: 's1', title: 'Story', card: { title: 'Story' } }
+const STORY = { uuid: 's1', title: 'Story', card: { title: 'Story', urlImage: 'story.png' } }
 
 const wrapper = () => document.querySelector('.book-wrapper')
 const layer = () => document.querySelector('.book-turn-layer')
@@ -292,6 +292,81 @@ describe('GameBook — the turns of the board (step 15)', () => {
     await act(async () => { fireEvent.click(screen.getByTestId('end')) })
     expect(key()).toBe('0:board')
     expect(wrapper()).not.toHaveClass('end-game-wrapper')
+  })
+})
+
+// v1.15.0 — the face-up pile beside the book (desktop, tablet) and the phone shuffle instead of a page turn.
+describe('GameBook — v1.15.0: the played pile and the phone shuffle', () => {
+  const pileCards = () => [...document.querySelectorAll('.book-shell > .played-pile > .played-card')]
+  afterEach(() => {
+    delete window.matchMedia
+    vi.restoreAllMocks()
+    document.documentElement.classList.remove('is-turning')
+  })
+
+  it('the pile starts with the story card; a played card joins it once landed, on the end pages too', async () => {
+    endMatch.mockResolvedValue({ status: 'ENDED' })
+    renderBoard()
+    expect(pileCards()).toHaveLength(1)
+    expect(pileCards()[0]).toHaveClass('played-card--story')
+    expect(pileCards()[0].querySelector('img')).toHaveAttribute('src', 'story.png')
+    expect(document.querySelector('.played-pile')).toHaveAttribute('data-tip', 'Story')
+    await act(async () => { fireEvent.click(screen.getByTestId('end-played')) })
+    await act(async () => { waapi.finishAll() })
+    expect(key()).toBe('end:1')
+    expect(pileCards()).toHaveLength(2)
+    expect(pileCards()[1]).toHaveClass('played-card--top')
+    expect(pileCards()[1].querySelector('img')).toHaveAttribute('src', 'end.png')
+    expect(document.querySelector('.played-pile')).toHaveAttribute('data-tip', 'game.playedPile.last')
+    await act(async () => { waapi.finishAll() })
+  })
+
+  function onPhone() {
+    window.matchMedia = vi.fn(query => ({ matches: query.includes('max-width: 767px') }))
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(() =>
+      ({ left: 0, top: 100, width: 360, height: 300, right: 360, bottom: 400, x: 0, y: 100 }))
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  }
+
+  it('phones: an answer held then released forward shuffles the copy away (its cards gather), no sheet turns', async () => {
+    onPhone()
+    let finishReload
+    renderBoard({ onReload: vi.fn(() => new Promise(res => { finishReload = res })) })
+    await act(async () => { fireEvent.click(screen.getByTestId('done-forced')) })
+    expect(document.querySelector('body > .m-sheet')).not.toBeNull()
+    const before = waapi.animations.length
+    await act(async () => { finishReload() })
+    await tick()
+    expect(direction()).toBe('forward')
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    const fresh = waapi.animations.slice(before)
+    const gather = fresh.find(a => a.target.closest('.m-sheet') && a.target.classList.contains('pg-card'))
+    expect(gather.keyframes[2].transform).toContain('rotate(240deg)')
+    expect(fresh.some(a => (a.keyframes[0].transform ?? '').includes('rotateY'))).toBe(false)
+    expect(document.querySelector('.page-flipper')).toBeNull()
+    expect(stage()).toHaveAttribute('inert')
+    await act(async () => { waapi.finishAll() })
+    await tick()
+    await act(async () => { waapi.finishAll() })
+    expect(document.querySelector('body > .m-sheet, body > .m-blocker')).toBeNull()
+    expect(stage()).not.toHaveAttribute('inert')
+  })
+
+  it('phones: a play that did not move keeps the fade of the held copy', async () => {
+    onPhone()
+    let finishReload
+    renderBoard({ onReload: vi.fn(() => new Promise(res => { finishReload = res })) })
+    await act(async () => { fireEvent.click(screen.getByTestId('slept')) })
+    const sheet = document.querySelector('body > .m-sheet')
+    const before = waapi.animations.length
+    await act(async () => { finishReload() })
+    await tick()
+    expect(direction()).toBe('fade')
+    const fresh = waapi.animations.slice(before)
+    expect(fresh).toHaveLength(1)
+    expect(fresh[0]).toMatchObject({ target: sheet, keyframes: [{ opacity: 1 }, { opacity: 0 }] })
+    await act(async () => { waapi.finishAll() })
+    expect(document.querySelector('body > .m-sheet')).toBeNull()
   })
 })
 

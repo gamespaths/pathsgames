@@ -173,7 +173,7 @@ describe('Book', () => {
     // step 15 — icon only on every screen: no label span, not even on the active tab
     expect(container.querySelector('.book-bookmark__label')).toBeNull()
     expect(screen.getByLabelText('Info')).toHaveClass('is-active')
-    // the stage says which groups show (phones make room over and under the book)
+    // the stage says which groups show (v1.15.0: phones make room over the book for either)
     const stage = container.querySelector('.book-stage')
     expect(stage).toHaveClass('book-stage--game-tabs', 'book-stage--home-tab')
     expect(stage).not.toHaveClass('book-stage--no-tabs')
@@ -314,6 +314,26 @@ describe('Book — the decks (step 14)', () => {
   it('the pile lies under or over the cover as the deck setting says', () => {
     const { container } = render(<AnimationProvider env={{ VITE_ANIM_DECK: 'over' }}><Book left={null} right={null} /></AnimationProvider>)
     expect(container.querySelector('.deck-pile')).toHaveAttribute('data-place', 'over')
+  })
+
+  // v1.15.0 — the face-up pile of a match: only with `playedPile`, under the same rules as the table deck.
+  it('the played pile only with playedPile, after the deck in .book-shell; none with deck={false} or the deal off', () => {
+    const pile = { story: { title: 'Story', image: 's.png' }, played: [{ title: 'A', image: 'a.png' }] }
+    const plain = withEnv(<Book left={null} right={null} />)
+    expect(plain.container.querySelector('.played-pile')).toBeNull()
+    plain.unmount()
+    const { container, unmount } = withEnv(<Book left={null} right={null} playedPile={pile} />)
+    const played = container.querySelector('.book-shell > .played-pile')
+    expect(played.previousElementSibling).toHaveClass('deck-pile')
+    expect(container.querySelector('.book-wrapper .played-pile')).toBeNull()
+    expect(played.querySelectorAll('.played-card')).toHaveLength(2)
+    unmount()
+    const noDeck = withEnv(<Book left={null} right={null} deck={false} playedPile={pile} />)
+    expect(noDeck.container.querySelector('.played-pile')).toBeNull()
+    noDeck.unmount()
+    const off = render(<AnimationProvider env={{ VITE_ANIM_DEAL: 'false' }}><Book left={null} right={null} playedPile={pile} />
+      </AnimationProvider>)
+    expect(off.container.querySelector('.played-pile, .deck-pile')).toBeNull()
   })
 })
 

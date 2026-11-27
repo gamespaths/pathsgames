@@ -609,6 +609,9 @@
         "COMPLETED": "Completed",
         "FAILED": "Failed"
       }
+    },
+    "playedPile": {
+      "last": "Last played: {title}"
     }
   },
   "footer": {

@@ -273,7 +273,7 @@ export default function Card({
             flagInformationCard={flagInformationCard}
             infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 
             actionsList={actionsList} actionListClass={actionListClass} testId={testId}
-            playId={playId}
+            playId={playId} playImage={urlImage}
           />
 
       {viewLink}
